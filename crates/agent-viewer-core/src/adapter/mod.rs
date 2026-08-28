@@ -21,7 +21,7 @@ pub mod claude_code;
 /// plus a tree of per-agent files. The frontend reads them (this crate cannot)
 /// and the adapter decides what they mean, so a provider that needs companions
 /// does not force a new contract on every provider that does not.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Companion {
     /// Path relative to the companion root, e.g. `subagents/agent-a1b2.jsonl`.
     pub name: String,

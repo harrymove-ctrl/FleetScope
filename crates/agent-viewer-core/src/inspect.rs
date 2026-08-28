@@ -49,6 +49,10 @@ pub fn summary(projection: &Projection) -> String {
     }
     let _ = writeln!(out, "agents    {}", session.agents.len());
     let _ = writeln!(out, "events    {}", session.events.len());
+    // The parity value. The browser build prints the same string for the same
+    // session, because it runs this same code, so "native and browser agree"
+    // is something you can check rather than something you are told.
+    let _ = writeln!(out, "projection {}", projection.fingerprint());
 
     match (
         session.events.first().map(|e| e.timestamp),

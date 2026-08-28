@@ -249,3 +249,30 @@ fn a_deeper_tree_is_flattened_and_says_so() {
     let app = scene::build(&wire, 1.0, Playhead::Edge, None);
     assert!(app.session.agent("root/mid/leaf").is_some());
 }
+
+// ── Native / browser parity ─────────────────────────────────────────────────
+
+#[test]
+fn the_fixture_projects_to_a_stable_fingerprint() {
+    // The browser frontend compiles the same core to wasm and prints this same
+    // value for this same session. Pinning it here means a change that would
+    // make the two frontends disagree fails in `cargo test`, on a laptop,
+    // instead of being noticed in a browser or not at all.
+    //
+    // If this value changes, the projection changed. That is allowed — update
+    // it deliberately, and know that every frontend now shows something new.
+    let projection = fleetscope_cli::load(&fixture()).expect("loads");
+    assert_eq!(projection.fingerprint(), "e2728f4f985c7f33");
+}
+
+#[test]
+fn the_fingerprint_follows_the_session_and_not_the_run() {
+    // Same input, same value, every time: otherwise it proves nothing.
+    let first = fleetscope_cli::load(&fixture())
+        .expect("loads")
+        .fingerprint();
+    let second = fleetscope_cli::load(&fixture())
+        .expect("loads")
+        .fingerprint();
+    assert_eq!(first, second);
+}

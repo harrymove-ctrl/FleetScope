@@ -26,9 +26,11 @@
 pub use agent_viewer_core::{adapter, inspect, viewer, wire};
 pub use agent_viewer_core::{Projection, ProjectionError};
 
+/// The fold into the rendering substrate, shared with the browser build.
+pub use agent_viewer_render as scene;
+
 pub mod discover;
 pub mod follow;
-pub mod scene;
 
 /// Read a session file from disk and project it.
 ///

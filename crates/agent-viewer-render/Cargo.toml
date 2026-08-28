@@ -1,0 +1,20 @@
+[package]
+name = "agent-viewer-render"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "FleetScope Agent Viewer — folding a compiled session into the rendering substrate."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+agent-viewer-core = { path = "../agent-viewer-core" }
+
+# The rendering substrate, PORTABLE CORE only.
+#
+# `default-features = false` drops the native frontend (tokio, crossterm,
+# filesystem tailing) and `render-provenance`. What is left — the model, the
+# timeline, the graph projection and the UI drawing — builds on the host AND on
+# wasm32, which is what lets the terminal and the browser share this fold rather
+# than each implementing their own.
+zoetrope = { path = "../../vendor/zoetrope", default-features = false }

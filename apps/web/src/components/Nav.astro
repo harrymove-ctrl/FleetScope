@@ -14,10 +14,11 @@ interface Props {
 const { path, defaultCaseId, liveMode } = Astro.props;
 
 const links = [
+  { href: '/viewer', label: 'Agent Viewer', section: '/viewer' },
   { href: '/cases', label: 'Cases' },
   { href: '/catalog', label: 'Agent Catalog' },
   { href: '/approvals', label: 'Approvals' },
-  { href: `/cockpit/${defaultCaseId}`, label: 'Agent Viewer', section: '/cockpit' },
+  { href: `/cockpit/${defaultCaseId}`, label: 'Case Graph', section: '/cockpit' },
   { href: `/audit/${defaultCaseId}`, label: 'Audit', section: '/audit' },
 ];
 

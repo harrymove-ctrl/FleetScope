@@ -25,11 +25,20 @@ if ! rustup target list --installed | grep -q wasm32-unknown-unknown; then
 fi
 
 out="apps/web/public/wasm"
-( cd crates/fleet-cockpit-web && trunk build )
+mkdir -p "$out"
 
-# Trunk emits its own index.html next to the artifacts. The Cockpit route is
-# Astro's, so drop the stray page — it would otherwise ship at /wasm/.
-rm -f "$out/index.html"
+# Two browser frontends, staged into one directory that apps/web serves.
+#
+# Each builds into its OWN dist first. Trunk cleans its dist on every build, so
+# pointing both at apps/web/public/wasm would mean the second build silently
+# erased the first — which is exactly what happened before this split.
+for crate in fleet-cockpit-web agent-viewer-web; do
+  ( cd "crates/$crate" && trunk build )
+  # Trunk emits its own index.html beside the artifacts. Both routes are
+  # Astro's, so the stray page is not copied — it would ship at /wasm/.
+  find "crates/$crate/dist" -maxdepth 1 -type f ! -name index.html \
+    -exec cp {} "$out/" \;
+done
 
-echo "Fleet Cockpit WASM staged in $out"
+echo "WASM staged in $out"
 ls -la "$out"

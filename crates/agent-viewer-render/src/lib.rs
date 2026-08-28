@@ -1,15 +1,23 @@
-//! Loading a compiled session into the renderer.
+//! Folding a compiled session into the rendering substrate.
 //!
 //! Thin on purpose: the fold, the timeline engine, the graph projection and the
 //! camera belong to the vendored core and stay unmodified, so its upstream tests
 //! keep their meaning. What lives here is which artifacts make up a scene and
 //! how the playhead is parked when the viewer opens.
+//!
+//! # Why this is a crate and not a module
+//!
+//! Both frontends need this fold, and neither can depend on the other: the
+//! terminal frontend pulls an async runtime and the filesystem, the browser
+//! frontend can only be compiled for wasm32. Putting the fold here means there
+//! is one of it. It depends on the substrate's PORTABLE core, so it builds for
+//! the host and for wasm32 alike.
 
 use zoetrope::state::{App, Mode};
 use zoetrope::tailer::{replay_from_session, DemoSubagent, UiEvent};
 use zoetrope::ui::brand::{set_branding, Branding};
 
-use crate::wire::WireSession;
+use agent_viewer_core::wire::WireSession;
 
 /// The wordmark the renderer draws in the status bar and help overlay.
 const PRODUCT: &str = "FleetScope";
@@ -91,4 +99,39 @@ pub fn build(wire: &WireSession, speed: f64, playhead: Playhead, root_label: Opt
 /// what the scrubber actually traverses.
 pub fn folded_len(app: &App) -> usize {
     app.timeline.items.len()
+}
+
+/// Where the playhead sits and what that means, in the substrate's own units.
+///
+/// Transport is DERIVED from the playhead and the live edge, never stored. A
+/// mode flag captured at launch is the thing that produces a viewer you cannot
+/// get out of, so there is no such flag to capture.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct ViewerSnapshot {
+    #[serde(rename = "entryIndex")]
+    pub entry_index: usize,
+    #[serde(rename = "entryCount")]
+    pub entry_count: usize,
+    #[serde(rename = "atEdge")]
+    pub at_edge: bool,
+    pub transport: &'static str,
+    #[serde(rename = "selectedAgentId", skip_serializing_if = "Option::is_none")]
+    pub selected_agent_id: Option<String>,
+}
+
+pub fn snapshot(app: &App) -> ViewerSnapshot {
+    use zoetrope::state::Transport;
+    ViewerSnapshot {
+        entry_index: app.timeline.fold_target().saturating_sub(1),
+        entry_count: app.timeline.items.len(),
+        at_edge: app.timeline.at_edge(),
+        transport: match app.transport() {
+            Transport::Live => "live",
+            Transport::Playing => "playing",
+            Transport::Paused => "paused",
+            Transport::History => "history",
+            Transport::Idle => "idle",
+        },
+        selected_agent_id: app.selected_agent_id(),
+    }
 }

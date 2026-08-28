@@ -106,14 +106,35 @@ the fold into the real renderer, and the command surface.
 | The Agent Viewer graph can show the session's agent tree | The renderer's graph is **one level deep** (`state/session.rs`: a sub-agent's `parent` is the main node or a workflow group). Deeper sessions are flattened, keep their real path in the label, and the viewer says so; `inspect` prints the true tree. |
 | "A native CLI frontend owns filesystem discovery, tailing, terminal input, and lifecycle" could reuse the vendored tailer | The vendored tailer walks a Claude Code project layout and parses that dialect, so reusing it would make the Claude transcript format the domain model — the one thing this plan forbids. `follow.rs` owns discovery and IO instead; the renderer only ever receives already-compiled entries. |
 
-### Phase 2 — browser parity
+### Phase 2 — browser parity — **DELIVERED, with one defect**
 
-- Feed the same canonical events to the browser/WASM frontend.
-- Support bundled demo, drag-and-drop, and folder selection.
-- Match CLI transport and graph interactions.
+- ~~Feed the same canonical events to the browser/WASM frontend.~~ The core was
+  split into `crates/agent-viewer-core` (projection, IO-free) and
+  `crates/agent-viewer-render` (the fold), both of which compile for wasm32.
+  `crates/agent-viewer-web` is the browser frontend over them.
+- ~~Support bundled demo, drag-and-drop, and folder selection.~~ `/viewer`.
+  Folder selection is what makes the per-agent companion tree readable.
+- ~~Match CLI transport and graph interactions.~~ The same key and mouse
+  bindings, over the same `App`.
 
-**Gate:** the same fixture produces the same projection and visible timeline in
-native and browser builds.
+**Gate: met for the projection, NOT for the visible timeline.** The CLI and the
+browser report the same fingerprint for the same session
+(`e2728f4f985c7f33`), which is pinned by a test, and the browser reads both
+providers and refuses reasoning exactly as the CLI does. But the WebGL grid
+comes out **zero columns wide**, so the graph canvas is blank. The container
+measures correctly (1198px) and the row count is right; only the column count
+is zero.
+
+**This is pre-existing and not caused by this work:** the untouched `/cockpit`
+route has the identical zero-width canvas. It is in the vendored renderer's
+browser terminal backend, below anything FleetScope owns. The terminal frontend
+draws the same session correctly, so the fault is isolated to that backend.
+Phase 2 should not be called finished until it is fixed or worked around.
+
+**One trap worth recording:** trunk CLEANS its `dist` on every build. Both
+frontends originally targeted `apps/web/public/wasm`, so the second build
+silently deleted the first and only the last-built renderer shipped. Each now
+builds into its own `dist` and `scripts/build-wasm.sh` stages both.
 
 ### Phase 3 — provider onboarding
 

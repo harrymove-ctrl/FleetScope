@@ -35,11 +35,15 @@ Enterprise governance and additional providers are later phases.
 
    static-first architecture, scenario compiler, credit guardrails, and slices.
 
-8. [Six-day delivery plan](plans/[six-day-delivery.md](http://six-day-delivery.md)) — work breakdown,
+8. [React Bits Agent Viewer UI plan](design/react-bits-agent-viewer.md) — onboarding/dashboard
+
+   composition, safe registry configuration, and the Astro/React integration boundary.
+
+9. [Six-day delivery plan](plans/[six-day-delivery.md](http://six-day-delivery.md)) — work breakdown,
 
    milestones, owners, gates, and cuts.
 
-9. [Demo and validation plan](plans/[demo-validation.md](http://demo-validation.md)) — the proof the team
+10. [Demo and validation plan](plans/[demo-validation.md](http://demo-validation.md)) — the proof the team
 
    must capture for judges and for internal acceptance.
 

@@ -95,6 +95,32 @@ Adding a provider is an adapter and nothing else. The second one was added
 without touching the viewer model, the wire emitter, `inspect`, or either
 frontend.
 
+### In the browser
+
+`/viewer` is the same viewer as a page. It runs the same projection core
+compiled to wasm, so it is not a second implementation that has to be kept in
+agreement: it reports the same `projection` fingerprint the CLI prints for the
+same session, and that value is pinned by a test.
+
+```bash
+pnpm build:wasm     # builds both browser frontends into apps/web/public/wasm
+pnpm dev            # then open http://localhost:4321/viewer
+```
+
+It opens on the bundled demo (the same fixture the tests use, compiled in), and
+accepts a dropped file or a picked folder. Folder selection matters for formats
+that write a transcript plus a tree of per-agent files beside it: the file alone
+shows the spawn and none of the work. Files are read in the browser. There is no
+fetch in the load path and no backend to send a session to.
+
+**Known issue, pre-existing:** the WebGL grid the graph draws into comes out
+zero columns wide in some environments, so the canvas renders blank while the
+status line, the summary and the fingerprint are all correct. This affects the
+existing `/cockpit` route identically and is in the vendored renderer's
+terminal backend, not in the projection. Until it is fixed, `fleetscope inspect`
+and the page's own summary are the reliable way to read a session, and the
+terminal frontend draws the graph correctly.
+
 ### Known limitation: graph depth
 
 The rendering substrate's agent graph is one level deep — a sub-agent's parent

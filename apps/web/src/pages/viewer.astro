@@ -1,0 +1,307 @@
+---
+/**
+ * The Agent Viewer in the browser.
+ *
+ * The second frontend over the same projection core the `fleetscope` command
+ * uses. Everything that decides what a session MEANS — detection, parsing, the
+ * wire emitter, the fold — is Rust compiled to wasm and shared verbatim with
+ * the CLI. This page owns file input, the status readout and the controls, and
+ * nothing else.
+ *
+ * It reads files the visitor chooses, in their browser. Nothing is uploaded:
+ * there is no fetch in the load path and no backend to send a session to.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+---
+
+<BaseLayout title="Agent Viewer" wide>
+  <PageHeader
+    title="Agent Viewer"
+    lede="Open a local Gemini/ADK or coding-agent session. Files are read in your browser and never uploaded."
+  >
+    <button slot="actions" class="fs-button" data-load-demo>Load bundled demo</button>
+    <button slot="actions" class="fs-button" data-pick-file>Open file…</button>
+    <button slot="actions" class="fs-button" data-pick-folder>Open folder…</button>
+  </PageHeader>
+
+  <input type="file" data-file-input hidden accept=".jsonl,.json" />
+  <!-- `webkitdirectory` is how a browser offers folder selection. A session is
+       a transcript plus a tree of per-agent files beside it, so picking the
+       folder is the only way to get the sub-agents. It is set from script
+       because it is not in the standard attribute types. -->
+  <input type="file" data-folder-input hidden multiple />
+
+  <div class="fs-stack">
+    <section class="fs-card fs-viewer__drop" data-dropzone>
+      <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
+        Loading the viewer…
+      </div>
+      <p class="fs-viewer__hint">
+        Drop a session file here, or a folder containing one. Space plays and pauses,
+        <kbd>←</kbd>/<kbd>→</kbd> step, <kbd>g</kbd> jumps to the end, <kbd>o</kbd> fits the graph,
+        <kbd>?</kbd> shows every key.
+      </p>
+
+      <div
+        id="agent-viewer-canvas"
+        class="fs-viewer__canvas"
+        role="img"
+        aria-label="Agent Viewer session graph"
+        aria-describedby="fs-viewer-fallback"
+      >
+        <p class="fs-placeholder" id="fs-viewer-fallback" data-fallback>
+          Loading the Agent Viewer…
+        </p>
+      </div>
+    </section>
+
+    <section class="fs-card">
+      <h2>Session summary</h2>
+      <p class="fs-muted">
+        The same text <code>fleetscope inspect</code> prints, produced by the same code. It reports
+        the full agent tree, including depth the graph flattens.
+      </p>
+      <pre class="fs-viewer__summary" data-summary>—</pre>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Mirrors .fs-cockpit__canvas. The WebGl2 backend sizes its grid from this
+     element, and it needs a definite box to measure: with only a min-height the
+     canvas came out 0 columns wide and drew nothing. */
+  .fs-viewer__canvas {
+    min-height: 460px;
+    height: 60vh;
+    display: grid;
+    place-items: center;
+    background: #0a0c0f;
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    overflow: hidden;
+    position: relative;
+    min-width: 0;
+  }
+  .fs-viewer__canvas canvas {
+    display: block;
+    max-width: 100%;
+  }
+  .fs-viewer__drop[data-dragging='true'] {
+    outline: 2px dashed var(--fs-accent, #d7af00);
+    outline-offset: 4px;
+  }
+  .fs-viewer__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fs-space-3, 12px);
+    margin-bottom: var(--fs-space-2, 8px);
+    font-family: var(--fs-font-mono, monospace);
+    font-size: 0.85rem;
+  }
+  .fs-viewer__meta [data-bad='true'] {
+    color: var(--fs-danger, #f05d5e);
+  }
+  .fs-viewer__hint {
+    margin: 0 0 var(--fs-space-3, 12px);
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+  .fs-viewer__summary {
+    overflow-x: auto;
+    white-space: pre;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+</style>
+
+<script>
+  const statusEl = document.querySelector('[data-status]') as HTMLElement | null;
+  const summaryEl = document.querySelector('[data-summary]') as HTMLElement | null;
+  const fallbackEl = document.querySelector('[data-fallback]') as HTMLElement | null;
+  const dropzone = document.querySelector('[data-dropzone]') as HTMLElement | null;
+  const fileInput = document.querySelector('[data-file-input]') as HTMLInputElement | null;
+  const folderInput = document.querySelector('[data-folder-input]') as HTMLInputElement | null;
+
+  /** Files a session can be made of. Anything else in a folder is ignored. */
+  const READABLE = /\.(jsonl|json)$/i;
+
+  type Api = {
+    agent_viewer_load: (name: string, main: string, companions: string) => string;
+    agent_viewer_load_demo: () => string;
+    agent_viewer_summary: () => string;
+    agent_viewer_fingerprint: () => string;
+  };
+
+  let api: Api | null = null;
+
+  function say(message: string, bad = false) {
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.dataset.bad = String(bad);
+  }
+
+  function report(statusJson: string) {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(statusJson);
+    } catch {
+      say('The viewer returned a status this page could not read.', true);
+      return;
+    }
+    const bits = [
+      `session ${parsed.sessionId}`,
+      `${parsed.adapter}`,
+      `${parsed.agents} agents`,
+      `${parsed.events} events`,
+      `fingerprint ${parsed.fingerprint}`,
+    ];
+    // The flatten note is the renderer admitting what it could not draw. It is
+    // not decoration: without it a deep session looks flat and correct.
+    if (parsed.flattenNote) bits.push(String(parsed.flattenNote));
+    say(bits.join('  ·  '));
+    if (summaryEl && api) summaryEl.textContent = api.agent_viewer_summary();
+  }
+
+  /** Read one File as text, rejecting nothing: an unreadable file is reported. */
+  const readText = (file: File): Promise<string> => file.text();
+
+  async function loadFiles(files: File[]) {
+    const readable = files.filter((file) => READABLE.test(file.name));
+    if (readable.length === 0) {
+      say('No .jsonl or .json session file in that selection.', true);
+      return;
+    }
+
+    // The main transcript is the largest top-level file. Per-agent files live
+    // in a directory beside it, so they are deeper in the relative path.
+    const depth = (file: File) => (file.webkitRelativePath || file.name).split('/').length;
+    const shallowest = Math.min(...readable.map(depth));
+    const candidates = readable.filter((file) => depth(file) === shallowest);
+    const main = candidates.reduce((a, b) => (a.size >= b.size ? a : b));
+
+    const mainPath = main.webkitRelativePath || main.name;
+    const root = mainPath.replace(/\.[^./]+$/, '');
+
+    const companions = await Promise.all(
+      readable
+        .filter((file) => file !== main)
+        .map(async (file) => {
+          const path = file.webkitRelativePath || file.name;
+          // Name each companion relative to the session's own directory, which
+          // is the contract the adapters read.
+          const name = path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path;
+          return { name, text: await readText(file) };
+        }),
+    );
+
+    try {
+      const status = api!.agent_viewer_load(
+        main.name,
+        await readText(main),
+        JSON.stringify(companions),
+      );
+      report(status);
+    } catch (error) {
+      // Say WHY. A viewer that fails to a blank canvas is worse than one that
+      // refuses a file and names the reason.
+      say(error instanceof Error ? error.message : String(error), true);
+    }
+  }
+
+  /**
+   * Load the generated wasm-bindgen glue.
+   *
+   * It is a build artifact in /public — outside Vite's module graph and outside
+   * TypeScript's view of the project. A direct `import()` from this module does
+   * NOT work: in dev Vite rewrites the request and refuses it, and in a
+   * production build it injects a `__VITE_PRELOAD__` reference that is not
+   * defined at runtime. The import therefore has to originate from a script
+   * element the bundler never sees, which is what this does.
+   */
+  function loadGlue(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const onReady = (event: Event) => {
+        window.removeEventListener('fleetscope:viewer-glue', onReady);
+        const detail = (event as CustomEvent<{ ok: boolean; message?: string }>).detail;
+        if (detail.ok) resolve();
+        else reject(new Error(detail.message ?? 'unknown error'));
+      };
+      window.addEventListener('fleetscope:viewer-glue', onReady);
+
+      const loader = document.createElement('script');
+      loader.type = 'module';
+      loader.textContent = [
+        "import('/wasm/viewer.js')",
+        '  .then(async (module) => {',
+        '    await module.default();',
+        '    globalThis.fleetscopeViewer = module;',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:viewer-glue', { detail: { ok: true } }));",
+        '  })',
+        '  .catch((error) => {',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:viewer-glue', {",
+        '      detail: { ok: false, message: String((error && error.message) || error) },',
+        '    }));',
+        '  });',
+      ].join('\n');
+      document.body.appendChild(loader);
+    });
+  }
+
+  async function boot() {
+    try {
+      await loadGlue();
+      const module = (globalThis as { fleetscopeViewer?: Api }).fleetscopeViewer;
+      // Assert the ABI by name, so a partial load fails here rather than at the
+      // first call site with an unhelpful "not a function".
+      if (!module || typeof module.agent_viewer_load_demo !== 'function') {
+        throw new Error('the renderer loaded without its expected ABI');
+      }
+      api = module;
+      fallbackEl?.remove();
+      report(module.agent_viewer_load_demo());
+    } catch (error) {
+      say(
+        `The Agent Viewer renderer could not be loaded (${
+          error instanceof Error ? error.message : 'unknown error'
+        }). Run pnpm build:wasm.`,
+        true,
+      );
+    }
+  }
+
+  dropzone?.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    dropzone.dataset.dragging = 'true';
+  });
+  dropzone?.addEventListener('dragleave', () => {
+    dropzone.dataset.dragging = 'false';
+  });
+  dropzone?.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    dropzone.dataset.dragging = 'false';
+    if (!api) return;
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (files.length > 0) await loadFiles(files);
+  });
+
+  document.querySelector('[data-pick-file]')?.addEventListener('click', () => fileInput?.click());
+  document
+    .querySelector('[data-pick-folder]')
+    ?.addEventListener('click', () => folderInput?.click());
+  document.querySelector('[data-load-demo]')?.addEventListener('click', () => {
+    if (api) report(api.agent_viewer_load_demo());
+  });
+
+  // Non-standard, and the only way a browser offers a directory picker.
+  folderInput?.setAttribute('webkitdirectory', '');
+
+  for (const input of [fileInput, folderInput]) {
+    input?.addEventListener('change', async () => {
+      if (!api || !input.files) return;
+      await loadFiles(Array.from(input.files));
+    });
+  }
+
+  void boot();
+</script>
