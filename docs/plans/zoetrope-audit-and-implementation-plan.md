@@ -136,11 +136,44 @@ frontends originally targeted `apps/web/public/wasm`, so the second build
 silently deleted the first and only the last-built renderer shipped. Each now
 builds into its own `dist` and `scripts/build-wasm.sh` stages both.
 
-### Phase 3 — provider onboarding
+### Phase 3 — provider onboarding — **DELIVERED**
 
-- Add adapters one provider at a time.
-- Keep provider differences at the ingestion boundary.
-- Add format/version detection and clear unsupported-input errors.
+- ~~Add adapters one provider at a time.~~ One added:
+  `crates/agent-viewer-core/src/adapter/claude_code.rs`, reading a main
+  transcript plus the per-agent companion tree beside it. It shares no parsing
+  with the ADK adapter, and it does NOT borrow the vendored renderer's parser
+  for the same dialect: that would make a provider transcript the domain model.
+- ~~Keep provider differences at the ingestion boundary.~~ Adding it changed
+  nothing outside `adapter/`. The viewer model, the wire emitter, `inspect` and
+  both frontends were untouched, which is the only real test of the boundary.
+  `SessionSource` gained companion files, because a session is not always one
+  file; the frontend collects the tree structurally and the adapter decides what
+  a path means.
+- ~~Add format/version detection and clear unsupported-input errors.~~
+  Detection is scored (`Confidence::{No,Maybe,Yes}`) and the two adapters
+  decline each other outright, so the choice never depends on registry order.
+  The producer version is read off the session and reported. An unrecognised
+  file is refused by name and the error lists every readable format; `--format`
+  forces one and `--formats` lists them, so "unsupported" is always actionable.
+
+**Gate: met.** Both fixtures project through one pipeline to different adapter
+ids, and the viewer reads real sessions off disk.
+
+**Three bugs the fixtures could not have caught.** Every one passed against a
+fixture written to match the parser and failed the first time the viewer was
+pointed at a real session directory. They are the reason this phase is worth
+more than its diff:
+
+| Symptom | Cause |
+|---|---|
+| **Every** real session refused as unrecognised | Detection read only the first line. Real transcripts open with bookkeeping entries (`queue-operation`, `attachment`) before the first message. It probes a window now. |
+| A 2-agent session reported as **82 agents** | Every `.jsonl` in the companion tree was treated as a sub-agent. One real session carries 127 workflow files under `subagents/workflows/`. Only files directly under `subagents/` count. |
+| Sub-agent events **silently missing** | Files are named `agent-<id>.jsonl` but the lines inside carry `agentId: "<id>"` without the prefix, and that field is the join key. Both the graph and `inspect` walk down from the root, so orphaned events were not an error, just absent work. The prefix is stripped, and an event whose agent was never declared now surfaces as an extra node instead of disappearing. |
+
+The lesson is recorded because it generalizes to every future adapter: a
+provider fixture written from the parser proves the parser agrees with itself.
+Point the viewer at real data before claiming an adapter works.
+
 
 ### Phase 4 — FleetScope platform — **NOT STARTED, deliberately**
 
