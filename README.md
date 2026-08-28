@@ -21,6 +21,8 @@ cargo run -p fleetscope-cli --bin fleetscope -- \
 fleetscope <path>                    replay a recording from the start
 fleetscope <path> --follow           open parked at the live edge
 fleetscope <path> --speed 4          replay speed multiplier
+fleetscope <path> --format <id>      force a format instead of detecting one
+fleetscope --formats                 list the formats this build can read
 fleetscope inspect <path>            headless summary, no terminal UI
 ```
 
@@ -78,13 +80,20 @@ look stuck.
 
 ### Supported input
 
-Google ADK / Gemini sessions, in either envelope: a `Session` object with an
-`events` array, or a streamed log with one `Event` per line (the
-Antigravity-style shape). Field names are accepted in camelCase and snake_case,
-because the Python SDK emits either depending on `by_alias`.
+| Format          | What it reads                                                                                                                                                                                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `google-adk@1`  | Google ADK / Gemini sessions, in either envelope: a `Session` object with an `events` array, or a streamed log with one `Event` per line (the Antigravity-style shape). camelCase and snake_case field names are both accepted, because the Python SDK emits either depending on `by_alias`. |
+| `claude-code@1` | Local sessions written as `<project>/<session>.jsonl` plus a `<session>/subagents/` tree beside it. The producer version is read off the transcript and reported.                                                                                                                            |
 
-A file no adapter recognises is refused by name rather than guessed at: drawing
-a confident graph of the wrong thing is worse than declining the file.
+Detection is scored, and the two adapters decline each other outright, so the
+choice never depends on registry order. A file nothing recognises is refused by
+name and the error lists every readable format: drawing a confident graph of the
+wrong thing is worse than declining the file. `--format <id>` forces one when
+detection cannot place a session.
+
+Adding a provider is an adapter and nothing else. The second one was added
+without touching the viewer model, the wire emitter, `inspect`, or either
+frontend.
 
 ### Known limitation: graph depth
 
@@ -127,25 +136,26 @@ disabled after first load.
 
 ## Repository map
 
-| Path                         | What it is                                                                                                             |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`                   | Astro product shell (static output). Catalog, Cases, Approvals, Cockpit mount, Audit.                                  |
-| `apps/api`                   | One small Hono service: `/health`, `/capability`, one bounded live proof. Optional.                                    |
-| `packages/domain`            | The FleetScope vocabulary. Framework-independent.                                                                      |
-| `packages/event-schema`      | Canonical Event envelope, the closed event-type set, JSONL codec, generated JSON Schema.                               |
-| `packages/projector`         | The versioned **pure** Session Projector and the state-hash contract.                                                  |
-| `packages/fixtures`          | Recorded Case evidence — a product asset, not a test leftover.                                                         |
-| `packages/canonicalizer`     | **The primary redaction boundary.** Validate → redact → dedup → order → Canonical Event.                               |
-| `packages/scenario-compiler` | Canonical Events → renderer transcripts **+ the Render Manifest**, behind `RendererAdapter`.                           |
-| `packages/warden`            | Incident Detector, Policy Engine, and the Intervention lifecycle with at-most-once execution.                          |
-| `packages/platform-adapters` | The seven adapter interfaces, their `recorded / synthetic / live / unavailable` modes, and the capability truth table. |
-| `packages/shared`            | Canonical JSON, SHA-256, `Result`, central config parsing, the live-mode guard.                                        |
-| `crates/fleetscope-cli`      | Rust, the **`fleetscope` command**: provider adapters, renderer wire emitter, local discovery and tailing, `inspect`.  |
-| `crates/fleet-cockpit`       | Rust, **host-testable**: Render Manifest, Event Cursor, scene loading over the vendored renderer.                      |
-| `crates/fleet-cockpit-web`   | Rust, **wasm32-only**, its own workspace: the browser shell and the `fleetscope_*` ABI.                                |
-| `vendor/zoetrope`            | The pinned MIT renderer. See `vendor/VENDOR-PATCHES.md` — it is **patched**, not pristine.                             |
-| `docs/`                      | Product, requirements, design, plans, decisions, reports, `architecture.md`.                                           |
-| `scripts/`                   | `typecheck.sh`, `build-wasm.sh`, `smoke.sh`, `bless-fixtures.ts`, `recorded-run.ts`, `recorded-reliability.ts`.        |
+| Path                         | What it is                                                                                                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web`                   | Astro product shell (static output). Catalog, Cases, Approvals, Cockpit mount, Audit.                                                                                                                        |
+| `apps/api`                   | One small Hono service: `/health`, `/capability`, one bounded live proof. Optional.                                                                                                                          |
+| `packages/domain`            | The FleetScope vocabulary. Framework-independent.                                                                                                                                                            |
+| `packages/event-schema`      | Canonical Event envelope, the closed event-type set, JSONL codec, generated JSON Schema.                                                                                                                     |
+| `packages/projector`         | The versioned **pure** Session Projector and the state-hash contract.                                                                                                                                        |
+| `packages/fixtures`          | Recorded Case evidence — a product asset, not a test leftover.                                                                                                                                               |
+| `packages/canonicalizer`     | **The primary redaction boundary.** Validate → redact → dedup → order → Canonical Event.                                                                                                                     |
+| `packages/scenario-compiler` | Canonical Events → renderer transcripts **+ the Render Manifest**, behind `RendererAdapter`.                                                                                                                 |
+| `packages/warden`            | Incident Detector, Policy Engine, and the Intervention lifecycle with at-most-once execution.                                                                                                                |
+| `packages/platform-adapters` | The seven adapter interfaces, their `recorded / synthetic / live / unavailable` modes, and the capability truth table.                                                                                       |
+| `packages/shared`            | Canonical JSON, SHA-256, `Result`, central config parsing, the live-mode guard.                                                                                                                              |
+| `crates/agent-viewer-core`   | Rust, **portable and IO-free**: provider adapters, the viewer model, the renderer wire emitter, `inspect`. Compiles for the host and for wasm32, which is what makes native and browser the same projection. |
+| `crates/fleetscope-cli`      | Rust, the **`fleetscope` command**: local discovery, tailing, the terminal frontend.                                                                                                                         |
+| `crates/fleet-cockpit`       | Rust, **host-testable**: Render Manifest, Event Cursor, scene loading over the vendored renderer.                                                                                                            |
+| `crates/fleet-cockpit-web`   | Rust, **wasm32-only**, its own workspace: the browser shell and the `fleetscope_*` ABI.                                                                                                                      |
+| `vendor/zoetrope`            | The pinned MIT renderer. See `vendor/VENDOR-PATCHES.md` — it is **patched**, not pristine.                                                                                                                   |
+| `docs/`                      | Product, requirements, design, plans, decisions, reports, `architecture.md`.                                                                                                                                 |
+| `scripts/`                   | `typecheck.sh`, `build-wasm.sh`, `smoke.sh`, `bless-fixtures.ts`, `recorded-run.ts`, `recorded-reliability.ts`.                                                                                              |
 
 Dependency rules and per-package responsibilities: **`docs/architecture.md`**.
 
@@ -280,7 +290,11 @@ pnpm lint
 pnpm format:check
 
 cargo test                    # FleetScope Rust, incl. the real Zoetrope integration
-cargo test -p fleetscope-cli  # the CLI: ingestion, the wire contract, the fold, the command surface
+cargo test -p fleetscope-cli  # ingestion, the wire contract, the fold, the command surface
+
+# The projection core must keep compiling for the browser target, or native and
+# browser stop being the same code.
+cargo check -p agent-viewer-core --target wasm32-unknown-unknown
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 

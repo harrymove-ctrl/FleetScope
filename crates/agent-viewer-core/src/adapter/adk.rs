@@ -37,6 +37,9 @@ use crate::viewer::{Payload, Terminal, ViewerAgent, ViewerEvent, ViewerSession};
 
 pub const ADAPTER_ID: &str = "google-adk@1";
 
+/// How many lines detection reads before deciding.
+const PROBE_LINES: usize = 40;
+
 /// Longest display text kept on a label. Beyond this a graph node stops being
 /// readable and the timeline row starts wrapping.
 const MAX_TEXT: usize = 160;
@@ -157,28 +160,29 @@ impl SessionAdapter for AdkAdapter {
             }
         }
 
-        // Streamed form: one event per line.
-        let Some(line) = source.first_line() else {
-            return Confidence::No;
-        };
-        let Ok(value) = serde_json::from_str::<serde_json::Value>(line) else {
-            return Confidence::No;
-        };
-        if value.get("author").is_none() {
-            return Confidence::No;
+        // Streamed form: one event per line. Probed over a window rather
+        // than on line one, because a producer may write bookkeeping first.
+        let mut best = Confidence::No;
+        for line in source.probe_lines(PROBE_LINES) {
+            let Ok(value) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
+            if value.get("author").is_none() {
+                continue;
+            }
+            // `invocationId` and `branch` are ADK's own; `content.parts` is the
+            // Gemini content shape. Any one of them discriminates against a
+            // generic log line that happens to carry an `author`.
+            let discriminating = value.get("invocationId").is_some()
+                || value.get("invocation_id").is_some()
+                || value.get("branch").is_some()
+                || value.get("content").and_then(|c| c.get("parts")).is_some();
+            if discriminating {
+                return Confidence::Yes;
+            }
+            best = Confidence::Maybe;
         }
-        // `invocationId` and `branch` are ADK's own; `content.parts` is the
-        // Gemini content shape. Any one of them discriminates against a generic
-        // log line that happens to carry an `author`.
-        let discriminating = value.get("invocationId").is_some()
-            || value.get("invocation_id").is_some()
-            || value.get("branch").is_some()
-            || value.get("content").and_then(|c| c.get("parts")).is_some();
-        if discriminating {
-            Confidence::Yes
-        } else {
-            Confidence::Maybe
-        }
+        best
     }
 
     fn parse(&self, source: &SessionSource) -> Result<ViewerSession, AdapterError> {

@@ -20,23 +20,25 @@
 //! pure, which is what lets the same projection serve the native terminal and,
 //! in phase 2, the browser build.
 
-pub mod adapter;
+// The projection itself lives in `agent-viewer-core`, which has no renderer,
+// no runtime and no filesystem so the browser build can compile the identical
+// code. Re-exported here so this crate reads as one viewer rather than two.
+pub use agent_viewer_core::{adapter, inspect, viewer, wire};
+pub use agent_viewer_core::{Projection, ProjectionError};
+
 pub mod discover;
 pub mod follow;
-pub mod inspect;
 pub mod scene;
-pub mod viewer;
-pub mod wire;
 
-/// Read, detect, parse and compile one session file in one step.
+/// Read a session file from disk and project it.
+///
+/// The only thing this adds over [`agent_viewer_core::project`] is the read:
+/// filesystem access is a frontend responsibility, and this is the frontend.
 pub fn load(path: &std::path::Path) -> Result<Loaded, Box<dyn std::error::Error>> {
-    let source = adapter::SessionSource::read(path)?;
-    let session = adapter::parse(&source)?;
-    let wire = wire::compile(&session);
-    Ok(Loaded { session, wire })
+    let source = discover::read_source(path)?;
+    Ok(agent_viewer_core::project(&source)?)
 }
 
-pub struct Loaded {
-    pub session: viewer::ViewerSession,
-    pub wire: wire::WireSession,
-}
+/// Kept as an alias so call sites read as "loaded from disk" rather than
+/// "projected", which is what they mean here.
+pub type Loaded = Projection;

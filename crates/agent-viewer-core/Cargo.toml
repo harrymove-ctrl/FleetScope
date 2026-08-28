@@ -1,0 +1,23 @@
+[package]
+name = "agent-viewer-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "FleetScope Agent Viewer — the portable, IO-free projection core."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+
+# No renderer, no runtime, no filesystem, ON PURPOSE.
+#
+# This crate is what both frontends compile: the native terminal command and the
+# browser build. Adding any of the three would make one of them impossible and
+# would end the guarantee that the two see the same projection because they run
+# the same code, rather than because two implementations happen to agree.
+#
+# `chrono` is here without `clock`: wall-clock time is an ambient input, and a
+# projection that reads one is not reproducible. Every timestamp comes from the
+# session being read.

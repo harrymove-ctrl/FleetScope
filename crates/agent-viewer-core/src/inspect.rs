@@ -7,16 +7,46 @@
 
 use std::fmt::Write as _;
 
+use crate::adapter::Confidence;
 use crate::viewer::{Payload, Terminal, ViewerSession};
-use crate::wire::{self, WireSession};
+use crate::wire;
+use crate::Projection;
 
 /// Render the summary. Returns the text rather than printing it so tests can
 /// assert on it without capturing stdout.
-pub fn summary(session: &ViewerSession, wire: &WireSession) -> String {
+pub fn summary(projection: &Projection) -> String {
+    let Projection {
+        session,
+        wire,
+        selection,
+    } = projection;
     let mut out = String::new();
 
     let _ = writeln!(out, "session   {}", session.session_id);
-    let _ = writeln!(out, "adapter   {}", session.adapter_id);
+
+    // Say what recognised the file, how sure it was, and what the producer
+    // stamped. A session written by a newer producer should be visible as such
+    // rather than showing up later as an unexplained parse difference.
+    match selection {
+        Some(selection) => {
+            let hedge = if selection.confidence == Confidence::Maybe {
+                "  (best guess: no discriminating field)"
+            } else {
+                ""
+            };
+            let _ = writeln!(
+                out,
+                "adapter   {} — {}{hedge}",
+                session.adapter_id, selection.label
+            );
+            if let Some(version) = &selection.version {
+                let _ = writeln!(out, "producer  {version}");
+            }
+        }
+        None => {
+            let _ = writeln!(out, "adapter   {} (forced)", session.adapter_id);
+        }
+    }
     let _ = writeln!(out, "agents    {}", session.agents.len());
     let _ = writeln!(out, "events    {}", session.events.len());
 

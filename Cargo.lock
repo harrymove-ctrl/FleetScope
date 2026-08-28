@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "agent-viewer-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -270,6 +279,7 @@ dependencies = [
 name = "fleetscope-cli"
 version = "0.1.0"
 dependencies = [
+ "agent-viewer-core",
  "anyhow",
  "chrono",
  "serde",

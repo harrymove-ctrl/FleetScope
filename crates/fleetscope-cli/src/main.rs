@@ -27,6 +27,8 @@ USAGE
 OPTIONS
     -f, --follow        open parked at the live edge instead of replaying
     -s, --speed <N>     replay speed multiplier (default 1)
+        --format <ID>   force a session format instead of detecting one
+        --formats       list the session formats this build can read
     -h, --help          print this message
     -V, --version       print the version
 
@@ -44,10 +46,16 @@ enum Command {
         path: PathBuf,
         follow: bool,
         speed: f64,
+        format: Option<String>,
     },
     Inspect {
         path: PathBuf,
+        format: Option<String>,
     },
+    /// The formats this build can read. Printed on request and named in the
+    /// error when detection refuses a file, so "unsupported" is always
+    /// actionable rather than a dead end.
+    Formats,
     Help,
     Version,
 }
@@ -71,7 +79,13 @@ fn main() -> ExitCode {
             println!("fleetscope {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
-        Command::Inspect { path } => match run_inspect(&path) {
+        Command::Formats => {
+            for (id, label) in fleetscope_cli::adapter::known_formats() {
+                println!("{id:<18} {label}");
+            }
+            ExitCode::SUCCESS
+        }
+        Command::Inspect { path, format } => match run_inspect(&path, format.as_deref()) {
             Ok(text) => {
                 print!("{text}");
                 ExitCode::SUCCESS
@@ -85,7 +99,8 @@ fn main() -> ExitCode {
             path,
             follow,
             speed,
-        } => match run_view(&path, follow, speed) {
+            format,
+        } => match run_view(&path, follow, speed, format.as_deref()) {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("fleetscope: {error}");
@@ -110,6 +125,7 @@ fn parse(args: &[String]) -> Result<Command, String> {
     let mut path: Option<PathBuf> = None;
     let mut follow = false;
     let mut speed = 1.0_f64;
+    let mut format: Option<String> = None;
 
     let mut index = 0;
     while index < rest.len() {
@@ -117,7 +133,15 @@ fn parse(args: &[String]) -> Result<Command, String> {
         match argument {
             "-h" | "--help" => return Ok(Command::Help),
             "-V" | "--version" => return Ok(Command::Version),
+            "--formats" => return Ok(Command::Formats),
             "-f" | "--follow" => follow = true,
+            "--format" => {
+                index += 1;
+                let value = rest
+                    .get(index)
+                    .ok_or_else(|| "--format needs a format id".to_string())?;
+                format = Some(value.clone());
+            }
             "-s" | "--speed" => {
                 index += 1;
                 let value = rest
@@ -145,29 +169,48 @@ fn parse(args: &[String]) -> Result<Command, String> {
 
     let path = path.ok_or_else(|| "a session path is required".to_string())?;
     if inspect {
-        Ok(Command::Inspect { path })
+        Ok(Command::Inspect { path, format })
     } else {
         Ok(Command::View {
             path,
             follow,
             speed,
+            format,
         })
     }
 }
 
-fn run_inspect(path: &std::path::Path) -> Result<String, Box<dyn std::error::Error>> {
+fn run_inspect(
+    path: &std::path::Path,
+    format: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
     let resolved = discover::resolve(path)?;
-    let loaded = fleetscope_cli::load(&resolved)?;
-    Ok(inspect::summary(&loaded.session, &loaded.wire))
+    let loaded = load(&resolved, format)?;
+    Ok(inspect::summary(&loaded))
+}
+
+/// Project a resolved file, honouring an explicit `--format`.
+fn load(
+    path: &std::path::Path,
+    format: Option<&str>,
+) -> Result<fleetscope_cli::Projection, Box<dyn std::error::Error>> {
+    match format {
+        None => fleetscope_cli::load(path),
+        Some(id) => {
+            let source = discover::read_source(path)?;
+            Ok(agent_viewer_core::project_as(&source, id)?)
+        }
+    }
 }
 
 fn run_view(
     path: &std::path::Path,
     follow: bool,
     speed: f64,
+    format: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let resolved = discover::resolve(path)?;
-    let loaded = fleetscope_cli::load(&resolved)?;
+    let loaded = load(&resolved, format)?;
 
     // A directory means "show me whatever is happening", which is the live
     // edge. An explicit file means "replay this", which starts at the top.

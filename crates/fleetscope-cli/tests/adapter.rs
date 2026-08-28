@@ -13,7 +13,7 @@ fn fixture_path() -> PathBuf {
 }
 
 fn source() -> SessionSource {
-    SessionSource::read(&fixture_path()).expect("fixture is readable")
+    fleetscope_cli::discover::read_source(&fixture_path()).expect("fixture is readable")
 }
 
 fn session() -> fleetscope_cli::viewer::ViewerSession {
@@ -32,10 +32,10 @@ fn the_adk_dialect_is_recognised_outright() {
 
 #[test]
 fn an_unrelated_json_log_is_refused_rather_than_guessed_at() {
-    let unrelated = SessionSource {
-        path: PathBuf::from("app.log.jsonl"),
-        text: "{\"level\":\"info\",\"msg\":\"listening on 8080\"}\n".to_string(),
-    };
+    let unrelated = SessionSource::new(
+        PathBuf::from("app.log.jsonl"),
+        "{\"level\":\"info\",\"msg\":\"listening on 8080\"}\n".to_string(),
+    );
     assert_eq!(adapter::adk::AdkAdapter.detect(&unrelated), Confidence::No);
     let error = adapter::parse(&unrelated).expect_err("must not be parsed");
     assert!(
@@ -57,10 +57,10 @@ fn both_envelopes_produce_the_same_session() {
         .filter(|line| !line.trim().is_empty())
         .map(|line| serde_json::from_str(line).unwrap())
         .collect();
-    let wrapped = SessionSource {
-        path: PathBuf::from("wrapped.json"),
-        text: serde_json::json!({ "id": "inv-1", "events": events }).to_string(),
-    };
+    let wrapped = SessionSource::new(
+        PathBuf::from("wrapped.json"),
+        serde_json::json!({ "id": "inv-1", "events": events }).to_string(),
+    );
 
     let wrapped = adapter::parse(&wrapped).expect("the wrapped envelope parses");
     assert_eq!(wrapped.agents, streamed.agents);
@@ -71,9 +71,9 @@ fn both_envelopes_produce_the_same_session() {
 fn snake_case_field_names_are_accepted() {
     // The Python SDK emits camelCase or snake_case depending on `by_alias`.
     // Both are in the wild, so both must load.
-    let snake = SessionSource {
-        path: PathBuf::from("snake.jsonl"),
-        text: concat!(
+    let snake = SessionSource::new(
+        PathBuf::from("snake.jsonl"),
+        concat!(
             r#"{"id":"a","invocation_id":"inv-9","author":"root","timestamp":1787907600.0,"#,
             r#""content":{"role":"model","parts":[{"function_call":{"id":"c1","name":"lookup","args":{}}}]}}"#,
             "\n",
@@ -82,7 +82,7 @@ fn snake_case_field_names_are_accepted() {
             r#""content":{"role":"model","parts":[{"text":"done"}]}}"#,
         )
         .to_string(),
-    };
+    );
     let parsed = adapter::parse(&snake).expect("snake_case parses");
     assert_eq!(parsed.session_id, "inv-9");
     assert!(
@@ -126,11 +126,8 @@ fn the_same_author_under_two_parents_stays_two_nodes() {
         r#"{"id":"3","invocationId":"i","author":"search","branch":"root.beta.search","timestamp":3.0,"content":{"role":"model","parts":[{"text":"b"}]}}"#,
     ]
     .join("\n");
-    let parsed = adapter::parse(&SessionSource {
-        path: PathBuf::from("two.jsonl"),
-        text,
-    })
-    .expect("parses");
+    let parsed =
+        adapter::parse(&SessionSource::new(PathBuf::from("two.jsonl"), text)).expect("parses");
 
     assert!(parsed.agent("root/alpha/search").is_some());
     assert!(parsed.agent("root/beta/search").is_some());
@@ -185,11 +182,8 @@ fn an_agent_that_never_reported_reads_as_unknown_not_as_success() {
         r#"{"id":"2","invocationId":"i","author":"worker","branch":"root.worker","timestamp":2.0,"content":{"role":"model","parts":[{"functionCall":{"id":"c1","name":"fetch","args":{}}}]}}"#,
     ]
     .join("\n");
-    let parsed = adapter::parse(&SessionSource {
-        path: PathBuf::from("stuck.jsonl"),
-        text,
-    })
-    .expect("parses");
+    let parsed =
+        adapter::parse(&SessionSource::new(PathBuf::from("stuck.jsonl"), text)).expect("parses");
 
     assert_eq!(
         parsed.terminal_for("root/worker"),
@@ -233,10 +227,10 @@ fn an_unrecognised_response_shape_is_a_success_not_a_failure() {
         r#"{"id":"2","invocationId":"i","author":"root","timestamp":2.0,"#,
         r#""content":{"role":"user","parts":[{"functionResponse":{"id":"c1","name":"f","response":{"rows":3}}}]}}"#,
     );
-    let parsed = adapter::parse(&SessionSource {
-        path: PathBuf::from("ok.jsonl"),
-        text: text.to_string(),
-    })
+    let parsed = adapter::parse(&SessionSource::new(
+        PathBuf::from("ok.jsonl"),
+        text.to_string(),
+    ))
     .expect("parses");
     assert_eq!(parsed.error_count("root"), 0);
 }
@@ -249,11 +243,8 @@ fn streaming_fragments_are_not_folded_twice() {
         r#"{"id":"2","invocationId":"i","author":"root","timestamp":2.0,"content":{"role":"model","parts":[{"text":"hello"}]}}"#,
     ]
     .join("\n");
-    let parsed = adapter::parse(&SessionSource {
-        path: PathBuf::from("partial.jsonl"),
-        text,
-    })
-    .expect("parses");
+    let parsed =
+        adapter::parse(&SessionSource::new(PathBuf::from("partial.jsonl"), text)).expect("parses");
     assert_eq!(parsed.events.len(), 1);
 }
 
@@ -261,10 +252,10 @@ fn streaming_fragments_are_not_folded_twice() {
 fn a_malformed_line_names_its_line_number() {
     let text = "{\"author\":\"root\",\"branch\":\"root\"}\nnot json\n";
     let error = adapter::adk::AdkAdapter
-        .parse(&SessionSource {
-            path: PathBuf::from("bad.jsonl"),
-            text: text.to_string(),
-        })
+        .parse(&SessionSource::new(
+            PathBuf::from("bad.jsonl"),
+            text.to_string(),
+        ))
         .expect_err("must fail");
     assert!(
         error.to_string().starts_with("line 2:"),

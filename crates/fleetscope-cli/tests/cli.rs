@@ -115,3 +115,34 @@ fn help_documents_the_transport_actions_that_are_always_available() {
         "the help must state the local-only guarantee"
     );
 }
+
+#[test]
+fn the_readable_formats_are_listable() {
+    // "Unsupported" has to be actionable. The same list appears in the error
+    // when detection refuses a file, so a developer always has a next step.
+    let (ok, stdout, _) = run(&["--formats"]);
+    assert!(ok);
+    assert!(stdout.contains("google-adk@1"), "got: {stdout}");
+    assert!(stdout.contains("claude-code@1"), "got: {stdout}");
+}
+
+#[test]
+fn a_format_can_be_forced_from_the_command_line() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/claude-code-session");
+    let (ok, stdout, stderr) = run(&[
+        "inspect",
+        dir.to_str().unwrap(),
+        "--format",
+        "claude-code@1",
+    ]);
+    assert!(ok, "{stderr}");
+    assert!(stdout.contains("claude-code@1"), "got: {stdout}");
+}
+
+#[test]
+fn forcing_a_format_that_does_not_exist_fails_with_the_list() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/claude-code-session");
+    let (ok, _, stderr) = run(&["inspect", dir.to_str().unwrap(), "--format", "nope@1"]);
+    assert!(!ok);
+    assert!(stderr.contains("google-adk@1"), "got: {stderr}");
+}

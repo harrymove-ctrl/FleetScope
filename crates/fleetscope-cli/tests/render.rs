@@ -230,14 +230,14 @@ fn a_deeper_tree_is_flattened_and_says_so() {
     // The renderer's graph is one level deep: a subagent's parent is the main
     // node. A deeper session still loads, still shows every agent, and keeps
     // its real path in the label — but the viewer must admit what it did.
-    let deep = fleetscope_cli::adapter::parse(&fleetscope_cli::adapter::SessionSource {
-        path: PathBuf::from("deep.jsonl"),
-        text: [
+    let deep = fleetscope_cli::adapter::parse(&fleetscope_cli::adapter::SessionSource::new(
+        PathBuf::from("deep.jsonl"),
+        [
             r#"{"id":"1","invocationId":"i","author":"root","timestamp":1.0,"content":{"role":"model","parts":[{"text":"go"}]}}"#,
             r#"{"id":"2","invocationId":"i","author":"leaf","branch":"root.mid.leaf","timestamp":2.0,"content":{"role":"model","parts":[{"text":"deep"}]}}"#,
         ]
         .join("\n"),
-    })
+    ))
     .expect("parses");
 
     let wire = wire::compile(&deep);

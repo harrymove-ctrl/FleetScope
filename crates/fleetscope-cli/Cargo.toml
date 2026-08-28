@@ -19,6 +19,8 @@ name = "fleetscope"
 path = "src/main.rs"
 
 [dependencies]
+# The portable projection core, shared verbatim with the browser build.
+agent-viewer-core = { path = "../agent-viewer-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde", "clock"] }
@@ -38,3 +40,7 @@ zoetrope = { path = "../../vendor/zoetrope", default-features = false, features 
 
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 anyhow = "1"
+
+[dev-dependencies]
+# Tests reach the core directly to exercise `project_as` without the frontend.
+agent-viewer-core = { path = "../agent-viewer-core" }

@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::adapter::{self, Confidence, SessionSource};
+use crate::adapter::{self, Companion, Confidence, SessionSource};
 
 /// Extensions a session file can have. A session is JSON, one way or another.
 const CANDIDATE_EXTENSIONS: [&str; 2] = ["jsonl", "json"];
@@ -55,7 +55,7 @@ pub fn resolve(path: &Path) -> Result<PathBuf, DiscoverError> {
 
     let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
     for candidate in walk(path)? {
-        let Ok(source) = SessionSource::read(&candidate) else {
+        let Ok(source) = read_source(&candidate) else {
             continue;
         };
         let recognised = adapter::registry()
@@ -106,4 +106,64 @@ fn has_candidate_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| CANDIDATE_EXTENSIONS.contains(&ext))
+}
+
+/// Read a session file and every companion that belongs to it.
+///
+/// Some providers write one file; others write a main transcript plus a tree of
+/// per-agent files beside it, in a directory named after the transcript. This
+/// gathers both and hands them to the adapter, which decides what they mean.
+/// The rule is deliberately structural rather than provider-specific: no
+/// directory name is hard-coded here, so a provider with the same shape and
+/// different names needs no change.
+pub fn read_source(path: &Path) -> std::io::Result<SessionSource> {
+    let text = std::fs::read_to_string(path)?;
+    let source = SessionSource::new(path.to_path_buf(), text);
+
+    let Some(stem) = path.file_stem() else {
+        return Ok(source);
+    };
+    let companion_root = match path.parent() {
+        Some(parent) => parent.join(stem),
+        None => return Ok(source),
+    };
+    if !companion_root.is_dir() {
+        return Ok(source);
+    }
+
+    let mut companions = Vec::new();
+    collect_companions(&companion_root, &companion_root, 0, &mut companions);
+    // Stable order: an adapter that joins a transcript to its sidecar should
+    // not depend on the order the filesystem happened to return them in.
+    companions.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(source.with_companions(companions))
+}
+
+/// Depth cap. A session's companion tree is shallow; anything deeper is either
+/// not ours or is a symlink loop, and neither is worth walking.
+const MAX_COMPANION_DEPTH: usize = 3;
+
+fn collect_companions(root: &Path, dir: &Path, depth: usize, into: &mut Vec<Companion>) {
+    if depth > MAX_COMPANION_DEPTH {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_companions(root, &path, depth + 1, into);
+        } else if has_candidate_extension(&path) {
+            let Ok(text) = std::fs::read_to_string(&path) else {
+                continue;
+            };
+            let name = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            into.push(Companion { name, text });
+        }
+    }
 }
