@@ -142,10 +142,37 @@ builds into its own `dist` and `scripts/build-wasm.sh` stages both.
 - Keep provider differences at the ingestion boundary.
 - Add format/version detection and clear unsupported-input errors.
 
-### Phase 4 — FleetScope platform
+### Phase 4 — FleetScope platform — **NOT STARTED, deliberately**
 
 Only after the local developer flow is reliable, consider remote sessions, team
 workspaces, approvals, audit exports, catalogs, and enterprise users.
+
+**Its precondition is not met.** "After the local developer flow is reliable" is
+a gate, and phase 2 is sitting on a defect that makes the browser graph blank.
+Building remote sessions and team workspaces on top of that would be adding
+surface to something not yet reliable, which is the specific failure this
+phase's ordering exists to prevent.
+
+**Half of the list already exists, from before the pivot.** Approvals, audit
+export and the catalog are live routes in `apps/web` with tests behind them,
+built for the enterprise Case model. They are not missing; they are on the other
+side of a boundary the v1 plan drew on purpose, and the plan lists them under
+"Explicitly out of v1". Rebuilding them against the local session model would
+mean two implementations of each, and the enterprise ones are the tested ones.
+
+**What phase 4 actually needs first, in order:**
+
+1. Fix the zero-width WebGL grid, so phase 2's gate is genuinely met.
+2. Decide whether the local `ViewerSession` and the enterprise Canonical Event
+   schema converge or stay separate. They are deliberately separate today (see
+   `crates/agent-viewer-core/src/viewer.rs`): a local session has no registry
+   resolution, no identity decision and no approval, and inventing them would
+   put unrecorded fields into an audit vocabulary. Remote sessions and team
+   workspaces are exactly where that decision has to be made, and it is a
+   product decision, not an implementation detail.
+3. Only then, remote transport and multi-user concerns.
+
+Nothing in phase 4 was built. Recording why is the deliverable.
 
 ## Explicitly out of v1
 
