@@ -10,7 +10,7 @@ Last updated: 2026-08-26
 
 Build a **static-first hybrid**:
 
-1. reuse and rebrand a pinned browser/WASM visualization core for Fleet Cockpit;
+1. reuse and rebrand a pinned browser/WASM visualization core for Agent Viewer;
 
 2. add an Astro/DOM FleetScope shell for Agent Catalog, Case Workspace,
 

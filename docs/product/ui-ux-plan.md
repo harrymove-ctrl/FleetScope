@@ -16,7 +16,7 @@ FleetScope has two altitudes:
 
   runtime actions, and historical evidence.
 
-The product fails if every user lands in the graph. Fleet Cockpit uses spatial
+The product fails if every user lands in the graph. Agent Viewer uses spatial
 
 and temporal context deliberately at operations altitude, where it materially
 
@@ -40,11 +40,11 @@ FleetScope
 
 │       ├── Memory detail
 
-│       └── Open Fleet Cockpit
+│       └── Open Agent Viewer
 
 ├── Approvals
 
-├── Fleet Cockpit
+├── Agent Viewer
 
 │   └── Evidence drawer / historical replay
 
@@ -56,7 +56,7 @@ FleetScope
 
 No separate landing page is needed for the MVP. Open on Cases for procurement
 
-users and Fleet Cockpit for operator-role demo links.
+users and Agent Viewer for operator-role demo links.
 
 ## End-to-end UX flow
 
@@ -152,7 +152,7 @@ Wireframe:
 
 │ Trusted case memory: MOQ 5,000 · Net 45 · source + provenance        │
 
-│ [Open Fleet Cockpit]                              [View audit trail] │
+│ [Open Agent Viewer]                              [View audit trail] │
 
 └──────────────────────────────────────────────────────────────────────┘
 
@@ -184,7 +184,7 @@ Approval must not be a vague “let the agent continue.” Any changed action,
 
 scope, or evidence revision requires a new approval.
 
-### 5. Investigate in Fleet Cockpit
+### 5. Investigate in Agent Viewer
 
 Wireframe:
 
@@ -248,7 +248,7 @@ It supports `Copy evidence link` and an integrity-manifest export. Raw sensitive
 
 payloads remain redacted or access controlled.
 
-## Fleet Cockpit interaction model
+## Agent Viewer interaction model
 
 | Interaction | FleetScope use | Required behavior |
 
@@ -350,13 +350,13 @@ For a three-minute product segment:
 
 5. **30 s:** malicious vendor email—Model Armor block before downstream use.
 
-6. **45 s:** Fleet Cockpit—incident, Warden action, runtime-confirmed recovery.
+6. **45 s:** Agent Viewer—incident, Warden action, runtime-confirmed recovery.
 
 7. **30 s:** scrubber and unified Case audit.
 
 The graph gets roughly one minute; this prevents the product from reading as a
 
-viewer while preserving the strongest Fleet Cockpit shot.
+viewer while preserving the strongest Agent Viewer shot.
 
 ## Validation
 
@@ -406,7 +406,7 @@ badges, event scrubber, evidence drawer, or approval clarity.
 
 - [Product requirements](../requirements/[fleetscope.md](http://fleetscope.md))
 
-- [Fleet Cockpit requirements](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
+- [Agent Viewer requirements](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
 
 - [Demo and validation plan](../plans/[demo-validation.md](http://demo-validation.md))
 

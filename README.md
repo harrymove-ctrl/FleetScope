@@ -1,14 +1,98 @@
 # FleetScope
 
-FleetScope is an enterprise agent-fleet control plane. A procurement manager
-discovers an approved, versioned agent in the **Agent Catalog**, starts a durable
-multi-week **Case**, and returns days later without losing context. Registry,
-Runtime, Memory Bank, Identity, Gateway, Model Armor, and Observability decisions
-are captured as append-only **Canonical Events**, projected deterministically into
-**Observable Case State**, and surfaced across a Case Workspace, an Approval
-Inbox, an expert **Fleet Cockpit**, and an **Audit** view — so every badge the UI
-shows is backed by recorded evidence rather than an assumption. FleetScope is not
-merely a graph viewer, and the Cockpit is one surface within it, not the product.
+FleetScope is a local-first, CLI-first **Agent Viewer** for one developer
+watching Gemini/ADK multi-agent sessions, including Antigravity-style workflows.
+It follows live local activity, replays recordings, scrubs the timeline, and
+shows the root agent plus sub-agents and their prompts, tools, outputs, and
+errors. A browser frontend shares the same portable projection core. More
+providers, remote sessions, and enterprise governance come later.
+
+## Quick start — the Agent Viewer
+
+The viewer is a local command. It reads files on your disk, starts no agent,
+sends nothing over the network, and needs no API key.
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- \
+  crates/fleetscope-cli/tests/fixtures/gemini-multi-agent --follow
+```
+
+```text
+fleetscope <path>                    replay a recording from the start
+fleetscope <path> --follow           open parked at the live edge
+fleetscope <path> --speed 4          replay speed multiplier
+fleetscope inspect <path>            headless summary, no terminal UI
+```
+
+`<path>` is a session file or a directory containing one. A directory opens the
+most recently modified session found in it or one level below, which is what
+"show me what is happening" means in practice.
+
+Launch options only choose the initial target and the initial playhead. Once the
+viewer is running every transport action stays available from the keyboard:
+`space` play/pause, `←`/`→` step, `g`/`G` start/end, `f` follow camera, `o`
+overview, `?` help, `q` quit. `Live`, `Playing`, `Paused`, `History` and `Idle`
+are derived from the playhead and the live edge, never from a flag captured at
+startup, so nothing on the command line can put the viewer into a state the
+keyboard cannot leave.
+
+`inspect` is the headless answer, for a CI check, a pipe into grep, or a
+terminal that cannot draw:
+
+```text
+$ fleetscope inspect crates/fleetscope-cli/tests/fixtures/gemini-multi-agent
+session   inv-1
+adapter   google-adk@1
+agents    4
+events    20
+span      2026-08-28 09:00:00 → 2026-08-28 09:00:49
+
+agents
+  coordinator [completed]
+    path coordinator  events 8  tools 0  errors 0
+    flight_search [completed]
+      path coordinator/flight_search  events 4  tools 1  errors 0
+    hotel_search [failed]
+      path coordinator/hotel_search  events 4  tools 2  errors 2
+      ! search_hotels (fc-hotels-2) never returned
+      ✗ search_hotels: error=upstream rate limit: 429 from partner API status=error
+      ✗ search_hotels did not return within 30s
+    itinerary_writer [completed]
+      path coordinator/itinerary_writer  events 4  tools 1  errors 0
+```
+
+### Two rules the viewer does not bend
+
+**Model reasoning is never rendered.** A Gemini part marked `thought: true` is
+discarded at ingestion, before it can reach a label, a node or a detail panel.
+The emitter never writes a `prompt` or `thinking` field, and this crate depends
+on the renderer with `render-provenance` off, which is what draws those rows.
+Three independent controls, because it is the one mistake that cannot be taken
+back once it is on screen.
+
+**Terminal state is never inferred.** An agent reads `completed` or `failed`
+only because the session said so (`turnComplete`, `errorCode`, `escalate`).
+Silence stays silence: an agent with no terminal event reads "no terminal event
+recorded", and an unanswered tool call is reported by name. A stuck agent has to
+look stuck.
+
+### Supported input
+
+Google ADK / Gemini sessions, in either envelope: a `Session` object with an
+`events` array, or a streamed log with one `Event` per line (the
+Antigravity-style shape). Field names are accepted in camelCase and snake_case,
+because the Python SDK emits either depending on `by_alias`.
+
+A file no adapter recognises is refused by name rather than guessed at: drawing
+a confident graph of the wrong thing is worse than declining the file.
+
+### Known limitation: graph depth
+
+The rendering substrate's agent graph is one level deep — a sub-agent's parent
+is the main node. A session nested deeper still loads and still shows every
+agent, with its real path kept in the label, but the graph draws them all under
+the root and the viewer says so. `fleetscope inspect` always prints the true
+tree, so the depth is never lost, only un-drawn.
 
 ## Architecture
 
@@ -17,16 +101,14 @@ graph TD
   subgraph recorded["Recorded path — the default, needs no backend"]
     SE[Source Events<br/>duplicated, out of order] --> CZ[Canonicalizer<br/>validate · redact · dedup · order]
     CZ --> CE[Canonical Events]
-    CE --> CW[Case Workspace]
-    CE --> AP[Approvals]
-    CE --> AU[Audit + evidence export]
+    CE --> AV[Agent Viewer]
     CE --> PR[Session Projector<br/>pure, versioned]
     PR --> OCS[Observable Case State<br/>+ state hash]
     CE --> WD[Incident Detector → Policy Engine → Warden]
     CE --> SC[Scenario Compiler]
     SC --> TR[Zoetrope transcripts]
     SC --> RM[Render Manifest]
-    TR --> WASM[Rust/WASM Fleet Cockpit<br/>vendored Zoetrope]
+    TR --> WASM[Rust/WASM Agent Viewer<br/>Zoetrope-derived]
     RM --> WASM
     RM -.->|caseSequence ↔ renderer index| CUR[FleetScope Event Cursor]
   end
@@ -58,6 +140,7 @@ disabled after first load.
 | `packages/warden`            | Incident Detector, Policy Engine, and the Intervention lifecycle with at-most-once execution.                          |
 | `packages/platform-adapters` | The seven adapter interfaces, their `recorded / synthetic / live / unavailable` modes, and the capability truth table. |
 | `packages/shared`            | Canonical JSON, SHA-256, `Result`, central config parsing, the live-mode guard.                                        |
+| `crates/fleetscope-cli`      | Rust, the **`fleetscope` command**: provider adapters, renderer wire emitter, local discovery and tailing, `inspect`.  |
 | `crates/fleet-cockpit`       | Rust, **host-testable**: Render Manifest, Event Cursor, scene loading over the vendored renderer.                      |
 | `crates/fleet-cockpit-web`   | Rust, **wasm32-only**, its own workspace: the browser shell and the `fleetscope_*` ABI.                                |
 | `vendor/zoetrope`            | The pinned MIT renderer. See `vendor/VENDOR-PATCHES.md` — it is **patched**, not pristine.                             |
@@ -197,6 +280,7 @@ pnpm lint
 pnpm format:check
 
 cargo test                    # FleetScope Rust, incl. the real Zoetrope integration
+cargo test -p fleetscope-cli  # the CLI: ingestion, the wire contract, the fold, the command surface
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 
@@ -248,7 +332,7 @@ Third-party attribution lives in **`THIRD-PARTY-NOTICES.md`**, and only there:
 per product decision D8, notices stay in repository licensing files and do not
 appear in product navigation.
 
-The Fleet Cockpit renders on **Zoetrope** (MIT, © 2026 Furkan Kalaycioglu),
+The Agent Viewer renders on **Zoetrope** (MIT, © 2026 Furkan Kalaycioglu),
 vendored at `vendor/zoetrope/` and pinned to
 `077707da679955c0402c39ca992bf56cdc6b0264`. It is **not unmodified** — FleetScope
 carries a small patchset, recorded in full in **`vendor/VENDOR-PATCHES.md`**.

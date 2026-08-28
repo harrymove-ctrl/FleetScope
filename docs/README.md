@@ -2,13 +2,10 @@
 
 Status: draft working set
 
-FleetScope is an enterprise agent-fleet control plane for discovering approved
-
-agents and operating durable, policy-enforced business Cases. Its Fleet Cockpit
-
-makes Registry, Runtime, Memory, Identity, Gateway, Model Armor, observability,
-
-and bounded Warden actions visible and auditable.
+FleetScope v1 is a local-first developer tool for viewing Gemini/ADK
+multi-agent sessions. Its user-facing surface is **Agent Viewer**: a CLI-first
+experience for live-follow, replay, timeline scrubbing, and agent inspection.
+Enterprise governance and additional providers are later phases.
 
 ## Read this set
 
@@ -16,9 +13,9 @@ and bounded Warden actions visible and auditable.
 
    assumptions, competition, launch, and product decisions.
 
-2. [UI/UX plan](product/[ui-ux-plan.md](http://ui-ux-plan.md)) — Agent Catalog, Case Workspace,
+2. [UI/UX plan](product/[ui-ux-plan.md](http://ui-ux-plan.md)) — Agent Viewer, CLI/browser
 
-   approvals, Fleet Cockpit, visual system, and demo flow.
+   interaction model, visual system, and demo flow.
 
 3. [Context intake](product/[context-intake.md](http://context-intake.md)) — the facts and artifacts still
 
@@ -71,4 +68,3 @@ The requirements use **MUST**, **SHOULD**, and **MAY** as normative terms.
 MUST is required for the MVP to conform; SHOULD is the default unless a
 
 documented tradeoff is accepted; MAY is optional.
-

@@ -50,7 +50,7 @@ const openIncidents = incidents.filter((incident) => incident.state !== 'resolve
 <BaseLayout title={`Case ${caseId}`}>
   <PageHeader title={`Case ${caseId}`} lede={summary.title ?? undefined}>
     <a slot="actions" class="fs-button" data-variant="primary" href={`/cockpit/${caseId}`}>
-      Open Fleet Cockpit
+      Open Agent Viewer
     </a>
     <a slot="actions" class="fs-button" href={`/audit/${caseId}`}>View Audit</a>
     {pendingApprovals.length > 0 && (
@@ -247,7 +247,7 @@ const openIncidents = incidents.filter((incident) => incident.state !== 'resolve
           )}
           <p class="fs-link-row" style="margin-top:var(--fs-space-3)">
             <a class="fs-button fs-button--sm" href={`/cockpit/${caseId}`}>
-              Inspect in Fleet Cockpit
+              Inspect in Agent Viewer
             </a>
           </p>
         </section>

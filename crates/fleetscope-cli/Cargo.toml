@@ -1,0 +1,40 @@
+[package]
+name = "fleetscope-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "FleetScope Agent Viewer — local, CLI-first viewer for Gemini/ADK multi-agent sessions."
+
+[lib]
+# A library target as well as a binary: integration tests cannot import
+# from a `[[bin]]`, and the adapter/wire/inspect layers are exactly what needs
+# testing without a terminal.
+name = "fleetscope_cli"
+path = "src/lib.rs"
+
+[[bin]]
+# The crate is `fleetscope-cli`; the command you type is `fleetscope`.
+name = "fleetscope"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde", "clock"] }
+
+# The rendering substrate, NATIVE frontend without `render-provenance`.
+#
+# `native` buys the terminal loop, the crossterm input handler and the async
+# runtime, which is exactly the "native CLI frontend owns terminal input and
+# lifecycle" layer of the plan. `default-features = false` drops
+# `render-provenance`, whose only effect is to render `↳ prompt` and `↳ thought`
+# rows in the detail panel. The adapter already refuses to emit model reasoning
+# (see `wire::AssistantBlock`), so this is the second of two independent
+# controls rather than the only one.
+zoetrope = { path = "../../vendor/zoetrope", default-features = false, features = [
+  "native",
+] }
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+anyhow = "1"

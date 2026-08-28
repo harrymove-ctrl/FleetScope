@@ -79,11 +79,11 @@ const { caseId, manifest, main, subagentsJson, caseSequences, phases } = Astro.p
     id="fleetscope-cockpit-canvas"
     class="fs-cockpit__canvas"
     role="img"
-    aria-label="Fleet Cockpit agent graph"
+    aria-label="Agent Viewer agent graph"
     aria-describedby="fs-cockpit-fallback"
     data-case-id={caseId}
   >
-    <p class="fs-placeholder" id="fs-cockpit-fallback" data-cockpit-fallback>Loading Fleet Cockpit…</p>
+    <p class="fs-placeholder" id="fs-cockpit-fallback" data-cockpit-fallback>Loading Agent Viewer…</p>
   </div>
 
   <p class="fs-cockpit__hint" data-phase-hint>
@@ -188,7 +188,7 @@ const { caseId, manifest, main, subagentsJson, caseSequences, phases } = Astro.p
       // Say the real reason. Drawing a fake graph here would be exactly the
       // "UI invents behavior" failure the product forbids.
       degrade(
-        'The Fleet Cockpit renderer could not be loaded (' +
+        'The Agent Viewer renderer could not be loaded (' +
           (error instanceof Error ? error.message : 'unknown error') +
           ').',
       );
@@ -199,7 +199,7 @@ const { caseId, manifest, main, subagentsJson, caseSequences, phases } = Astro.p
 
     const cockpit = createCockpit();
     if (!cockpit.available) {
-      degrade(cockpit.unavailableReason ?? 'Fleet Cockpit unavailable.');
+      degrade(cockpit.unavailableReason ?? 'Agent Viewer unavailable.');
       wireControls(null, scene, () => cursor, (next) => (cursor = next));
       render(null, cursor, scene.manifest);
       return;

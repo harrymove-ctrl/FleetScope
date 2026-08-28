@@ -26,7 +26,7 @@ import { demoPhases } from '../../lib/demo-phases';
 import { webConfig } from '../../lib/config';
 
 /**
- * The Fleet Cockpit — the expert operations surface.
+ * The Agent Viewer — the expert operations surface.
  *
  * Three columns: topology on the left, the renderer in the middle, Decision
  * Evidence on the right. The graph explains the Canonical Events the Workspace
@@ -70,7 +70,7 @@ const liveSessionId = state?.sessions.at(-1)?.sessionId ?? null;
 const LIVE_STEP_ID = 'orchestrator-compliance-decision';
 ---
 
-<BaseLayout title={`Fleet Cockpit · ${caseId}`} wide>
+<BaseLayout title={`Agent Viewer · ${caseId}`} wide>
   <CaseHeader summary={summary} compact>
     <a slot="actions" class="fs-button fs-button--sm" href={`/cases/${caseId}`}>Case Workspace</a>
     <a slot="actions" class="fs-button fs-button--sm" href={`/audit/${caseId}`}>Audit</a>
@@ -101,7 +101,7 @@ const LIVE_STEP_ID = 'orchestrator-compliance-decision';
 
     {scene === null ? (
       <section class="fs-card">
-        <h2>Fleet Cockpit</h2>
+        <h2>Agent Viewer</h2>
         <EmptyState
           tone="warn"
           title="This Case has not been compiled for the renderer"

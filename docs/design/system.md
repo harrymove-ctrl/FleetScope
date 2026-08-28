@@ -32,7 +32,7 @@ recorded Case state without replaying side effects.
 
    manufactures an allow, block, route, or success.
 
-3. **One evidence spine, multiple views.** Case Workspace, Fleet Cockpit,
+3. **One evidence spine, multiple views.** Case Workspace, Agent Viewer,
 
    detection, Warden, and Audit consume the same Canonical Events.
 
@@ -68,7 +68,7 @@ Procurement Manager        Fleet Admin / Operator / Security Reviewer
 
         v                                  v
 
- Agent Catalog -----&gt; Case Workspace / Approvals -----&gt; Fleet Cockpit / Audit
+ Agent Catalog -----&gt; Case Workspace / Approvals -----&gt; Agent Viewer / Audit
 
         |                       |                            ^
 
@@ -436,7 +436,7 @@ projection: milestone, last meaningful progress, waiting condition, next
 
 action, approvals, and trusted Memory Records.
 
-Fleet Cockpit uses a pinned portable Rust core and WASM/Ratzilla frontend for
+Agent Viewer uses a pinned portable Rust core and WASM/Ratzilla frontend for
 
 expert topology, timeline, camera, and tool chips. An Astro/DOM shell supplies
 
@@ -610,7 +610,7 @@ implementation claims.
 
 - [Audit and replay](../requirements/fleetscope/[audit-and-replay.md](http://audit-and-replay.md))
 
-- [Fleet Cockpit](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
+- [Agent Viewer](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
 
 - [Warden intervention](../requirements/fleetscope/[warden-intervention.md](http://warden-intervention.md))
 

@@ -1087,7 +1087,7 @@ kbd {
   overflow-wrap: anywhere;
 }
 
-/* ── Fleet Cockpit ─────────────────────────────────────────────────────────── */
+/* ── Agent Viewer ─────────────────────────────────────────────────────────── */
 
 .fs-cockpit-layout {
   display: grid;

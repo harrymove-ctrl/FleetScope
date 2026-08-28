@@ -20,7 +20,7 @@ decision trail.
 
 FleetScope combines a live flow graph, tool chips, event-indexed time travel,
 
-incident markers, and follow camera inside the Fleet Cockpit. The complete
+incident markers, and follow camera inside the Agent Viewer. The complete
 
 product maps directly to The Fortified Enterprise Fleet.
 
@@ -36,7 +36,7 @@ Agent Catalog -&gt; Case Workspace -&gt; Approval Inbox
 
                        v
 
-                 Fleet Cockpit -&gt; Audit Export
+                 Agent Viewer -&gt; Audit Export
 
 ```
 
@@ -144,7 +144,7 @@ identity, route, screening decision, policy, and confirmed result.
 
 3. The user sees the business consequence in Case Workspace and the full
 
-   decision in Fleet Cockpit.
+   decision in Agent Viewer.
 
 ### Investigate and recover
 
@@ -178,7 +178,7 @@ The procurement home screen. It prioritizes business milestone, elapsed days,
 
 last progress, next action, approvals, trusted memory summary, and activity. It
 
-does not show a complex graph unless the user chooses **Open Fleet Cockpit**.
+does not show a complex graph unless the user chooses **Open Agent Viewer**.
 
 ### Approval Inbox
 
@@ -188,7 +188,7 @@ and consequence. Approval binds to an immutable request; changed parameters
 
 invalidate it.
 
-### Fleet Cockpit
+### Agent Viewer
 
 The expert surface: live graph, platform-control evidence, event scrubber,
 
@@ -228,7 +228,7 @@ one optional bounded live proof; recorded evidence remains a complete fallback.
 
 - One benign and one adversarial external input through Model Armor.
 
-- One canonical event spine powering the Case Workspace and Fleet Cockpit.
+- One canonical event spine powering the Case Workspace and Agent Viewer.
 
 - One policy-gated Warden recovery with a confirmed recorded result; the same
 
@@ -320,7 +320,7 @@ Proof order:
 
 5. armor-blocked injection;
 
-6. Fleet Cockpit live investigation and bounded recovery;
+6. Agent Viewer live investigation and bounded recovery;
 
 7. event replay and unified audit evidence.
 
