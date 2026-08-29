@@ -27,9 +27,14 @@ const RUN_LIVE = process.env['FLEETSCOPE_QA_LIVE'] === 'true';
 
 /** The two sizes the product commits to, plus the narrow desktop it must survive. */
 const VIEWPORTS = [
-  { name: '1440x900', width: 1440, height: 900 },
-  { name: '1280x720', width: 1280, height: 720 },
-  { name: '1180x800', width: 1180, height: 800 },
+  { name: '1440x900', width: 1440, height: 900, desktop: true },
+  { name: '1280x720', width: 1280, height: 720, desktop: true },
+  { name: '1180x800', width: 1180, height: 800, desktop: true },
+  // Mobile. The product does not claim the judge path works at this width, so
+  // the deep desktop suites are skipped here — but "no body overflow at 390"
+  // WAS being claimed with nothing enforcing it, which is how a mobile
+  // regression ships unnoticed.
+  { name: '390x844', width: 390, height: 844, desktop: false },
 ];
 
 interface Check {
@@ -912,6 +917,77 @@ async function tourExpertBridge(page: Page, baseUrl: string): Promise<void> {
   );
 }
 
+/**
+ * Story Mode at mobile width.
+ *
+ * The mobile claim was "zero body overflow, including 390px" with nothing
+ * enforcing it: `VIEWPORTS` had three desktop entries and the string 390 did
+ * not appear in this file. These are the assertions that make the claim real.
+ *
+ * The deep judge-path suites deliberately do not run here. The product does not
+ * claim the full guided tour is a mobile experience, and asserting it would be
+ * inventing a promise rather than protecting one.
+ */
+async function storyMobileChecks(page: Page, label: string): Promise<void> {
+  await page.waitForSelector('[data-story]', { timeout: 20_000 });
+
+  check(
+    `story @ ${label}: Story Mode is the default at mobile width`,
+    (await page.locator('[data-story]').getAttribute('data-mode')) === 'story',
+  );
+  check(
+    `story @ ${label}: the recorded-mode label survives the narrow layout`,
+    /nothing is executing/.test(await page.locator('[data-recorded-label]').innerText()),
+    await page.locator('[data-recorded-label]').innerText(),
+  );
+  check(
+    `story @ ${label}: the outcome is readable without opening anything`,
+    await page.locator('#story-title').isVisible(),
+    await page.locator('#story-title').innerText(),
+  );
+
+  // Cards must stack rather than shrink into unreadable columns.
+  const cards = page.locator('.story__card');
+  check(`story @ ${label}: every capability card is present`, (await cards.count()) === 4);
+  const widths = (await cards.evaluateAll((nodes) =>
+    nodes.map((node) => Math.round(node.getBoundingClientRect().width)),
+  )) as number[];
+  check(
+    `story @ ${label}: cards stack to full width instead of shrinking`,
+    widths.every((width) => width > 240),
+    widths.join(', '),
+  );
+
+  // The Proof Path scrolls inside its own strip. If it overflowed the body
+  // instead, the whole page would pan sideways.
+  const path = page.locator('.story__path');
+  const strip = (await path.evaluate((el) => ({
+    overflowX: getComputedStyle(el).overflowX,
+    scrolls: el.scrollWidth > el.clientWidth,
+  }))) as { overflowX: string; scrolls: boolean };
+  check(
+    `story @ ${label}: the Proof Path scrolls inside its own strip`,
+    strip.overflowX === 'auto' || strip.overflowX === 'scroll' || !strip.scrolls,
+    JSON.stringify(strip),
+  );
+
+  // Every control a thumb has to hit.
+  const targets = (await page
+    .locator('[data-story] button, [data-story] a')
+    .evaluateAll((nodes) =>
+      nodes
+        .filter((node) => (node as HTMLElement).offsetParent !== null)
+        .map((node) => Math.round(node.getBoundingClientRect().height)),
+    )) as number[];
+  check(
+    `story @ ${label}: visible Story controls meet the 44px touch target`,
+    targets.length > 0 && targets.every((height) => height >= 44),
+    `min ${Math.min(...targets)}px across ${targets.length} controls`,
+  );
+
+  await assertNoBodyOverflow(page, `story @ ${label}`);
+}
+
 async function main(): Promise<void> {
   const { baseUrl, stop } = await serve();
   let browser: Browser | null = null;
@@ -961,17 +1037,22 @@ async function main(): Promise<void> {
         await assertNoBodyOverflow(page, `${name} @ ${viewport.name}`);
         // Graph-node selection is the interaction the product is judged on, so
         // it is proven at every supported size rather than once at 1440x900.
-        if (name === 'viewer') {
+        if (name === 'viewer' && viewport.desktop) {
           await graphSelectionChecks(page, viewport.name);
           await assertNoBodyOverflow(page, `viewer selection @ ${viewport.name}`);
         }
         // The judge path is the product's first impression, so it is proven at
         // every supported size rather than once at 1440x900.
-        if (name === 'cockpit') {
+        if (name === 'cockpit' && viewport.desktop) {
           await goldenPathChecks(page, baseUrl, viewport.name);
           await goldenPathAccessibility(page, baseUrl, viewport.name);
           await guidedTourChecks(page, baseUrl, viewport.name);
           await guidedTourKeyboard(page, baseUrl, viewport.name);
+        }
+        // What the product DOES claim at 390: the Story is readable, its
+        // controls are reachable, and nothing scrolls sideways.
+        if (name === 'cockpit' && !viewport.desktop) {
+          await storyMobileChecks(page, viewport.name);
         }
         check(
           `${name} @ ${viewport.name}: no console errors`,
@@ -1062,6 +1143,18 @@ async function main(): Promise<void> {
     check(
       'dashboard: points to Agent Viewer',
       (await page.locator('a[href="/viewer"]').count()) > 0,
+    );
+    check(
+      'dashboard: the command affordance exposes a copy action',
+      (await page.locator('[data-copy-command]').count()) === 1,
+      await page.locator('[data-copy-command]').innerText(),
+    );
+    await page.locator('[data-copy-command]').click();
+    await page.waitForTimeout(50);
+    check(
+      'dashboard: copying confirms the action in place',
+      (await page.locator('[data-copy-command]').innerText()) === 'Copied',
+      await page.locator('[data-copy-command]').innerText(),
     );
     await page.locator('[data-command-menu]').click();
     check('dashboard: command menu opens', await page.locator('[data-command-panel]').isVisible());
@@ -1167,6 +1260,113 @@ async function main(): Promise<void> {
     await page.waitForSelector('[data-agent-rail] .viewer-rail__row', { timeout: 20_000 });
     const railRows = page.locator('[data-agent-rail] .viewer-rail__row');
     check('viewer: the agent rail renders from the ABI', (await railRows.count()) === 4);
+    const identities = page.locator('[data-agent-rail] .fs-agent-identity');
+    check(
+      'viewer: every rail agent has a deterministic visual identity',
+      (await identities.count()) === (await railRows.count()),
+      `${await identities.count()} identities / ${await railRows.count()} agents`,
+    );
+    check(
+      'viewer: identity labels keep the readable agent name and historical status',
+      await identities.evaluateAll((nodes) =>
+        nodes.every((node) => {
+          const label = node.getAttribute('aria-label') ?? '';
+          return label.includes(',') && !/online|thinking|live now/i.test(label);
+        }),
+      ),
+      await identities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label'))),
+    );
+    const identityVariants = await identities.evaluateAll((nodes) =>
+      nodes.map((node) => node.className),
+    );
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('[data-agent-rail] .fs-agent-identity', { timeout: 20_000 });
+    check(
+      'viewer: agent identities remain stable after refresh',
+      JSON.stringify(identityVariants) ===
+        JSON.stringify(
+          await page
+            .locator('[data-agent-rail] .fs-agent-identity')
+            .evaluateAll((nodes) => nodes.map((node) => node.className)),
+        ),
+      identityVariants,
+    );
+
+    // A reload alone cannot catch a position-derived identity: the rows come
+    // back in the same order, so the same positions produce the same faces and
+    // the check passes either way. Reordering the rail is what distinguishes
+    // "derived from the canonical id" from "derived from where it happens to
+    // sit", and getting that wrong means an agent changes face whenever the
+    // session gains an agent above it.
+    const identityByAgent = (await page
+      .locator('[data-agent-rail] .viewer-rail__row')
+      .evaluateAll((rows) =>
+        rows.map((row) => [
+          row.getAttribute('data-agent-id') ?? '',
+          row.querySelector('.fs-agent-identity')?.className ?? '',
+        ]),
+      )) as [string, string][];
+
+    await page.evaluate(() => {
+      const rail = document.querySelector('[data-agent-rail]');
+      if (rail === null) return;
+      // Reverse the rail in place. Every row keeps its own agent id and its own
+      // markup; only the position changes.
+      for (const item of [...rail.children].reverse()) rail.append(item);
+    });
+
+    const identityAfterReorder = (await page
+      .locator('[data-agent-rail] .viewer-rail__row')
+      .evaluateAll((rows) =>
+        rows.map((row) => [
+          row.getAttribute('data-agent-id') ?? '',
+          row.querySelector('.fs-agent-identity')?.className ?? '',
+        ]),
+      )) as [string, string][];
+
+    const identityBefore = new Map(identityByAgent);
+    check(
+      'viewer: an agent keeps its identity when the rail is reordered',
+      identityAfterReorder.length === identityByAgent.length &&
+        identityAfterReorder.every(
+          ([agentId, className]) => identityBefore.get(agentId) === className,
+        ),
+      JSON.stringify(identityAfterReorder.map(([id]) => id)),
+    );
+
+    // The reorder above proves the class travels with its row. It CANNOT prove
+    // the class was derived from the agent id, because the markup is rendered
+    // on the server and moving DOM nodes recomputes nothing — a
+    // position-derived identity passes it. Verified by making the identity a
+    // counter: the reorder check stayed green.
+    //
+    // So assert the rendered face against an INDEPENDENT implementation of the
+    // documented rule. The hash is restated here on purpose: importing the
+    // real one would make the check agree with whatever the code does rather
+    // than with what it is supposed to do.
+    const expectedVariant = (agentId: string): number => {
+      let hash = 2166136261;
+      for (const char of agentId) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+      return (hash >>> 0) % 6;
+    };
+    const mismatched = identityByAgent.filter(
+      ([agentId, className]) =>
+        !className.includes(`fs-agent-identity--v${expectedVariant(agentId)}`),
+    );
+    check(
+      'viewer: each rendered identity matches the canonical id it claims to encode',
+      identityByAgent.length > 0 && mismatched.length === 0,
+      mismatched.length === 0
+        ? identityByAgent.map(([id]) => `${id}→v${expectedVariant(id)}`).join(', ')
+        : `mismatched: ${JSON.stringify(mismatched)}`,
+    );
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('[data-agent-rail] .fs-agent-identity', { timeout: 20_000 });
+    // Reloading intentionally returns to the approachable Story surface. Open
+    // the technical surface again before continuing the renderer assertions.
+    await page.locator('[data-expert-toggle]').click();
+    await page.locator('[data-timeline]').waitFor({ state: 'visible' });
     check(
       'viewer: the rail states a status in words, not colour alone',
       (await railRows.filter({ hasText: 'failed' }).count()) === 1,

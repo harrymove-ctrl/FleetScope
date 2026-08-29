@@ -107,6 +107,333 @@ a:hover {
   }
 }
 
+/* ── Workstation synthesis ────────────────────────────────────────────────
+   A small, dependency-free visual layer inspired by the approved reference
+   roles: terminal chrome for orientation, deterministic faces for identity,
+   and restrained motion for state changes. It never owns evidence. */
+.fs-card.fs-workstation {
+  position: relative;
+  overflow: hidden;
+  background: #f2f0e9;
+  color: #151515;
+  border-color: #d0ccc2;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgb(18 21 24 / 18%);
+}
+.fs-workstation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(#6d6a63 0.6px, transparent 0.6px);
+  background-size: 7px 7px;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+}
+.fs-workstation > * {
+  position: relative;
+}
+.story__window-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: calc(var(--fs-space-4) * -1) calc(var(--fs-space-4) * -1) var(--fs-space-4);
+  padding: 9px var(--fs-space-4);
+  border-bottom: 1px solid #d0ccc2;
+  background: rgb(255 255 255 / 44%);
+  color: #6e6a60;
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.story__window-dots,
+.fs-terminal-window__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.story__window-dots i,
+.fs-terminal-window__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e17b70;
+}
+.story__window-dots i:nth-child(2),
+.fs-terminal-window__dots i:nth-child(2) {
+  background: #e4bc58;
+}
+.story__window-dots i:nth-child(3),
+.fs-terminal-window__dots i:nth-child(3) {
+  background: #79b889;
+}
+.story__window-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.story__window-command {
+  margin-left: auto;
+  color: #9b968b;
+}
+.fs-workstation .story__recorded {
+  color: #5f5b52;
+  border-color: #cbc6bb;
+  background: rgb(255 255 255 / 48%);
+}
+.fs-workstation .story__recorded span {
+  color: #b88416;
+}
+.fs-workstation .story__outcome {
+  color: #151515;
+}
+.fs-workstation .story__summary,
+.fs-workstation .story__card-detail,
+.fs-workstation .story__narrative p,
+.fs-workstation .story__tour-invite {
+  color: #57534c;
+}
+.fs-workstation .story__step,
+.fs-workstation .story__chapter,
+.fs-workstation .story__card,
+.fs-workstation .story__tour {
+  border-color: #cbc6bb;
+  color: #57534c;
+}
+.fs-workstation .story__step[data-state='reached'],
+.fs-workstation .story__chapter[aria-current='true'],
+.fs-workstation .story__step[aria-current='true'] {
+  color: #151515;
+  border-color: #a68a2f;
+}
+.fs-workstation .story__card {
+  background: rgb(255 255 255 / 42%);
+  box-shadow: 0 4px 16px rgb(18 21 24 / 7%);
+}
+.fs-workstation .story__card-state[data-state='evidenced'] {
+  color: #39784f;
+}
+.fs-workstation .story__tour {
+  background: rgb(255 255 255 / 58%);
+}
+.fs-workstation .story__tour-heading,
+.fs-workstation .story__narrative h3,
+.fs-workstation .story__tour-body dd {
+  color: #151515;
+}
+.fs-workstation .story__modes .fs-button {
+  border-color: #bbb5aa;
+  background: rgb(255 255 255 / 55%);
+  color: #2e2b26;
+}
+.fs-workstation .story__modes .fs-button[aria-current='true'] {
+  border-color: #a68a2f;
+  background: #e7d79a;
+}
+
+/* React Bits-style stagger without a runtime dependency. */
+.fs-workstation .story__outcome,
+.fs-workstation .story__summary,
+.fs-workstation .story__path,
+.fs-workstation .story__card,
+.fs-workstation .story__tour,
+.fs-workstation .story__narrative {
+  animation: fs-story-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.fs-workstation .story__summary {
+  animation-delay: 35ms;
+}
+.fs-workstation .story__path {
+  animation-delay: 70ms;
+}
+.fs-workstation .story__card:nth-child(2) {
+  animation-delay: 50ms;
+}
+.fs-workstation .story__card:nth-child(3) {
+  animation-delay: 90ms;
+}
+.fs-workstation .story__card:nth-child(4) {
+  animation-delay: 130ms;
+}
+.fs-workstation .story__tour {
+  animation-delay: 160ms;
+}
+@keyframes fs-story-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Deterministic Blobatar-inspired identity marker. */
+.fs-agent-identity {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--fs-agent-bg, #b6d8cf);
+  box-shadow:
+    inset 0 -2px rgb(0 0 0 / 12%),
+    0 0 0 3px rgb(255 255 255 / 10%);
+}
+.fs-agent-identity--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.fs-agent-identity svg {
+  width: 29px;
+  height: 29px;
+}
+.fs-agent-identity--sm svg {
+  width: 23px;
+  height: 23px;
+}
+.fs-agent-identity__body {
+  fill: var(--fs-agent-fg, #315d59);
+}
+.fs-agent-identity__eye {
+  fill: #f8f7f0;
+}
+.fs-agent-identity__mouth {
+  fill: none;
+  stroke: #f8f7f0;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+.fs-agent-identity--v0 {
+  --fs-agent-bg: #a7d7d0;
+  --fs-agent-fg: #276d6c;
+}
+.fs-agent-identity--v1 {
+  --fs-agent-bg: #d8b5e3;
+  --fs-agent-fg: #6d3e7b;
+}
+.fs-agent-identity--v2 {
+  --fs-agent-bg: #c7e6a3;
+  --fs-agent-fg: #4e773b;
+}
+.fs-agent-identity--v3 {
+  --fs-agent-bg: #f0b0a1;
+  --fs-agent-fg: #984b4f;
+}
+.fs-agent-identity--v4 {
+  --fs-agent-bg: #b5c3eb;
+  --fs-agent-fg: #465992;
+}
+.fs-agent-identity--v5 {
+  --fs-agent-bg: #f0d890;
+  --fs-agent-fg: #89631b;
+}
+/* Terminal-window primitive for future shell panels and the Dashboard preview. */
+.fs-terminal-window {
+  overflow: hidden;
+  border: 1px solid var(--fs-border);
+  border-radius: 12px;
+  background: var(--fs-surface);
+}
+.fs-terminal-window__bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--fs-border);
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.fs-terminal-window__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-terminal-window__body {
+  padding: var(--fs-space-4);
+}
+
+/* Device/terminal preview used on the Dashboard. */
+.fs-device-preview {
+  display: grid;
+  justify-items: center;
+  align-self: center;
+  width: min(220px, 100%);
+  margin-left: auto;
+  filter: drop-shadow(0 14px 18px rgb(0 0 0 / 14%));
+}
+.fs-device-preview__screen {
+  display: grid;
+  gap: 5px;
+  width: 152px;
+  min-height: 92px;
+  padding: 13px 11px;
+  border: 8px solid #d7d3c8;
+  border-radius: 10px 10px 5px 5px;
+  background: #171916;
+  color: #d7b735;
+  font: 10px/1.35 var(--fs-mono);
+  box-shadow: inset 0 0 0 1px #514f45;
+}
+.fs-device-preview__screen strong {
+  color: #f2f0e9;
+  font-size: 11px;
+}
+.fs-device-preview__slot {
+  width: 38px;
+  height: 7px;
+  margin-top: 7px;
+  border-radius: 5px;
+  background: #c4c0b5;
+}
+.fs-device-preview__base {
+  width: 188px;
+  height: 22px;
+  border-radius: 4px 4px 12px 12px;
+  background: #d7d3c8;
+}
+
+@media (max-width: 720px) {
+  /* Keep the compact shell usable without forcing seven links into a 390px
+     viewport. The nav becomes a deliberate horizontal strip; body overflow
+     remains locked, and the environment badge remains reachable at the end. */
+  .fs-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: var(--fs-space-3);
+  }
+  .fs-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .fs-nav__links {
+    flex: 0 0 auto;
+  }
+  .fs-nav__env {
+    margin-left: 0;
+  }
+  .story__window-command {
+    display: none;
+  }
+  .fs-device-preview {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-workstation .story__outcome,
+  .fs-workstation .story__summary,
+  .fs-workstation .story__path,
+  .fs-workstation .story__card,
+  .fs-workstation .story__tour,
+  .fs-workstation .story__narrative {
+    animation: none;
+  }
+}
+
 /* ── Shell ─────────────────────────────────────────────────────────────────── */
 
 .fs-shell {
@@ -962,10 +1289,9 @@ kbd {
   gap: var(--fs-space-1);
 }
 .fs-tree__node {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--fs-space-1) var(--fs-space-2);
-  align-items: center;
+  display: flex;
+  gap: var(--fs-space-2);
+  align-items: flex-start;
   width: 100%;
   text-align: left;
   background: transparent;
@@ -975,6 +1301,22 @@ kbd {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.fs-tree__node .fs-agent-identity {
+  margin-top: 1px;
+}
+.fs-tree__details {
+  display: grid;
+  gap: var(--fs-space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.fs-tree__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fs-space-2);
+  min-width: 0;
 }
 .fs-tree__node:hover {
   background: var(--fs-surface-raised);
@@ -995,11 +1337,13 @@ kbd {
   overflow-wrap: anywhere;
 }
 .fs-tree__meta {
-  grid-column: 1 / -1;
   font-size: 11px;
   font-family: var(--fs-mono);
   color: var(--fs-text-faint);
   overflow-wrap: anywhere;
+}
+.fs-tree__heading .fs-status {
+  flex: 0 0 auto;
 }
 .fs-tree__child {
   padding-left: var(--fs-space-4);
@@ -1884,5 +2228,32 @@ html[data-cockpit-mode='story'] [data-expert-surface] {
   .story__tour-body {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
+  }
+}
+
+/* ── Touch targets ──────────────────────────────────────────────────────────
+   Every control on the Story surface is sized for a pointer. At 390px a thumb
+   is the pointer, and these were 24px to 36px tall: the Proof Path steps, the
+   chapter chips, and every small button in a card or the guided tour. Raise
+   them to the 44px minimum at mobile width rather than relaxing the check.
+   Padding, not height, so a label that wraps still grows the control. */
+@media (max-width: 480px) {
+  .story__step,
+  .story__chapter {
+    min-height: 44px;
+    padding-block: 10px;
+  }
+
+  [data-story] .fs-button,
+  [data-story] .fs-button--sm {
+    min-height: 44px;
+    padding-block: 10px;
+  }
+
+  /* The controls now wrap onto more rows, so give the rows room to breathe
+     rather than letting them collide. */
+  .story__card-actions,
+  .story__tour-controls {
+    gap: 8px;
   }
 }
