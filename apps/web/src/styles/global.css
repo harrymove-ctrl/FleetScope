@@ -1550,3 +1550,339 @@ details > summary:hover {
   font-size: 11px;
   color: var(--fs-text-faint);
 }
+
+/* ── Story Mode ─────────────────────────────────────────────────────────────
+   The judge-facing surface: plain language first, expert detail on request.
+   Shares the class vocabulary with /viewer's Story so the two routes read as
+   the same product, while each keeps its own adapter. */
+
+.story__source {
+  margin: 0 0 var(--fs-space-2);
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.story__outcome {
+  margin: 0 0 var(--fs-space-2);
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.2;
+}
+.story__summary {
+  margin: 0 0 var(--fs-space-4);
+  color: var(--fs-text-muted);
+  max-width: 68ch;
+}
+
+/* The Proof Path: the shape of the run, in six words. */
+.story__path {
+  margin: 0 0 var(--fs-space-4);
+  overflow-x: auto;
+}
+.story__path-list {
+  display: flex;
+  align-items: center;
+  gap: var(--fs-space-2);
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+.story__path-list > li {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+/* A connector, not a claim: it never carries state of its own. */
+.story__path-list > li + li::before {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: var(--fs-border);
+  flex: 0 0 auto;
+}
+.story__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 36px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--fs-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    opacity 120ms ease,
+    border-color 120ms ease;
+}
+.story__step-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+}
+.story__step[data-state='reached'] {
+  color: var(--fs-text);
+}
+.story__step[data-state='reached'] .story__step-dot {
+  background: var(--fs-ok, #2e9e6b);
+  opacity: 1;
+}
+/* Not reached is stated, not merely dimmed: a dash reads as "did not happen"
+   where a pale dot reads as "loading". */
+.story__step[data-state='not-reached'] .story__step-dot {
+  background: none;
+  border: 1px dashed currentColor;
+  opacity: 0.7;
+}
+.story__step[disabled] {
+  cursor: not-allowed;
+}
+.story__step[aria-current='true'] {
+  border-color: var(--fs-accent, #4285f4);
+  color: var(--fs-text);
+}
+.story__step:focus-visible,
+.story__chapter:focus-visible {
+  outline: 2px solid var(--fs-accent, #4285f4);
+  outline-offset: 2px;
+}
+
+.story__cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--fs-space-3);
+  margin: 0 0 var(--fs-space-4);
+  padding: 0;
+  list-style: none;
+}
+.story__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--fs-space-3);
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  min-width: 0;
+}
+.story__card[data-state='absent'],
+.story__card[data-state='unavailable'],
+.story__card[data-state='unsupported'] {
+  border-style: dashed;
+}
+.story__card-state {
+  margin: 0;
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.story__card-state[data-state='evidenced'] {
+  color: var(--fs-ok, #2e9e6b);
+}
+.story__card-title {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.story__card-detail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fs-text-muted);
+  overflow-wrap: anywhere;
+}
+.story__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--fs-space-2);
+}
+
+.story__chapters {
+  margin: 0 0 var(--fs-space-4);
+  overflow-x: auto;
+}
+.story__chapters ul {
+  display: flex;
+  gap: var(--fs-space-2);
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+.story__chapter {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  min-height: 36px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--fs-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.story__chapter[aria-current='true'] {
+  border-color: var(--fs-accent, #4285f4);
+  color: var(--fs-text);
+}
+
+.story__narrative {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--fs-space-4);
+  margin-bottom: var(--fs-space-4);
+}
+.story__narrative h3 {
+  margin: 0 0 4px;
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.story__narrative p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.story__modes {
+  display: flex;
+  gap: var(--fs-space-2);
+}
+.story__modes [aria-current='true'] {
+  border-color: var(--fs-accent, #4285f4);
+}
+
+/* Expert Mode is hidden until asked for, and revealed BEFORE its renderer is
+   told to mount: a canvas measured while hidden is zero-wide, and the terminal
+   grid is sized from it exactly once. */
+html[data-cockpit-mode='story'] [data-expert-surface] {
+  display: none;
+}
+
+@media (max-width: 1300px) {
+  .story__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .story__narrative {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--fs-space-3);
+  }
+}
+
+@media (max-width: 720px) {
+  .story__cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story__step {
+    transition: none;
+  }
+}
+
+/* The recorded-mode label. Deliberately the first thing in the Story card and
+   deliberately not subtle: a screenshot of this page must not be mistakable for
+   a live system. */
+.story__recorded {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--fs-space-3);
+  padding: 4px 10px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  font: 600 11px/1.4 var(--fs-mono);
+  letter-spacing: 0.04em;
+  color: var(--fs-text-muted);
+}
+.story__recorded span {
+  color: var(--fs-warn, #d29922);
+}
+
+/* ── Guided Evidence Tour ────────────────────────────────────────────────── */
+
+.story__tour {
+  margin: 0 0 var(--fs-space-4);
+  padding: var(--fs-space-3);
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+}
+.story__tour-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--fs-space-2);
+  margin-bottom: var(--fs-space-2);
+}
+.story__tour-kicker,
+.story__tour-count {
+  margin: 0;
+  font: 600 10px/1 var(--fs-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.story__tour-invite {
+  margin: 0 0 var(--fs-space-2);
+  color: var(--fs-text-muted);
+}
+.story__tour-progress {
+  display: flex;
+  gap: var(--fs-space-3);
+  margin: 0 0 4px;
+  font: 600 11px/1.4 var(--fs-mono);
+  color: var(--fs-text-muted);
+}
+.story__tour-status {
+  color: var(--fs-ok, #2e9e6b);
+}
+.story__tour-heading {
+  margin: 0 0 var(--fs-space-2);
+  font-size: 18px;
+  line-height: 1.3;
+}
+/* Focused programmatically on each step, so it needs a ring like any target. */
+.story__tour-heading:focus-visible {
+  outline: 2px solid var(--fs-accent, #4285f4);
+  outline-offset: 3px;
+}
+.story__tour-body {
+  display: grid;
+  grid-template-columns: minmax(0, 130px) minmax(0, 1fr);
+  gap: 4px var(--fs-space-3);
+  margin: 0 0 var(--fs-space-2);
+  font-size: 14px;
+}
+.story__tour-body dt {
+  font: 600 10px/1.6 var(--fs-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fs-text-muted);
+}
+.story__tour-body dd {
+  margin: 0;
+}
+.story__tour-event {
+  margin: 0 0 var(--fs-space-3);
+  font: 11px/1.4 var(--fs-mono);
+  color: var(--fs-text-muted);
+}
+.story__tour-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 1300px) {
+  .story__tour-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}

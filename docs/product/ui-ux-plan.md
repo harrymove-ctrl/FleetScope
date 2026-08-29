@@ -1,8 +1,97 @@
 # FleetScope UI/UX plan
 
-Status: draft  
+Status: current v1 pivot + deferred enterprise reference
 
-Last updated: 2026-08-26
+Last updated: 2026-08-29
+
+## Current v1 UX (normative)
+
+FleetScope starts as a local developer tool. The first screen is Dashboard, not
+Cases, Catalog, or a graph:
+
+```text
+Dashboard → setup Gemini/Antigravity CLI → choose workspace
+          → verify Gemini/ADK adapter → Agent Viewer
+```
+
+Dashboard states are first run, ready, no sessions, failed check, and
+unsupported input. It uses a short onboarding checklist, setup cards, recent or
+live session cards, a command menu, and an Observe / Playback / Safety controls
+drawer. React Bits is limited to this shell and light motion; the graph and
+timeline remain the Zoetrope-derived Agent Viewer renderer.
+
+Agent Viewer is the core journey. A developer can follow a running session,
+replay a recording, pause/resume, scrub history, click any agent, and inspect
+prompt, tool call, output, error, and derived status. The CLI and browser use
+the same projection and controls. Local files stay local and FleetScope never
+pretends to start a run.
+
+The Case, Catalog, Approval, and Audit surfaces below are retained as deferred
+FleetScope platform work. They are not the v1 landing experience.
+
+## Cockpit Story Mode (planned)
+
+`/cockpit/CASE-1042` opens on Story Mode; the existing renderer experience
+becomes Expert Mode, disclosed on demand. Full specification:
+[CASE-1042 Story Mode plan](../plans/case-1042-story-mode-plan.md).
+
+Information order is fixed: Case header, recorded-mode label, outcome and
+summary, four governance proof cards, chapters, problem/action/result, then
+"Open Expert Mode". The recorded-mode label sits above the outcome so a reader
+who takes one thing from the page cannot take away that this is live.
+
+One Event Cursor, expressed as a canonical `caseSequence`, is the
+synchronization authority for cards, chapters, timeline, graph, topology,
+evidence rail and drawer. URL state is
+`?mode=story|expert&event=<caseSequence>`; an unrecognised `mode` falls back to
+Story and an out-of-range `event` falls back to the latest canonical event,
+independently of each other.
+
+Cards carry four states — `evidenced`, `absent`, `unavailable`, `unsupported` —
+and an evidenced card replaces its non-evidenced card in the same slot rather
+than sitting beside it. `absent` means evidence loaded and the chain is not
+there; `unavailable` means evidence could not be loaded. Collapsing those two
+would tell a reviewer that a control is missing when the truth is that nothing
+is known.
+
+The four CASE-1042 capabilities and their exact proof chains are tabulated in
+the plan. Selecting a card seeks the cursor; it does not force the drawer open.
+A separate "View Decision Evidence" action does that.
+
+Cards and chapters are native buttons with visible focus that survives rerender.
+Story/Expert controls carry `aria-current`. Cursor changes are announced
+politely. Under reduced motion, state switches immediately. Story cards use four
+columns at 1440×900, two at 1280×720 and 1180×800, and one when narrower;
+chapters scroll horizontally without body overflow.
+
+`/viewer` keeps the shared Story presentation but retains its own local adapter,
+disclosure and wording. It must never inherit an enterprise claim.
+
+### Guided Evidence Tour
+
+Six stops in the order the Case ran them: Delegate, Remember, Screen, Recover,
+Approve, Activate. Each carries a plain-language heading, one "what happened"
+line, one "why it matters" line, a status word paired with an icon, the
+canonical event number, and Back / Next / View evidence / Open in Expert Mode /
+Close tour.
+
+It drives the same canonical Case Cursor as the cards and the Proof Path — one
+playhead, never two. State is `?mode=…&event=…&tour=…`; Next and Back push
+history so browser Back walks the tour backwards, and closing the tour ends the
+narration without moving the cursor.
+
+It never autoplays. Focus moves to the step heading rather than the pressed
+button, because Next and Back become disabled at the ends. Full specification:
+[Guided Evidence Tour plan](../plans/case-1042-guided-tour-plan.md); demo script:
+[judge demo](case-1042-judge-demo.md).
+
+The Proof Path is displayed in canonical chronological order. It is drawn as a
+connected sequence, and a connector reads as a claim about time, so the display
+order has to be the real order. Expert-only panels (Incidents, Warden
+interventions) sit behind Expert Mode, and Story Mode carries an explicit
+`Recorded CASE-1042 evidence — nothing is executing` label.
+
+## Deferred enterprise UX reference
 
 ## UX thesis
 
@@ -409,4 +498,3 @@ badges, event scrubber, evidence drawer, or approval clarity.
 - [Agent Viewer requirements](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
 
 - [Demo and validation plan](../plans/[demo-validation.md](http://demo-validation.md))
-

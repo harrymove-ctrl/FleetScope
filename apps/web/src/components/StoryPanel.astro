@@ -1,0 +1,552 @@
+---
+/**
+ * Story Mode: the plain-language answer, above the expert surface.
+ *
+ * # Who this is for
+ *
+ * Someone who has never seen the vocabulary and has about a minute. They
+ * should be able to read what happened, click any claim, and land on the exact
+ * canonical event that proves it — without opening the graph.
+ *
+ * # Why it is server-rendered
+ *
+ * The Cockpit has its canonical events at build time, so the Story is real HTML
+ * before any WASM loads. A reader is never shown a spinner where a claim should
+ * be, and the page is complete even if the renderer never mounts.
+ *
+ * # What it may claim
+ *
+ * Only what `enterpriseStory` proved from the event stream. Every card carries
+ * its own state and its own destination; a card with no proof carries neither a
+ * claim nor a seek target.
+ */
+import type { EnterpriseStory } from '../features/story/enterprise';
+
+interface Props {
+  readonly story: EnterpriseStory;
+  /** Named in the recorded-mode label, so a screenshot identifies its own Case. */
+  readonly caseId: string;
+  /** Rendered as the cursor's starting position. */
+  readonly initialSequence: number;
+  readonly totalEvents: number;
+}
+
+const { story, caseId, initialSequence, totalEvents } = Astro.props;
+
+/** A word, not only a colour: state must survive a greyscale print. */
+const STATE_LABEL: Record<string, string> = {
+  evidenced: 'Evidenced',
+  absent: 'Not evidenced',
+  unavailable: 'Unavailable',
+  unsupported: 'Unsupported',
+};
+---
+
+<section class="fs-card story" aria-labelledby="story-title" data-story data-mode="story">
+  {/* A screenshot of this page must not be mistakable for a live system, so the
+      label says both what it is and what it is not, above everything else. */}
+  <p class="story__recorded" data-recorded-label>
+    <span aria-hidden="true">●</span>
+    Recorded {caseId} evidence — nothing is executing
+  </p>
+  <h2 id="story-title" class="story__outcome">{story.outcome}</h2>
+  <p class="story__summary">{story.summary}</p>
+
+  {
+    story.proofPath.length > 0 && (
+      <nav class="story__path" aria-label="Proof path">
+        <ol class="story__path-list" role="list">
+          {story.proofPath.map((step) => (
+            <li>
+              <button
+                type="button"
+                class="story__step"
+                data-path-step={step.id}
+                data-state={step.state}
+                data-case-sequence={step.caseSequence ?? ''}
+                disabled={step.caseSequence === null}
+                aria-current="false"
+                aria-label={`${step.title}: ${step.state === 'reached' ? 'reached' : 'not reached'}`}
+              >
+                <span class="story__step-dot" aria-hidden="true" />
+                <span class="story__step-title">{step.title}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )
+  }
+
+  {
+    story.tour.length > 0 && (
+      <section class="story__tour" data-tour aria-labelledby="tour-heading">
+        <div class="story__tour-head">
+          <h3 id="tour-heading" class="story__tour-kicker">Guided evidence tour</h3>
+          <p class="story__tour-count" data-tour-count>
+            {story.tour.length} steps
+          </p>
+        </div>
+
+        {/* Idle: one control, so a first-time reader has exactly one thing to do. */}
+        <div class="story__tour-idle" data-tour-idle>
+          <p class="story__tour-invite">
+            Walk the recorded evidence in the order it happened.
+          </p>
+          <button type="button" class="fs-button" data-tour-start>
+            Start guided tour
+          </button>
+        </div>
+
+        {/* Active. Hidden until started; never autoplays. */}
+        <div class="story__tour-active" data-tour-active hidden>
+          <p class="story__tour-progress">
+            <span data-tour-position>Step 1 of {story.tour.length}</span>
+            <span class="story__tour-status" data-tour-status />
+          </p>
+          <h4 class="story__tour-heading" data-tour-title tabindex="-1" />
+          <dl class="story__tour-body">
+            <dt>What happened</dt>
+            <dd data-tour-what />
+            <dt>Why it matters</dt>
+            <dd data-tour-why />
+          </dl>
+          <p class="story__tour-event">
+            Canonical event <span data-tour-event />
+          </p>
+          <div class="story__tour-controls">
+            <button type="button" class="fs-button fs-button--sm" data-tour-back>Back</button>
+            <button type="button" class="fs-button fs-button--sm" data-tour-next>Next</button>
+            <button type="button" class="fs-button fs-button--sm" data-tour-evidence>
+              View evidence
+            </button>
+            <button type="button" class="fs-button fs-button--sm" data-tour-expert>
+              Open in Expert Mode
+            </button>
+            <button type="button" class="fs-button fs-button--sm" data-tour-close>
+              Close tour
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <ul class="story__cards" role="list">
+    {
+      story.cards.map((card) => (
+        <li class="story__card" data-state={card.state} data-tone={card.tone} data-card-id={card.id}>
+          <p class="story__card-state" data-state={card.state}>
+            {STATE_LABEL[card.state] ?? card.state}
+          </p>
+          <p class="story__card-title">{card.title}</p>
+          <p class="story__card-detail">{card.detail}</p>
+          {card.state === 'evidenced' && card.primaryCaseSequence !== null && (
+            <div class="story__card-actions">
+              <button
+                type="button"
+                class="fs-button fs-button--sm"
+                data-card-seek={card.primaryCaseSequence}
+                aria-label={`Show the evidence for: ${card.title}`}
+              >
+                View evidence
+              </button>
+              <button
+                type="button"
+                class="fs-button fs-button--sm story__card-expert"
+                data-card-expert={card.primaryCaseSequence}
+                aria-label={`Open Expert Mode at the evidence for: ${card.title}`}
+              >
+                Show in Expert Mode
+              </button>
+            </div>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+
+  {
+    story.chapters.length > 0 && (
+      <nav class="story__chapters" aria-label="Case chapters">
+        <ul role="list">
+          {story.chapters.map((chapter) => (
+            <li>
+              <button
+                type="button"
+                class="story__chapter"
+                data-chapter-seek={chapter.sequence ?? ''}
+                aria-current="false"
+              >
+                {chapter.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    )
+  }
+
+  <div class="story__narrative">
+    <div>
+      <h3>What happened</h3>
+      <p>{story.narrative.problem}</p>
+    </div>
+    <div>
+      <h3>What FleetScope did</h3>
+      <p>{story.narrative.action}</p>
+    </div>
+    <div>
+      <h3>Result</h3>
+      <p>{story.narrative.result}</p>
+    </div>
+  </div>
+
+  <div class="story__modes">
+    <button type="button" class="fs-button" data-mode-story aria-current="true">Story</button>
+    <button type="button" class="fs-button" data-mode-expert aria-current="false">
+      Open Expert Mode
+    </button>
+  </div>
+
+  {/* Announced politely so a cursor move is heard without stealing focus. */}
+  <p class="visually-hidden" aria-live="polite" data-story-announce></p>
+</section>
+
+<script
+  is:inline
+  define:vars={{
+    initialSequence,
+    totalEvents,
+    // The event AT the destination, so the drawer shows the claim's own event
+    // rather than the first link of its chain.
+    tour: story.tour,
+    evidenceBySequence: Object.fromEntries(
+      story.cards
+        .filter((card) => card.primaryCaseSequence !== null)
+        .map((card) => [card.primaryCaseSequence, card.primaryEventId ?? '']),
+    ),
+  }}
+>
+  (function () {
+    const panel = document.querySelector('[data-story]');
+    if (panel === null) return;
+
+    const announce = panel.querySelector('[data-story-announce]');
+    const steps = Array.from(panel.querySelectorAll('[data-path-step]'));
+    const chapters = Array.from(panel.querySelectorAll('[data-chapter-seek]'));
+
+    /** The one cursor. Everything on this page is a view of it. */
+    let cursor = initialSequence;
+    /** Set while the renderer's first announcement is still owed a correction. */
+    let restoreCursorOnFirstAnnouncement = false;
+
+    // ── URL state ───────────────────────────────────────────────────────
+    //
+    // `?mode=story|expert&event=<caseSequence>`. Both fall back INDEPENDENTLY:
+    // a bad mode must not discard a good cursor.
+    function readUrl() {
+      const params = new URLSearchParams(location.search);
+      const rawMode = params.get('mode');
+      const mode = rawMode === 'expert' ? 'expert' : 'story';
+      // `Number(null)` is 0, so an ABSENT parameter would otherwise be read as
+      // a request for sequence 0 — the Case's creation event — instead of
+      // falling back to the latest event as the contract says.
+      const rawEvent = params.get('event');
+      const parsed = rawEvent === null ? Number.NaN : Number(rawEvent);
+      const valid =
+        rawEvent !== null && Number.isInteger(parsed) && parsed >= 0 && parsed < totalEvents;
+      return { mode: mode, event: valid ? parsed : initialSequence };
+    }
+
+    function writeUrl(mode, event) {
+      const params = new URLSearchParams(location.search);
+      params.set('mode', mode);
+      params.set('event', String(event));
+      history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
+    }
+
+    // ── The active step follows the cursor ──────────────────────────────
+    function paint() {
+      // CHRONOLOGICAL, not positional. The path's display order is a narrative
+      // shape, and its anchors are genuinely out of order: this Case delegates
+      // and writes memory BEFORE it screens the injection. Taking the last step
+      // in display order whose anchor is at or before the cursor answers with
+      // the step that happened first.
+      let active = null;
+      let activeSeq = -Infinity;
+      let earliest = null;
+      let earliestSeq = Infinity;
+      for (const step of steps) {
+        const raw = step.getAttribute('data-case-sequence');
+        if (raw === '') continue;
+        const value = Number(raw);
+        if (value < earliestSeq) {
+          earliestSeq = value;
+          earliest = step;
+        }
+        if (value <= cursor && value > activeSeq) {
+          activeSeq = value;
+          active = step;
+        }
+      }
+      // Before every reached step, the earliest is what the reader is heading to.
+      if (active === null) active = earliest;
+      for (const step of steps) {
+        step.setAttribute('aria-current', String(step === active));
+      }
+      for (const chapter of chapters) {
+        const raw = chapter.getAttribute('data-chapter-seek');
+        chapter.setAttribute('aria-current', String(raw !== '' && Number(raw) === cursor));
+      }
+      if (announce !== null) {
+        announce.textContent = `Event ${cursor + 1} of ${totalEvents}`;
+      }
+    }
+
+    /** Ask the Cockpit to move. It owns the renderer; this only requests. */
+    function seek(sequence) {
+      cursor = sequence;
+      writeUrl(panel.getAttribute('data-mode') ?? 'story', cursor);
+      paint();
+      document.dispatchEvent(
+        new CustomEvent('fleetscope:seek-request', { detail: { caseSequence: sequence } }),
+      );
+    }
+
+    // ── Mode ────────────────────────────────────────────────────────────
+    //
+    // Expert Mode is revealed BEFORE its renderer is asked to mount, because a
+    // canvas measured while hidden is zero-wide and the grid is built once.
+    function setMode(mode) {
+      panel.setAttribute('data-mode', mode);
+      document.documentElement.setAttribute('data-cockpit-mode', mode);
+      panel.querySelector('[data-mode-story]')?.setAttribute('aria-current', String(mode === 'story'));
+      panel.querySelector('[data-mode-expert]')?.setAttribute('aria-current', String(mode === 'expert'));
+      writeUrl(mode, cursor);
+      // Keep the tour parameter across a mode switch: a reader who opens Expert
+      // Mode mid-tour has not left the tour.
+      if (typeof writeTourUrl === 'function' && typeof tourIndex === 'number' && tourIndex >= 0) {
+        writeTourUrl(true);
+      }
+      // The renderer boots at its own live edge and announces it. That
+      // announcement must not become the reader's position: they opened Expert
+      // Mode to see the evidence they had selected, and adopting the edge
+      // silently throws it away.
+      if (mode === 'expert') restoreCursorOnFirstAnnouncement = true;
+      document.dispatchEvent(
+        new CustomEvent('fleetscope:mode', { detail: { mode: mode, caseSequence: cursor } }),
+      );
+    }
+
+    panel.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target === null || typeof target.closest !== 'function') return;
+
+      const step = target.closest('[data-path-step]');
+      if (step !== null) {
+        const raw = step.getAttribute('data-case-sequence');
+        if (raw !== '') seek(Number(raw));
+        return;
+      }
+
+      const chapter = target.closest('[data-chapter-seek]');
+      if (chapter !== null) {
+        const raw = chapter.getAttribute('data-chapter-seek');
+        if (raw !== '') seek(Number(raw));
+        return;
+      }
+
+      const card = target.closest('[data-card-seek]');
+      if (card !== null) {
+        const sequence = Number(card.getAttribute('data-card-seek'));
+        seek(sequence);
+        // Selecting a card seeks. Opening the drawer is a SEPARATE action, so
+        // scanning four cards does not throw a panel at the reader four times.
+        const eventId = evidenceBySequence[String(sequence)];
+        if (eventId) {
+          document.dispatchEvent(
+            new CustomEvent('fleetscope:evidence-open', { detail: { eventId: eventId } }),
+          );
+        }
+        return;
+      }
+
+      const expert = target.closest('[data-card-expert]');
+      if (expert !== null) {
+        seek(Number(expert.getAttribute('data-card-expert')));
+        setMode('expert');
+        return;
+      }
+
+      if (target.closest('[data-mode-expert]')) setMode('expert');
+      if (target.closest('[data-mode-story]')) setMode('story');
+    });
+
+    // The renderer moved on its own: follow it rather than out-voting it —
+    // EXCEPT for its first announcement after Expert Mode opens, which is just
+    // where it happened to boot.
+    document.addEventListener('fleetscope:cursor', (event) => {
+      const next = event.detail?.cursor?.eventCursor;
+      if (typeof next !== 'number' || next < 0) return;
+
+      if (restoreCursorOnFirstAnnouncement) {
+        restoreCursorOnFirstAnnouncement = false;
+        if (next !== cursor) {
+          document.dispatchEvent(
+            new CustomEvent('fleetscope:seek-request', { detail: { caseSequence: cursor } }),
+          );
+          return;
+        }
+      }
+
+      if (next === cursor) return;
+      cursor = next;
+      writeUrl(panel.getAttribute('data-mode') ?? 'story', cursor);
+      paint();
+    });
+
+    // ── The Guided Evidence Tour ────────────────────────────────────────
+    //
+    // It drives the SAME canonical cursor as everything else. A second playhead
+    // would be a second answer to "where are we", and the two would drift the
+    // first time a reader used the path and the tour in one session.
+    const tourIdle = panel.querySelector('[data-tour-idle]');
+    const tourActive = panel.querySelector('[data-tour-active]');
+    const tourTitle = panel.querySelector('[data-tour-title]');
+
+    /** Index into `tour`, or -1 when the tour is not running. */
+    let tourIndex = -1;
+
+    function tourIdFromUrl() {
+      const id = new URLSearchParams(location.search).get('tour');
+      if (id === null) return -1;
+      // An unrecognised value means no active tour, not step 0: guessing would
+      // put a reader mid-narrative from a link that meant nothing.
+      return tour.findIndex((step) => step.id === id);
+    }
+
+    function writeTourUrl(replace) {
+      const params = new URLSearchParams(location.search);
+      params.set('mode', panel.getAttribute('data-mode') ?? 'story');
+      params.set('event', String(cursor));
+      if (tourIndex < 0) params.delete('tour');
+      else params.set('tour', tour[tourIndex].id);
+      const url = `${location.pathname}?${params.toString()}`;
+      // Each step is a place a reader can return to, so Next and Back push.
+      // Everything else replaces, or the history would fill with cursor moves.
+      if (replace) history.replaceState(null, '', url);
+      else history.pushState(null, '', url);
+    }
+
+    function paintTour(moveFocus) {
+      if (tourIdle === null || tourActive === null) return;
+      const running = tourIndex >= 0 && tourIndex < tour.length;
+      tourIdle.hidden = running;
+      tourActive.hidden = !running;
+      if (!running) return;
+
+      const step = tour[tourIndex];
+      const set = (selector, text) => {
+        const el = panel.querySelector(selector);
+        if (el !== null) el.textContent = text;
+      };
+      set('[data-tour-position]', `Step ${tourIndex + 1} of ${tour.length}`);
+      set('[data-tour-status]', `${step.icon} ${step.status}`);
+      set('[data-tour-title]', step.heading);
+      set('[data-tour-what]', step.what);
+      set('[data-tour-why]', step.why);
+      set('[data-tour-event]', `${step.caseSequence + 1} of ${totalEvents} · ${step.evidenceEventId}`);
+
+      const back = panel.querySelector('[data-tour-back]');
+      const next = panel.querySelector('[data-tour-next]');
+      if (back !== null) back.disabled = tourIndex === 0;
+      if (next !== null) next.disabled = tourIndex === tour.length - 1;
+
+      // Focus the heading, not the button that was pressed: Next and Back
+      // become disabled at the ends, and focus on a disabled control is lost to
+      // the document. The heading is where a screen reader should be anyway.
+      if (moveFocus && tourTitle !== null) tourTitle.focus();
+      if (announce !== null) {
+        announce.textContent = `Step ${tourIndex + 1} of ${tour.length}: ${step.heading}. Event ${step.caseSequence + 1} of ${totalEvents}.`;
+      }
+    }
+
+    function goToTourStep(index, options) {
+      if (index < 0 || index >= tour.length) return;
+      tourIndex = index;
+      cursor = tour[index].caseSequence;
+      writeTourUrl(options?.replace === true);
+      paint();
+      paintTour(options?.focus !== false);
+      document.dispatchEvent(
+        new CustomEvent('fleetscope:seek-request', { detail: { caseSequence: cursor } }),
+      );
+    }
+
+    panel.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target === null || typeof target.closest !== 'function') return;
+
+      if (target.closest('[data-tour-start]')) {
+        goToTourStep(0);
+        return;
+      }
+      if (target.closest('[data-tour-next]')) {
+        goToTourStep(tourIndex + 1);
+        return;
+      }
+      if (target.closest('[data-tour-back]')) {
+        goToTourStep(tourIndex - 1);
+        return;
+      }
+      if (target.closest('[data-tour-close]')) {
+        // Closing ends the narration. It does NOT move the cursor: the reader
+        // stopped reading, they did not ask to go somewhere else.
+        tourIndex = -1;
+        writeTourUrl(true);
+        paintTour(false);
+        panel.querySelector('[data-tour-start]')?.focus();
+        return;
+      }
+      if (target.closest('[data-tour-evidence]')) {
+        // Opened only on request. A tour that threw a panel at the reader on
+        // every step would bury the narration it is trying to deliver.
+        const step = tour[tourIndex];
+        if (step !== undefined) {
+          document.dispatchEvent(
+            new CustomEvent('fleetscope:evidence-open', {
+              detail: { eventId: step.evidenceEventId },
+            }),
+          );
+        }
+        return;
+      }
+      if (target.closest('[data-tour-expert]')) {
+        setMode('expert');
+        return;
+      }
+    });
+
+    // Browser Back walks the tour backwards, because each step was pushed.
+    window.addEventListener('popstate', () => {
+      const restored = readUrl();
+      cursor = restored.event;
+      tourIndex = tourIdFromUrl();
+      setMode(restored.mode);
+      paint();
+      paintTour(false);
+      document.dispatchEvent(
+        new CustomEvent('fleetscope:seek-request', { detail: { caseSequence: cursor } }),
+      );
+    });
+
+    const initial = readUrl();
+    cursor = initial.event;
+    tourIndex = tourIdFromUrl();
+    setMode(initial.mode);
+    paint();
+    // No focus move on load: a page must not steal focus before a reader acts.
+    paintTour(false);
+  })();
+</script>

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CockpitMount from '../../features/cockpit/CockpitMount.astro';
+import StoryPanel from '../../components/StoryPanel.astro';
 import CaseHeader from '../../components/CaseHeader.astro';
 import EvidenceRail from '../../components/EvidenceRail.astro';
 import EvidenceDrawer from '../../components/EvidenceDrawer.astro';
@@ -24,6 +25,7 @@ import { summariseCase } from '../../lib/case-summary';
 import { agentTree } from '../../lib/agent-tree';
 import { demoPhases } from '../../lib/demo-phases';
 import { webConfig } from '../../lib/config';
+import { enterpriseStory } from '../../features/story/enterprise';
 
 /**
  * The Agent Viewer — the expert operations surface.
@@ -68,6 +70,18 @@ const anchorsFor = (interventionId: string): Record<string, number> => {
 // lands where the Case's own clock has reached rather than at wall time.
 const liveSessionId = state?.sessions.at(-1)?.sessionId ?? null;
 const LIVE_STEP_ID = 'orchestrator-compliance-decision';
+
+/**
+ * Story Mode, built from the canonical events at build time.
+ *
+ * `unavailable` is a real answer, not an error page: a Case whose events did
+ * not load must say that nothing is known rather than that nothing happened.
+ */
+const story =
+  events.length === 0
+    ? enterpriseStory({ status: 'unavailable', reason: 'no canonical events for this Case' })
+    : enterpriseStory({ status: 'loaded', events });
+const latestSequence = caseSequences.at(-1) ?? 0;
 ---
 
 <BaseLayout title={`Agent Viewer · ${caseId}`} wide>
@@ -76,7 +90,14 @@ const LIVE_STEP_ID = 'orchestrator-compliance-decision';
     <a slot="actions" class="fs-button fs-button--sm" href={`/audit/${caseId}`}>Audit</a>
   </CaseHeader>
 
-  <div class="fs-cockpit-layout">
+  <StoryPanel
+    story={story}
+    caseId={caseId!}
+    initialSequence={latestSequence}
+    totalEvents={events.length}
+  />
+
+  <div class="fs-cockpit-layout" data-expert-surface>
     <div class="fs-rail">
       <AgentTree nodes={agents} />
 
@@ -141,7 +162,10 @@ const LIVE_STEP_ID = 'orchestrator-compliance-decision';
     </div>
   </div>
 
-  <div class="fs-grid fs-grid--2" style="margin-top:var(--fs-space-4)">
+  {/* Expert-only. In Story Mode these made the page long and technical before
+      the reader had understood anything, and blurred what "Open Expert Mode"
+      was even for. */}
+  <div class="fs-grid fs-grid--2" style="margin-top:var(--fs-space-4)" data-expert-surface>
     <section class="fs-card">
       <div class="fs-section-head">
         <h2>Incidents</h2>
@@ -195,5 +219,6 @@ const LIVE_STEP_ID = 'orchestrator-compliance-decision';
     </section>
   </div>
 
+  {/* The drawer serves both modes: a Story card opens it without leaving Story. */}
   <EvidenceDrawer records={records} seekable={scene !== null} />
 </BaseLayout>
