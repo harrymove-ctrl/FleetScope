@@ -12,6 +12,7 @@
     "@fleetscope/domain": "workspace:*",
     "@fleetscope/event-schema": "workspace:*",
     "@fleetscope/platform-adapters": "workspace:*",
+    "@fleetscope/run-ledger": "workspace:*",
     "@fleetscope/shared": "workspace:*",
     "@hono/node-server": "^1.14.0",
     "hono": "^4.6.16",

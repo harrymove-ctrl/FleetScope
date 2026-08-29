@@ -44,6 +44,68 @@ export interface FleetScopeConfig {
     readonly temperature: number;
     readonly timeoutMs: number;
   };
+  readonly runs: {
+    /**
+     * Where the append-only run ledger is written.
+     *
+     * A run is only admitted when this path is durable, so the location is
+     * configuration rather than a constant buried in the controller.
+     */
+    readonly ledgerPath: string;
+    /**
+     * The ceiling on model calls this deployment may spend across ALL runs,
+     * distinct from the per-run cap. It exists so a restart loop cannot spend
+     * the budget one admissible run at a time.
+     */
+    readonly totalCallBudget: number;
+    /**
+     * The most model calls ONE run may reserve.
+     *
+     * Deliberately separate from `gemini.maxCallsPerCase`. That key bounds the
+     * existing single-decision `/live/decision` path, which spends two calls
+     * per case; a scenario run drives a root agent and a delegated sub-agent
+     * and reserves six. They are different subsystems with different budgets,
+     * and the earlier ambiguity between them was the defect: reusing the
+     * decision key would either starve the run at call three or triple the
+     * decision path's ceiling. A scenario declaring more than this is refused
+     * at admission rather than discovered mid-run.
+     */
+    readonly maxModelCallsPerRun: number;
+    /**
+     * Who executes an admitted run.
+     *
+     * `worker` spawns FleetScope's own Python process. `mcp` waits for the
+     * developer's own Gemini/Antigravity CLI agent to call the FleetScope MCP
+     * tool, which is how a live run happens when FleetScope holds no model
+     * credential of its own: the model runs on the developer's CLI quota and
+     * FleetScope still owns the fault, the policy, the retry and the evidence.
+     */
+    readonly driver: 'worker' | 'mcp';
+  };
+  readonly worker: {
+    /**
+     * How to start the Python worker. Paths are relative to the repository
+     * root and are resolved by the process that mounts the run controller,
+     * because the API's own working directory is `apps/api`.
+     */
+    readonly python: string;
+    readonly directory: string;
+    readonly pythonPath: string;
+    /**
+     * Wall-clock ceiling for one worker process. A worker that outlives this
+     * is killed and its run recorded as `timed_out`: an unbounded child would
+     * hold the single active slot forever.
+     */
+    readonly timeoutMs: number;
+    /**
+     * Answer the allowlisted read from a recorded fixture instead of the
+     * network. Only meaningful in `pure` mode, whose evidence is already
+     * labelled `recorded`, so it cannot make a live claim cheaper.
+     */
+    readonly offline: boolean;
+    /** Where the worker records tool attempts, for idempotency across a restart. */
+    readonly attemptLedger: string;
+  };
 }
 
 const APP_ENVS = ['development', 'test', 'production'] as const;
@@ -141,15 +203,65 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
       temperature: parseFloat_(source['GEMINI_TEMPERATURE'], 0, 'GEMINI_TEMPERATURE', problems),
       timeoutMs: parseInt_(source['GEMINI_TIMEOUT_MS'], 15_000, 'GEMINI_TIMEOUT_MS', problems),
     },
+    runs: {
+      ledgerPath: source['FLEETSCOPE_RUN_LEDGER']?.trim() || '.fleetscope/runs.jsonl',
+      totalCallBudget: parseInt_(
+        source['FLEETSCOPE_TOTAL_CALL_BUDGET'],
+        60,
+        'FLEETSCOPE_TOTAL_CALL_BUDGET',
+        problems,
+      ),
+      maxModelCallsPerRun: parseInt_(
+        source['FLEETSCOPE_RUN_MAX_MODEL_CALLS'],
+        6,
+        'FLEETSCOPE_RUN_MAX_MODEL_CALLS',
+        problems,
+      ),
+      driver: source['FLEETSCOPE_RUN_DRIVER'] === 'mcp' ? 'mcp' : 'worker',
+    },
+    worker: {
+      python: source['FLEETSCOPE_WORKER_PYTHON']?.trim() || 'apps/adk-worker/.venv/bin/python',
+      directory: source['FLEETSCOPE_WORKER_DIR']?.trim() || 'apps/adk-worker',
+      pythonPath: source['FLEETSCOPE_WORKER_PYTHONPATH']?.trim() || 'apps/adk-worker/src',
+      timeoutMs: parseInt_(
+        source['FLEETSCOPE_WORKER_TIMEOUT_MS'],
+        120_000,
+        'FLEETSCOPE_WORKER_TIMEOUT_MS',
+        problems,
+      ),
+      offline: source['FLEETSCOPE_WORKER_OFFLINE'] === 'true',
+      attemptLedger: source['FLEETSCOPE_ATTEMPT_LEDGER']?.trim() ?? '',
+    },
   };
 
   // Live mode is the only state that can spend credit, so its prerequisites are
   // validated at boot rather than discovered at call time.
+  //
+  // WHICH prerequisites depends on who issues the model call:
+  //
+  //   worker  FleetScope runs the agent itself and pays for it, so it must hold
+  //           its own model credential before live mode is allowed at all.
+  //   mcp     the developer's own Gemini or Antigravity CLI supplies the model
+  //           on that CLI's auth. FleetScope never issues a model call on this
+  //           path, so demanding a key it will not use would only force an
+  //           operator to invent one, and an invented credential in an
+  //           environment is worse than no credential.
+  //
+  // Live mode still gates admission in BOTH drivers: it is what separates a
+  // deployment that may start runs from one that may only replay them.
   if (config.liveMode) {
-    if (config.gemini.model === null) problems.push('LIVE_MODE=true requires GEMINI_MODEL');
-    // The message names the VARIABLE, never a value: a config error must not be
-    // the thing that prints a credential into a log.
-    if (config.gemini.apiKey === null) problems.push('LIVE_MODE=true requires GEMINI_API_KEY');
+    if (config.runs.driver === 'worker') {
+      if (config.gemini.model === null) {
+        problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_MODEL');
+      }
+      // The message names the VARIABLE, never a value: a config error must not
+      // be the thing that prints a credential into a log.
+      if (config.gemini.apiKey === null) {
+        problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_API_KEY');
+      }
+    }
+    // Independent of the driver: this bounds the separate `/live/decision`
+    // path, which is not part of the run controller at all.
     if (config.gemini.maxCallsPerCase < 1) {
       problems.push('LIVE_MODE=true requires GEMINI_MAX_CALLS_PER_CASE >= 1');
     }

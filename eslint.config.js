@@ -17,6 +17,10 @@ export default tseslint.config(
       // build artifact, not source, and it targets the browser rather than this
       // project's lint environment.
       'apps/web/public/wasm/**',
+      // The Python worker's virtualenv. google-adk ships a prebuilt browser
+      // bundle inside site-packages; it is a third-party artifact this repo
+      // neither owns nor edits.
+      'apps/adk-worker/.venv/**',
       'packages/fixtures/cases/**',
       'packages/event-schema/schemas/**',
     ],

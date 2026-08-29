@@ -29,13 +29,16 @@
     "format:check": "prettier --check .",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build:web",
     "smoke": "bash scripts/smoke.sh",
+    "smoke:runs": "tsx scripts/smoke-runs.ts",
+    "smoke:mcp": "tsx scripts/smoke-mcp.ts",
     "schema:emit": "tsx packages/event-schema/src/emit-json-schema.ts",
     "fixtures:bless": "tsx scripts/bless-fixtures.ts",
     "scenario:compile": "tsx packages/scenario-compiler/src/cli.ts",
     "check:wasm": "cd crates/fleet-cockpit-web && cargo check",
     "reliability": "tsx scripts/recorded-reliability.ts",
     "recorded:run": "tsx scripts/recorded-run.ts",
-    "qa:browser": "tsx scripts/browser-qa.ts"
+    "qa:browser": "tsx scripts/browser-qa.ts",
+    "qa:live": "tsx scripts/qa-live.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

@@ -10,3 +10,6 @@ packages/fixtures/cases/**/renderer/
 packages/event-schema/schemas/
 pnpm-lock.yaml
 apps/web/public/wasm/
+
+# Python worker: prettier does not own these.
+apps/adk-worker/

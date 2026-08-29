@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { capabilityRoutes } from './routes/capability.js';
 import { healthRoutes } from './routes/health.js';
 import { liveRoutes } from './routes/live.js';
+import { runRoutes, type RunRoutesDependencies } from './routes/runs.js';
+import { productionRunDependencies } from './runs/dependencies.js';
 import { cors } from './middleware/cors.js';
 import { requestContext } from './middleware/request-context.js';
 import type { GeminiDependencies } from './live/gemini.js';
@@ -24,6 +26,15 @@ export function createApp(
    * network, a credential, or a cent of spend.
    */
   liveDependencies?: Partial<GeminiDependencies>,
+  /**
+   * The run controller's ports.
+   *
+   * Overridden by tests so admission, budget and idempotency are exercised with
+   * no filesystem, no clock and no randomness. When omitted the REAL ports are
+   * built, so the route is always mounted: a missing argument must never be
+   * able to delete an endpoint.
+   */
+  runDependencies?: RunRoutesDependencies,
 ): Hono {
   const app = new Hono();
 
@@ -32,6 +43,7 @@ export function createApp(
   app.route('/', healthRoutes(config));
   app.route('/', capabilityRoutes(config));
   app.route('/', liveRoutes(config, liveDependencies));
+  app.route('/', runRoutes(config, runDependencies ?? productionRunDependencies(config)));
 
   app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

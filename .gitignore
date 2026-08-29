@@ -22,3 +22,11 @@ coverage/
 
 .DS_Store
 *.log
+
+# Local run ledger. Durable evidence, not source.
+.fleetscope/
+
+# Python ADK worker: virtualenv and bytecode are local build state.
+apps/adk-worker/.venv/
+apps/adk-worker/**/__pycache__/
+apps/adk-worker/.pytest_cache/

@@ -74,6 +74,9 @@ importers:
       '@fleetscope/platform-adapters':
         specifier: workspace:*
         version: link:../../packages/platform-adapters
+      '@fleetscope/run-ledger':
+        specifier: workspace:*
+        version: link:../../packages/run-ledger
       '@fleetscope/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -196,6 +199,12 @@ importers:
       '@fleetscope/event-schema':
         specifier: workspace:*
         version: link:../event-schema
+      '@fleetscope/shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/run-ledger:
+    dependencies:
       '@fleetscope/shared':
         specifier: workspace:*
         version: link:../shared

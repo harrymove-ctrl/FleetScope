@@ -1,0 +1,171 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { webConfig } from '../lib/config';
+import { AWAITING_AGENT_LINES, REPLAY_NOTE } from '../features/live/state';
+
+/**
+ * The judge-first surface.
+ *
+ * Everything on this page is derived from canonical events by `deriveLive`.
+ * The markup below is the empty shell: no beat says `done`, no result is
+ * present, and nothing claims a state until the API has answered. A page that
+ * shipped a hopeful default would be able to show a story the run never told.
+ */
+
+const config = webConfig();
+---
+
+<BaseLayout title="Live recovery demo">
+  <PageHeader
+    title="Live recovery demo"
+    lede="One governed read, one deliberate failure, one policy-authorised retry."
+  />
+
+  <section id="live-root" class="live" data-state="ready" data-api={config.apiBaseUrl ?? ''}>
+    <div class="live__actions">
+      <button id="live-start" class="live__cta" type="button" data-enabled="false" disabled>
+        Run live recovery demo
+      </button>
+      <button id="live-replay" class="live__secondary" type="button" hidden disabled>
+        Replay evidence
+      </button>
+    </div>
+
+    <p id="live-blocked" class="live__blocked" role="status" hidden></p>
+
+    <p id="live-sentence" class="live__sentence" role="status" aria-live="polite">
+      Checking what this deployment can do.
+    </p>
+
+    <div id="live-awaiting" class="live__awaiting" hidden>
+      {AWAITING_AGENT_LINES.map((line) => <p>{line}</p>)}
+    </div>
+
+    <ol id="live-beats" class="live__beats" aria-label="Story beats"></ol>
+
+    <p id="live-delegation" class="live__delegation" data-observed="false">
+      Delegation: Unknown / not observable in this runtime
+    </p>
+
+    <dl class="live__facts">
+      <div><dt>Agent</dt><dd id="live-agent">not yet observed</dd></div>
+      <div><dt>Incident reason</dt><dd id="live-incident">none</dd></div>
+      <div><dt>Policy rationale</dt><dd id="live-policy">none</dd></div>
+      <div><dt>Result</dt><dd id="live-result">not yet</dd></div>
+      <div><dt>Event cursor</dt><dd id="live-cursor">0</dd></div>
+      <div><dt>Budget</dt><dd id="live-budget">unknown</dd></div>
+    </dl>
+
+    <p id="live-replay-note" class="live__replay-note" hidden>{REPLAY_NOTE}</p>
+  </section>
+</BaseLayout>
+
+<script>
+  import { resolveApiBase, startLive } from '../features/live/client';
+
+  const root = document.getElementById('live-root');
+  const built = root?.dataset['api'];
+  startLive(resolveApiBase(built === undefined || built === '' ? null : built, location.search));
+</script>
+
+<style>
+  .live {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 68rem;
+  }
+  .live__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .live__cta,
+  .live__secondary {
+    font: inherit;
+    padding: 0.6rem 1.1rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border, #263247);
+    background: var(--surface-raised, #182131);
+    color: inherit;
+    cursor: pointer;
+  }
+  .live__cta[data-enabled='true'] {
+    border-color: var(--accent, #4c8dff);
+  }
+  .live__cta:disabled,
+  .live__secondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .live__sentence {
+    font-size: 1.05rem;
+    margin: 0;
+  }
+  .live__blocked,
+  .live__awaiting {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border, #263247);
+    border-radius: 0.4rem;
+  }
+  .live__awaiting p {
+    margin: 0 0 0.25rem;
+  }
+  .live__beats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .live-beat {
+    display: grid;
+    gap: 0.15rem;
+    flex: 1 1 9rem;
+    min-width: 8rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border, #263247);
+    border-radius: 0.4rem;
+  }
+  .live-beat[data-status='done'] {
+    border-color: var(--accent, #4c8dff);
+  }
+  .live-beat__label {
+    font-weight: 600;
+  }
+  .live-beat__status,
+  .live-beat__seq {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+  .live-beat__seq {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .live__delegation {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  .live__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+  }
+  .live__facts dt {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+  }
+  .live__facts dd {
+    margin: 0.15rem 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+  }
+  .live__replay-note {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+</style>
