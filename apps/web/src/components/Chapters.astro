@@ -1,0 +1,202 @@
+---
+/**
+ * The chapter list — the whole content of the launchpad.
+ *
+ * Rendered three times inside `Fold`: once as the live middle band and twice as
+ * inert copies for the folded edges. `decorative` marks those copies, which
+ * must not repeat the page's `h1`, must not put a second copy of every link in
+ * the tab order, and must not duplicate the ids the real one owns.
+ */
+import { provenanceLabel, type LaunchChapter } from '../features/launch/chapters';
+
+interface Props {
+  cards: readonly LaunchChapter[];
+  decorative?: boolean;
+}
+
+const { cards, decorative = false } = Astro.props;
+---
+
+<section
+  class="chapters"
+  id={decorative ? undefined : 'chapters'}
+  aria-labelledby={decorative ? undefined : 'chapters-title'}
+>
+  <header class="chapters__head">
+    {
+      decorative ? (
+        <p class="chapters__title" aria-hidden="true">
+          FleetScope
+        </p>
+      ) : (
+        <h1 id="chapters-title" class="chapters__title">
+          FleetScope
+        </h1>
+      )
+    }
+    <p class="chapters__lede">
+      Watch agent work become evidence. Follow a local Gemini or Antigravity session, or inspect a
+      bounded recovery record with the evidence behind it.
+    </p>
+    <p class="chapters__actions">
+      <a class="ap__button" href="/viewer" tabindex={decorative ? -1 : undefined}>
+        Open Agent Viewer
+      </a>
+      <a class="ap__link" href="/cockpit/CASE-1042" tabindex={decorative ? -1 : undefined}>
+        See recorded recovery <span aria-hidden="true">›</span>
+      </a>
+    </p>
+  </header>
+
+  <ol class="chapters__list" role="list">
+    {
+      cards.map((card) => (
+        <li class="chapter">
+          <p class="chapter__label">{card.label}</p>
+          {decorative ? (
+            <p class="chapter__title">{card.title}</p>
+          ) : (
+            <h2 class="chapter__title">{card.title}</h2>
+          )}
+          <p class="chapter__note">{card.summary}</p>
+          <p class="chapter__meta">
+            <a
+              class="ap__link chapter__link"
+              href={card.route}
+              tabindex={decorative ? -1 : undefined}
+            >
+              Open <span aria-hidden="true">›</span>
+            </a>
+            <span class="chapter__provenance">
+              {provenanceLabel(card.provenance)}
+              {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
+            </span>
+          </p>
+        </li>
+      ))
+    }
+  </ol>
+
+  <footer class="chapters__footer">
+    <p class="ap__caption">
+      FleetScope reads agent sessions already on your machine. It never starts an agent and never
+      uploads a transcript.
+    </p>
+    <p class="ap__caption">
+      Recorded evidence is bundled with this build. Third-party attribution in
+      THIRD-PARTY-NOTICES.md.
+    </p>
+  </footer>
+</section>
+
+<style>
+  .chapters {
+    padding: 120px max(24px, calc((100vw - 1400px) / 2));
+    /*
+     * Contain the fold.
+     *
+     * A rotated plane under perspective projects wider than its own box — the
+     * bend widened the document by up to 571px, which is a horizontal
+     * scrollbar. `clip` rather than `hidden`: it does not create a scroll
+     * container, so anchors and any future sticky child still behave. This
+     * conceals no content — every row is fully readable once it reaches the
+     * flat middle, which is the whole point of the effect.
+     */
+    overflow-x: clip;
+  }
+
+  .chapters__head {
+    max-width: 38ch;
+    margin: 0 0 96px;
+  }
+
+  .chapters__title {
+    margin: 0;
+    font-size: var(--ap-display-l);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+  }
+
+  .chapters__lede {
+    margin: 24px 0 0;
+    font-size: var(--ap-body-l);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 32px;
+    margin: 40px 0 0;
+  }
+
+  /* Hairline-separated rows, not a card grid. */
+  .chapters__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ap-hairline);
+  }
+
+  .chapter {
+    padding: 40px 0;
+    border-bottom: 1px solid var(--ap-hairline);
+  }
+
+  .chapter__label {
+    margin: 0 0 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapter__title {
+    margin: 0;
+    font-size: var(--ap-display-m);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+
+  .chapter__note {
+    margin: 16px 0 0;
+    max-width: 38ch;
+    font-size: var(--ap-body);
+    line-height: 1.55;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapter__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+    margin: 20px 0 0;
+  }
+
+  .chapter__provenance {
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__footer {
+    display: grid;
+    gap: 8px;
+    margin-top: 96px;
+  }
+
+  @media (max-width: 1024px) {
+    .chapters {
+      padding: 96px 24px;
+    }
+    .chapters__head {
+      margin-bottom: 64px;
+    }
+  }
+</style>

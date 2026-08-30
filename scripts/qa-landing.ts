@@ -82,7 +82,12 @@ async function run(): Promise<void> {
 
     const report = await page.evaluate(() => {
       const stage = document.querySelector<HTMLElement>('[data-stage]');
-      const chapters = Array.from(document.querySelectorAll('.chapter'));
+      // The fold draws the face three times; two copies are inert duplicates
+      // for the folded edges. Only the live one is the page, so count what a
+      // reader and a screen reader actually get.
+      const chapters = Array.from(document.querySelectorAll('.chapter')).filter(
+        (node) => !node.closest('[aria-hidden="true"]'),
+      );
       // Everything painted, not just the launchpad column. The peel footer
       // renders outside `.ap`, and a rule that stops at `.ap` would have
       // nothing to say about it — which is exactly where an 800-weight or a
