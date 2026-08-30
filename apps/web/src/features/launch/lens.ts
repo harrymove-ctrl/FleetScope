@@ -199,6 +199,115 @@ interface CompileResult {
   readonly log: string;
 }
 
+/**
+ * The field behind the cards — a FLOW gradient.
+ *
+ * From the source config: four stops at positions 0.125 / 0.375 / 0.542 /
+ * 0.792, dividers at 0.25 / 0.5 / 0.585, soften 0, noise 5, speed 26, blended
+ * in LINEAR sRGB.
+ *
+ * Two of those matter more than they look:
+ *
+ *   The positions and the dividers are different things. A stop's position is
+ *   where that colour sits; the divider is where the blend between two of them
+ *   crosses over. Using the dividers as the ramp edges — which is the obvious
+ *   misreading — puts every colour in the wrong place and squeezes the last
+ *   two stops into the top 8% of the range.
+ *
+ *   "Linear sRGB" is the blend space. Mixing these stops in gamma space takes
+ *   the cyan-to-teal transition through a muddier middle, because sRGB is not
+ *   linear in light.
+ *
+ * It is drawn into the framebuffer BEFORE the cards rather than onto a canvas
+ * behind them, for one reason: this context is `alpha: false` and both passes
+ * write alpha 1, so nothing behind the canvas can ever show. Putting the
+ * gradient inside also means the lens refracts it, which a layer behind could
+ * not do.
+ */
+/**
+ * How fast the field drifts.
+ *
+ * The source says speed 26, but that is a number on its own scale and a
+ * literal reading of it drifts far too quickly for something sitting behind
+ * content people are trying to read — a first pass at 26/1000 was called out
+ * as too fast, and rightly. This is the same flow at roughly a quarter of
+ * that: it reads as weather rather than as motion, which is what a field
+ * behind content should do.
+ */
+const GRAD_SPEED = 26 / 4200;
+
+const GRAD_FRAG = `
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform vec3 u_s0;
+uniform vec3 u_s1;
+uniform vec3 u_s2;
+uniform vec3 u_s3;
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash(i), b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+float fbm(vec2 p) {
+  float v = 0.0, amp = 0.5;
+  for (int i = 0; i < 5; i++) {
+    v += amp * noise(p);
+    p *= 2.03;
+    amp *= 0.5;
+  }
+  return v;
+}
+
+// A monotone ramp that is 0 at the lower stop, 0.5 at the divider between
+// them, and 1 at the upper stop. This is what makes the divider mean what the
+// source says it means.
+float seg(float f, float a, float d, float b) {
+  return f < d ? 0.5 * smoothstep(a, d, f) : 0.5 + 0.5 * smoothstep(d, b, f);
+}
+
+vec3 toLinear(vec3 c) { return pow(c, vec3(2.2)); }
+vec3 toSrgb(vec3 c) { return pow(c, vec3(1.0 / 2.2)); }
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_res;
+  float aspect = u_res.x / max(u_res.y, 1.0);
+  vec2 p = vec2(uv.x * aspect, uv.y);
+
+  float t = u_time * GRAD_SPEED;
+  vec2 q = p * 2.0;
+
+  // Domain warp: the distortion in the source config.
+  vec2 warp = vec2(fbm(q + t), fbm(q - t + 5.2)) - 0.5;
+  q += warp * 1.1;
+
+  // Swirl: a gentle rotation about the centre, stronger further out.
+  vec2 c = p - vec2(aspect * 0.5, 0.5);
+  float ang = 0.0667 * length(c) * 3.14159;
+  float ca = cos(ang), sa = sin(ang);
+  q = vec2(q.x * ca - q.y * sa, q.x * sa + q.y * ca);
+
+  float f = clamp(fbm(q * 0.9 + t * 0.6), 0.0, 1.0);
+
+  // Blended in linear light, then returned to sRGB.
+  vec3 col = toLinear(u_s0);
+  col = mix(col, toLinear(u_s1), seg(f, 0.125, 0.25, 0.375));
+  col = mix(col, toLinear(u_s2), seg(f, 0.375, 0.5, 0.542));
+  col = mix(col, toLinear(u_s3), seg(f, 0.542, 0.585, 0.792));
+  col = toSrgb(col);
+
+  // noise 5, so the flats do not band on a wide screen.
+  col += (hash(gl_FragCoord.xy + u_time) - 0.5) * (5.0 / 255.0);
+
+  gl_FragColor = vec4(col, 1.0);
+}`.replace('GRAD_SPEED', GRAD_SPEED.toFixed(4));
+
 function compile(gl: WebGLRenderingContext, type: number, source: string): CompileResult {
   const shader = gl.createShader(type);
   if (shader === null) return { shader: null, log: 'createShader returned null' };
@@ -262,14 +371,30 @@ export function mountLensPass(
 
   const cardProgram = link(gl, QUAD_VERT, CARD_FRAG);
   const lensProgram = link(gl, FULL_VERT, LENS_FRAG);
-  if (cardProgram.program === null || lensProgram.program === null) {
+  const gradProgram = link(gl, FULL_VERT, GRAD_FRAG);
+  if (
+    cardProgram.program === null ||
+    lensProgram.program === null ||
+    gradProgram.program === null
+  ) {
     options.onFallback(
-      `shader failed: ${(cardProgram.log || lensProgram.log).trim().slice(0, 160)}`,
+      `shader failed: ${(cardProgram.log || lensProgram.log || gradProgram.log).trim().slice(0, 160)}`,
     );
     return null;
   }
   const cardProg: WebGLProgram = cardProgram.program;
   const lensProg: WebGLProgram = lensProgram.program;
+  const gradProg: WebGLProgram = gradProgram.program;
+  const gradPos = gl.getAttribLocation(gradProg, 'a_position');
+  const gradRes = gl.getUniformLocation(gradProg, 'u_res');
+  const gradTime = gl.getUniformLocation(gradProg, 'u_time');
+  const gradStops = [0, 1, 2, 3].map((i) => gl.getUniformLocation(gradProg, `u_s${i}`));
+  const GRAD_STOPS: readonly (readonly [number, number, number])[] = [
+    [0xea / 255, 0xfb / 255, 0xf7 / 255],
+    [0x5c / 255, 0xe3 / 255, 0xe6 / 255],
+    [0x0f / 255, 0x9c / 255, 0xc2 / 255],
+    [0x27 / 255, 0x4a / 255, 0x78 / 255],
+  ];
 
   // A unit quad for cards, and a full-screen triangle for the lens pass.
   const unitQuad = gl.createBuffer();
@@ -475,6 +600,19 @@ export function mountLensPass(
     gl.viewport(0, 0, w, h);
     gl.clearColor(theme.clear[0], theme.clear[1], theme.clear[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // The field, before the cards, so the lens has something to refract.
+    gl.useProgram(gradProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, fullTri);
+    gl.enableVertexAttribArray(gradPos);
+    gl.vertexAttribPointer(gradPos, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(gradRes, w, h);
+    gl.uniform1f(gradTime, state.elapsed);
+    for (let i = 0; i < 4; i++) {
+      const stop = GRAD_STOPS[i]!;
+      gl.uniform3f(gradStops[i]!, stop[0], stop[1], stop[2]);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     gl.useProgram(cardProg);
     gl.bindBuffer(gl.ARRAY_BUFFER, unitQuad);
