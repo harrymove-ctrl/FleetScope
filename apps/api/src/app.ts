@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { capabilityRoutes } from './routes/capability.js';
+import { descriptorRoutes } from './routes/descriptor.js';
 import { healthRoutes } from './routes/health.js';
 import { liveRoutes } from './routes/live.js';
 import { runRoutes, type RunRoutesDependencies } from './routes/runs.js';
@@ -13,7 +14,8 @@ import type { FleetScopeConfig } from './config/index.js';
  * The bounded FleetScope backend — ONE service, deliberately small.
  *
  * Scope, and nothing beyond it:
- *   health · live capability description · one allowlisted live proof
+ *   self-description · health · live capability description · one allowlisted
+ *   live proof · bounded run admission
  *
  * It serves no Case data: recorded evidence is bundled with the static frontend
  * so the product works with this service switched off entirely.
@@ -44,6 +46,10 @@ export function createApp(
   app.route('/', capabilityRoutes(config));
   app.route('/', liveRoutes(config, liveDependencies));
   app.route('/', runRoutes(config, runDependencies ?? productionRunDependencies(config)));
+
+  // Mounted last so it can enumerate the routes above it, and so a real route
+  // always wins over the descriptor's own paths.
+  app.route('/', descriptorRoutes(app, config));
 
   app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
