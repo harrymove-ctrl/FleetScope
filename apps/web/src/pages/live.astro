@@ -1,5 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+// Imported here and nowhere else. The tokens are scoped to `.aw` as well, so a
+// stray global import would change nothing and a stray `.aw` elsewhere would
+// resolve nothing — the two scopes fail safe in both directions.
+import '../styles/workspace.css';
 import PageHeader from '../components/PageHeader.astro';
 import { webConfig } from '../lib/config';
 import { AWAITING_AGENT_LINES, REPLAY_NOTE } from '../features/live/state';
@@ -22,6 +26,15 @@ const config = webConfig();
     lede="One governed read, one deliberate failure, one policy-authorised retry."
   />
 
+  <!--
+    The token scope and the region container are two different elements. The
+    mode switch lives outside `#live-root`, so putting `.aw` on that section
+    would leave the switch unable to resolve the tokens; and the acceptance
+    checks count the direct children of `#live-root`, so it cannot gain a
+    wrapper role either. Custom properties inherit, so every descendant here
+    resolves them and nothing outside the subtree can see them.
+  -->
+  <div class="aw" data-mode="story">
   <section id="live-root" class="live" data-state="ready" data-api={config.apiBaseUrl ?? ''}>
     <div class="live__actions">
       <button id="live-start" class="live__cta" type="button" data-enabled="false" disabled>
@@ -59,6 +72,7 @@ const config = webConfig();
 
     <p id="live-replay-note" class="live__replay-note" hidden>{REPLAY_NOTE}</p>
   </section>
+  </div>
 </BaseLayout>
 
 <script>
@@ -69,7 +83,13 @@ const config = webConfig();
   startLive(resolveApiBase(built === undefined || built === '' ? null : built, location.search));
 </script>
 
-<style>
+<!--
+  `is:global` because the beat elements are created by `client.ts` with
+  document.createElement, so Astro's scoping attribute is never stamped on them
+  and a scoped `.live-beat` rule would silently never apply. Every selector below
+  is nested under `.live`, so making them global cannot reach another route.
+-->
+<style is:global>
   .live {
     display: grid;
     gap: 1.25rem;
@@ -120,7 +140,7 @@ const config = webConfig();
     margin: 0;
     padding: 0;
   }
-  .live-beat {
+  .live .live-beat {
     display: grid;
     gap: 0.15rem;
     flex: 1 1 9rem;
@@ -129,18 +149,18 @@ const config = webConfig();
     border: 1px solid var(--border, #263247);
     border-radius: 0.4rem;
   }
-  .live-beat[data-status='done'] {
+  .live .live-beat[data-status='done'] {
     border-color: var(--accent, #4c8dff);
   }
-  .live-beat__label {
+  .live .live-beat__label {
     font-weight: 600;
   }
-  .live-beat__status,
-  .live-beat__seq {
+  .live .live-beat__status,
+  .live .live-beat__seq {
     font-size: 0.8rem;
     opacity: 0.8;
   }
-  .live-beat__seq {
+  .live .live-beat__seq {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   .live__delegation {

@@ -67,6 +67,20 @@
   box-sizing: border-box;
 }
 
+/*
+ * `hidden` must actually hide.
+ *
+ * The user-agent rule is `[hidden] { display: none }` — a single attribute
+ * selector that loses to any class that sets `display`. Several components here
+ * use the `hidden` property as their only visibility control, so a panel with
+ * `.fs-row { display: flex }` stayed on screen after the script hid it. Making
+ * the rule authoritative is the fix; the alternative is every such component
+ * carrying its own `[hidden]` override and one of them forgetting.
+ */
+[hidden] {
+  display: none !important;
+}
+
 html {
   /* Belt and braces for the supported sizes (1440x900 and 1280x720): wide
      content scrolls inside its own container, never taking the page with it. */

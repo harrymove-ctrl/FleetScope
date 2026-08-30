@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import '../styles/glass.css';
 import Nav from '../components/Nav.astro';
 import { webConfig } from '../lib/config';
 
@@ -15,21 +16,51 @@ interface Props {
   title: string;
   /** Console surfaces use the full viewport width; documents stay measured. */
   wide?: boolean;
+  /**
+   * Which visual language this route's chrome speaks.
+   *
+   * `glass` is the shell language: the launchpad, the onboarding shell, and the
+   * frame around the viewer. `flat` is the evidence language from global.css.
+   *
+   * It is opt-in per route rather than global on purpose. `/live` is governed
+   * by the Agent Workspace pack, and the Case, Audit and Approvals surfaces
+   * exist to be read closely by someone checking a claim. Reskinning them from
+   * here would override a contract this layout does not own.
+   */
+  surface?: 'flat' | 'glass';
 }
 
-const { title, wide = false } = Astro.props;
+const { title, wide = false, surface = 'flat' } = Astro.props;
 const config = webConfig();
 const path = Astro.url.pathname;
 ---
 
-<html lang="en">
+<!--
+  Pinned dark.
+
+  `global.css` is a dark-only vocabulary: it fixes `--fs-text` at a light ink
+  for reading against dark surfaces. Letting the system's light preference
+  reach these routes repaints the surfaces and leaves that ink where it is,
+  which is white text on white glass. The launchpad has its own stylesheet and
+  does honour the preference.
+-->
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <title>{title} · FleetScope</title>
   </head>
-  <body>
+  <body data-surface={surface}>
+    {
+      surface === 'glass' && (
+        <div class="fs-ambient" aria-hidden="true">
+          <span class="fs-ambient__blob fs-ambient__blob--cyan" />
+          <span class="fs-ambient__blob fs-ambient__blob--violet" />
+          <span class="fs-ambient__blob fs-ambient__blob--ember" />
+        </div>
+      )
+    }
     <div class="fs-shell">
       <Nav path={path} defaultCaseId={config.defaultCaseId} liveMode={config.liveMode} />
       <main class={wide ? 'fs-main fs-main--wide' : 'fs-main'} id="fs-main">
