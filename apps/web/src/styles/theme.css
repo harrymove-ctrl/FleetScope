@@ -1,0 +1,235 @@
+/*
+ * FleetScope theme tokens.
+ *
+ * # The contract
+ *
+ * This file is the single place colour, translucency, blur, shadow and radius
+ * are decided. Everything else — the launchpad, the glass shell, and the WebGL
+ * lens — reads these variables and nothing else. Override one here, or on any
+ * ancestor element, and every surface follows without touching a component.
+ *
+ * That last clause includes the canvas. `features/launch/lens.ts` reads the
+ * `--lens-*` tokens through `getComputedStyle` and feeds them to the shader as
+ * uniforms, so retinting the liquid glass is a CSS edit rather than a shader
+ * edit. A theme that stopped at the DOM boundary would leave the most visible
+ * element on the page unthemed.
+ *
+ * # Scopes
+ *
+ * # Namespace
+ *
+ * These are `--theme-*` and `--glass-*`, deliberately NOT `--fs-*`.
+ * `global.css` already owns that prefix for the evidence vocabulary, and an
+ * earlier revision of this file reused `--fs-bg` and `--fs-accent` — which
+ * silently repainted the app's background and accent, and left `--fs-text`
+ * behind at its dark-only value. On a light system that produced white text on
+ * white glass. Two files must not share a token namespace.
+ *
+ *   :root                     dark, the default — the product's own surfaces
+ *                             are dark, so this is the designed theme rather
+ *                             than an inversion of a light one.
+ *   [data-theme='light']      the light theme, opt-in.
+ *   prefers-color-scheme      honoured only when no explicit choice was made.
+ *
+ * # Overriding
+ *
+ * Globally:            :root { --blur: 40px; }
+ * Per theme:           [data-theme='light'] { --glass-bg: rgb(255 255 255 / 40%); }
+ * Per element/subtree: <section style="--lens-tint:#ffb073"> … </section>
+ */
+
+:root {
+  /* ── Surfaces and ink ──────────────────────────────────────────────────
+     A cool near-black rather than pure #000: the carousel's WebGL clear colour
+     has to match the page or the gaps between cards show as seams, and #05060A
+     is what that renderer clears to. Two surfaces only; a third reads as a
+     different product. */
+  --theme-bg: #05060a;
+  --theme-bg-2: #0b0e16;
+  --theme-ink: #f2f5fa;
+  --theme-ink-muted: #8b94a8;
+  --theme-hairline: #1b2030;
+
+  /* One accent. It appears on the primary button and text links, nowhere else. */
+  --theme-accent: #5aa9ff;
+  --theme-accent-hover: #7cbcff;
+  --theme-accent-ink: #04121a;
+
+  /* ── Glass ─────────────────────────────────────────────────────────────
+     Translucency ladder, three steps. Apple's standard for a dark surface is
+     roughly 10% white at 30px blur; these sit around that and are deliberately
+     lower than the light theme's, because a dark backdrop shows tint sooner. */
+  --glass-bg: rgb(255 255 255 / 6%);
+  --glass-bg-raised: rgb(255 255 255 / 9%);
+  --glass-bg-strong: rgb(255 255 255 / 13%);
+
+  /* The edge. A glass panel reads as glass because of its rim, not its blur. */
+  --glass-border: rgb(255 255 255 / 11%);
+  --glass-border-strong: rgb(255 255 255 / 20%);
+  --glass-specular: rgb(255 255 255 / 55%);
+  --glass-inset: inset 0 1px 0 rgb(255 255 255 / 9%);
+
+  /* Blur scale. 30px is the Apple standard; the other two are for subtler and
+     heavier surfaces respectively. */
+  --blur-sm: 15px;
+  --blur: 30px;
+  --blur-lg: 50px;
+  --glass-saturate: 170%;
+
+  /* Shadow scale. Deeper than a light theme's, because a dark surface needs
+     more separation to read as lifted. */
+  --glass-shadow-sm: 0 4px 16px rgb(0 0 0 / 30%), 0 1px 4px rgb(0 0 0 / 15%);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 20%);
+  --glass-shadow-lg: 0 12px 48px rgb(0 0 0 / 50%), 0 4px 16px rgb(0 0 0 / 30%);
+
+  --glass-radius-sm: 12px;
+  --glass-radius: 18px;
+  --glass-radius-lg: 26px;
+
+  /* ── Accent roles ──────────────────────────────────────────────────────
+     Decorative only. Status colour lives in global.css, where every hue is
+     paired with a glyph and a word so meaning survives greyscale. */
+  --accent-cyan: #5fe3ff;
+  --accent-violet: #a98bff;
+  --accent-orange: #ffb073;
+  --accent-neutral: #9fb0c6;
+
+  /* ── The lens ──────────────────────────────────────────────────────────
+     Read by the shader as uniforms. The defaults are the reference engine's
+     dark-page tuning: its upstream values were built against a white page and
+     bloom into an opaque band on a dark one.
+
+     `--lens-size-y` above 1 is deliberate — it makes the ellipse taller than
+     the viewport so only its smooth interior is ever visible, and the violent
+     rim waves stay off screen. */
+  --lens-tint: #5fe3ff;
+  --lens-glow: 0.9;
+  --lens-dispersion: 7;
+  --lens-ring: 1.1;
+  --lens-white-glow: 0.05;
+  --lens-rim-line: 0.32;
+  --lens-size-x: 0.565;
+  --lens-size-y: 1;
+
+  /*
+   * The carousel's backdrop, and the colour its WebGL renderer clears to.
+   *
+   * Deliberately NOT aliased to --theme-bg. The card artwork is photography of a
+   * dark product, and a white gap between dark cards reads as a rendering
+   * fault rather than as a light theme. So this stays dark in both themes: the
+   * light theme dresses the app shell and the card list, not the canvas.
+   *
+   * If you do change it, change it here — the renderer reads this exact token
+   * for its clear colour, and any mismatch with the page shows as seams
+   * between the cards.
+   */
+  --carousel-ink: #05060a;
+
+  --theme-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+ * The light theme.
+ *
+ * A different design, not an inversion: the glass sits at Apple's light-mode
+ * standard of roughly 25% white, the shadows lighten, and the lens loses most
+ * of its glow because a bright backdrop needs far less of it before the effect
+ * turns milky.
+ */
+[data-theme='light'] {
+  --theme-bg: #ffffff;
+  --theme-bg-2: #f5f5f7;
+  --theme-ink: #1d1d1f;
+  --theme-ink-muted: #6e6e73;
+  --theme-hairline: #d2d2d7;
+
+  --theme-accent: #0071e3;
+  --theme-accent-hover: #0077ed;
+  --theme-accent-ink: #ffffff;
+
+  --glass-bg: rgb(255 255 255 / 25%);
+  --glass-bg-raised: rgb(255 255 255 / 40%);
+  --glass-bg-strong: rgb(255 255 255 / 60%);
+
+  --glass-border: rgb(255 255 255 / 55%);
+  --glass-border-strong: rgb(0 0 0 / 12%);
+  --glass-specular: rgb(255 255 255 / 90%);
+  --glass-inset: inset 0 1px 0 rgb(255 255 255 / 65%);
+
+  --glass-shadow-sm: 0 4px 16px rgb(0 0 0 / 8%), 0 1px 4px rgb(0 0 0 / 4%);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 10%), 0 2px 8px rgb(0 0 0 / 6%);
+  --glass-shadow-lg: 0 12px 48px rgb(0 0 0 / 15%), 0 4px 16px rgb(0 0 0 / 10%);
+
+  --accent-cyan: #0aa2c0;
+  --accent-violet: #7856d6;
+  --accent-orange: #c2620c;
+  --accent-neutral: #6e7a8f;
+
+  --lens-tint: #2b9fd8;
+  --lens-glow: 0.5;
+  --lens-white-glow: 0.02;
+  --lens-ring: 0.7;
+  --lens-rim-line: 0.18;
+}
+
+/* Honour the system preference only when nothing explicit was chosen. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']):not([data-theme='light']) {
+    --theme-bg: #ffffff;
+    --theme-bg-2: #f5f5f7;
+    --theme-ink: #1d1d1f;
+    --theme-ink-muted: #6e6e73;
+    --theme-hairline: #d2d2d7;
+
+    --theme-accent: #0071e3;
+    --theme-accent-hover: #0077ed;
+    --theme-accent-ink: #ffffff;
+
+    --glass-bg: rgb(255 255 255 / 25%);
+    --glass-bg-raised: rgb(255 255 255 / 40%);
+    --glass-bg-strong: rgb(255 255 255 / 60%);
+
+    --glass-border: rgb(255 255 255 / 55%);
+    --glass-border-strong: rgb(0 0 0 / 12%);
+    --glass-specular: rgb(255 255 255 / 90%);
+    --glass-inset: inset 0 1px 0 rgb(255 255 255 / 65%);
+
+    --glass-shadow-sm: 0 4px 16px rgb(0 0 0 / 8%), 0 1px 4px rgb(0 0 0 / 4%);
+    --glass-shadow: 0 8px 32px rgb(0 0 0 / 10%), 0 2px 8px rgb(0 0 0 / 6%);
+    --glass-shadow-lg: 0 12px 48px rgb(0 0 0 / 15%), 0 4px 16px rgb(0 0 0 / 10%);
+
+    --accent-cyan: #0aa2c0;
+    --accent-violet: #7856d6;
+    --accent-orange: #c2620c;
+    --accent-neutral: #6e7a8f;
+
+    --lens-tint: #2b9fd8;
+    --lens-glow: 0.5;
+    --lens-white-glow: 0.02;
+    --lens-ring: 0.7;
+    --lens-rim-line: 0.18;
+  }
+}
+
+/*
+ * Reduced transparency.
+ *
+ * A real accessibility setting, not a nicety: translucent panels are the
+ * hardest surfaces to read for anyone with low vision. When it is on, the
+ * glass becomes an opaque surface and the blur is removed entirely.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: #12151f;
+    --glass-bg-raised: #171b27;
+    --glass-bg-strong: #1d2230;
+    --blur-sm: 0px;
+    --blur: 0px;
+    --blur-lg: 0px;
+  }
+  [data-theme='light'] {
+    --glass-bg: #ffffff;
+    --glass-bg-raised: #fbfbfd;
+    --glass-bg-strong: #f5f5f7;
+  }
+}

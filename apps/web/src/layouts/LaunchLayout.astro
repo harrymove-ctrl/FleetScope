@@ -1,0 +1,274 @@
+---
+import '../styles/apple.css';
+import { provenanceLabel, type LaunchChapter } from '../features/launch/chapters';
+import Bend from '../components/Bend.astro';
+import PeelFooter from '../components/PeelFooter.astro';
+
+/**
+ * The public shell.
+ *
+ * Deliberately shares no stylesheet with `BaseLayout`. That layout carries the
+ * operator navigation — Cases, Catalog, Approvals, Audit — which is right for
+ * someone already inside the product and wrong for a first visit, and it loads
+ * `global.css`, whose `h2 { font-size: 12px; text-transform: uppercase }` is
+ * correct for a dense console label and a contradiction of a page whose
+ * headlines are 52px.
+ *
+ * The carousel is an enhancement over the card list below it. That list is
+ * server-rendered, is the whole content, and is what remains when WebGL is
+ * unavailable, when motion is unwelcome, or below the desktop gate.
+ */
+interface Props {
+  title: string;
+  description: string;
+  cards: readonly LaunchChapter[];
+}
+
+const { title, description, cards } = Astro.props;
+const first = cards[0];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05060a" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    {first && <link rel="preload" as="image" href={first.src} fetchpriority="high" />}
+  </head>
+  <body class="ap-body">
+    <div class="ap">
+      <a class="ap-skip" href="#chapters">Skip to the chapters</a>
+
+      <slot />
+
+      <!--
+        The content. Present in every state: the canvas above is aria-hidden
+        decoration, so this list is what a screen reader, a text search and a
+        visitor without WebGL actually read.
+      -->
+      <!--
+        The chapter list is the face of the cube.
+
+        `Bend` folds it over a top and bottom edge as it scrolls. Where the
+        html-in-canvas API is unavailable the component is a passthrough and
+        this list scrolls with the page, which is the shape almost every
+        visitor gets. See apps/web/src/components/Bend.astro.
+      -->
+      <Bend>
+        <section class="chapters" id="chapters" aria-labelledby="chapters-title">
+          <header class="chapters__head">
+            <h1 id="chapters-title" class="chapters__title">FleetScope</h1>
+            <p class="chapters__lede">
+              Watch agent work become evidence. Follow a local Gemini or Antigravity session, or
+              inspect a bounded recovery record with the evidence behind it.
+            </p>
+            <p class="chapters__actions">
+              <a class="ap__button" href="/viewer">Open Agent Viewer</a>
+              <a class="ap__link" href="/cockpit/CASE-1042">
+                See recorded recovery <span aria-hidden="true">›</span>
+              </a>
+            </p>
+          </header>
+
+          <ol class="chapters__list" role="list" data-bend-root>
+            {
+              cards.map((card) => (
+                <li class="chapter" data-bend>
+                  <p class="chapter__label">{card.label}</p>
+                  <h2 class="chapter__title">{card.title}</h2>
+                  <p class="chapter__note">{card.summary}</p>
+                  <p class="chapter__meta">
+                    <a class="ap__link chapter__link" href={card.route}>
+                      Open <span aria-hidden="true">›</span>
+                    </a>
+                    <span class="chapter__provenance">
+                      {provenanceLabel(card.provenance)}
+                      {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
+                    </span>
+                  </p>
+                </li>
+              ))
+            }
+          </ol>
+
+          <footer class="chapters__footer">
+            <p class="ap__caption">
+              FleetScope reads agent sessions already on your machine. It never starts an agent and
+              never uploads a transcript.
+            </p>
+            <p class="ap__caption">
+              Recorded evidence is bundled with this build. Third-party attribution in
+              THIRD-PARTY-NOTICES.md.
+            </p>
+          </footer>
+        </section>
+      </Bend>
+    </div>
+
+    <PeelFooter />
+  </body>
+</html>
+
+<!--
+  Why the fold is a pixel effect and not a CSS transform.
+
+  The obvious version — rotate each chapter row about its own edge — was built
+  first and broke the page. Rows are around 300px tall; an 80-degree rotation
+  projects a row roughly its own height across the screen, so several fold at
+  once and overlap into the header. That is not a tuning problem. A row is
+  atomic: it cannot be half-folded, so the fold either misses the crease or
+  swings the whole row.
+
+  canvas-ui avoids this by folding a viewport-sized surface of *pixels*
+  captured with `drawElementImage`, bending only the part inside the zone. The
+  crease can then fall anywhere, including mid-paragraph.
+
+  `features/launch/bend.ts` keeps the per-element maths and its tests. It is
+  not on the page and is not the shipped effect.
+-->
+
+<style>
+  /*
+   * The plane the peel footer hides behind.
+   *
+   * `PeelFooter` is fixed at z-index 0; this has to be opaque and above it, or
+   * the footer shows through the page instead of from under it.
+   */
+  .ap {
+    position: relative;
+    z-index: 1;
+    background: var(--ap-bg);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 18%);
+  }
+
+  .ap-skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 12px 20px;
+    background: var(--ap-bg-2);
+    color: var(--ap-ink);
+  }
+  .ap-skip:focus {
+    left: 0;
+  }
+
+  /* The host owns a viewport of height; the chapters scroll inside it. */
+  :global(.bend-host) {
+    height: 100vh;
+  }
+
+  .chapters {
+    padding: 120px max(24px, calc((100vw - 1400px) / 2));
+    /*
+     * Contain the fold.
+     *
+     * A rotated plane under perspective projects wider than its own box — the
+     * bend widened the document by up to 571px, which is a horizontal
+     * scrollbar. `clip` rather than `hidden`: it does not create a scroll
+     * container, so anchors and any future sticky child still behave. This
+     * conceals no content — every row is fully readable once it reaches the
+     * flat middle, which is the whole point of the effect.
+     */
+    overflow-x: clip;
+  }
+
+  .chapters__head {
+    max-width: 38ch;
+    margin: 0 0 96px;
+  }
+
+  .chapters__title {
+    margin: 0;
+    font-size: var(--ap-display-l);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+  }
+
+  .chapters__lede {
+    margin: 24px 0 0;
+    font-size: var(--ap-body-l);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 32px;
+    margin: 40px 0 0;
+  }
+
+  /* Hairline-separated rows, not a card grid. */
+  .chapters__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ap-hairline);
+  }
+
+  .chapter {
+    padding: 40px 0;
+    border-bottom: 1px solid var(--ap-hairline);
+  }
+
+  .chapter__label {
+    margin: 0 0 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapter__title {
+    margin: 0;
+    font-size: var(--ap-display-m);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+
+  .chapter__note {
+    margin: 16px 0 0;
+    max-width: 38ch;
+    font-size: var(--ap-body);
+    line-height: 1.55;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapter__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+    margin: 20px 0 0;
+  }
+
+  .chapter__provenance {
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__footer {
+    display: grid;
+    gap: 8px;
+    margin-top: 96px;
+  }
+
+  @media (max-width: 1024px) {
+    .chapters {
+      padding: 96px 24px;
+    }
+    .chapters__head {
+      margin-bottom: 64px;
+    }
+  }
+</style>

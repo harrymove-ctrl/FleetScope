@@ -1,0 +1,423 @@
+@import './theme.css';
+
+/*
+ * FleetScope liquid glass.
+ *
+ * # What this layer is, and what it is not
+ *
+ * `global.css` is the evidence vocabulary: flat surfaces, no gradients, no
+ * glow, status that reads faster than decoration. That contract is correct for
+ * a page whose job is to be believed, and nothing here replaces it.
+ *
+ * This file is the *shell* language — the launchpad, the onboarding shell, the
+ * dashboard, and the chrome around the viewer. Those surfaces are asking a
+ * visitor to start, not asking an auditor to trust, and they are allowed to be
+ * beautiful. The rule that keeps the two apart is simple and absolute:
+ *
+ *   Glass may hold evidence. It may never be evidence.
+ *
+ * So a `.fs-glass` panel can frame an event list, but the event list keeps its
+ * own flat, high-contrast styling. Terminal output, evidence drawers, the
+ * `/live` Story and Expert surfaces, and the viewer canvas stay on the dark
+ * operational palette — see `.fs-glass__well` below, which is the seam.
+ *
+ * # Why it degrades in three directions
+ *
+ * `backdrop-filter` is unsupported in some engines, disabled under some
+ * privacy settings, and expensive on some GPUs. Forced-colors mode discards
+ * colour entirely. Reduced motion discards animation. Each of those is handled
+ * explicitly rather than left to chance, because a shell that becomes
+ * unreadable is worse than a shell that was never decorated.
+ */
+
+:root {
+  /*
+   * Aliases onto `theme.css`.
+   *
+   * The glass shell used to carry its own translucency, blur and shadow scale.
+   * Two parallel palettes is one too many: a theme change reached the launchpad
+   * and left the dashboard behind. These now name the shared tokens.
+   */
+  --fsg-tint: var(--glass-bg);
+  --fsg-tint-raised: var(--glass-bg-raised);
+  --fsg-tint-strong: var(--glass-bg-strong);
+
+  --fsg-stroke: var(--glass-border);
+  --fsg-stroke-strong: var(--glass-border-strong);
+  --fsg-specular: var(--glass-specular);
+
+  --fsg-blur: var(--blur);
+  --fsg-blur-strong: var(--blur-lg);
+  --fsg-saturate: var(--glass-saturate);
+
+  --fsg-shadow: var(--glass-shadow);
+  --fsg-shadow-sm: var(--glass-shadow-sm);
+  --fsg-inset: var(--glass-inset);
+
+  --fsg-radius: var(--glass-radius);
+  --fsg-radius-lg: var(--glass-radius-lg);
+  --fsg-radius-sm: var(--glass-radius-sm);
+
+  --fsg-cyan: var(--accent-cyan);
+  --fsg-violet: var(--accent-violet);
+  --fsg-orange: var(--accent-orange);
+  --fsg-neutral: var(--accent-neutral);
+
+  --fsg-void: var(--theme-bg);
+  --fsg-void-2: var(--theme-bg-2);
+
+  --fsg-ease: var(--theme-ease);
+}
+
+/* ── Ambient backdrop ─────────────────────────────────────────────────────
+   Three slow, blurred colour fields. They are `position: fixed` and
+   `pointer-events: none`, so they cost one composited layer and never
+   intercept a click. Opacity is low enough that body text keeps its AA
+   contrast over any point of the field. */
+.fs-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #101a2a 0%, transparent 60%),
+    linear-gradient(180deg, var(--fsg-void-2) 0%, var(--fsg-void) 100%);
+}
+
+.fs-ambient__blob {
+  position: absolute;
+  width: 46vw;
+  height: 46vw;
+  min-width: 380px;
+  min-height: 380px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.34;
+  will-change: transform;
+}
+
+.fs-ambient__blob--cyan {
+  top: -14%;
+  left: -8%;
+  background: radial-gradient(circle, #1d6f8f 0%, transparent 68%);
+  animation: fsg-drift-a 34s var(--fsg-ease) infinite alternate;
+}
+
+.fs-ambient__blob--violet {
+  top: 6%;
+  right: -12%;
+  background: radial-gradient(circle, #5b3fa8 0%, transparent 68%);
+  animation: fsg-drift-b 42s var(--fsg-ease) infinite alternate;
+}
+
+.fs-ambient__blob--ember {
+  bottom: -22%;
+  left: 32%;
+  background: radial-gradient(circle, #8a4a2a 0%, transparent 70%);
+  opacity: 0.22;
+  animation: fsg-drift-c 50s var(--fsg-ease) infinite alternate;
+}
+
+@keyframes fsg-drift-a {
+  to {
+    transform: translate3d(9vw, 5vh, 0) scale(1.12);
+  }
+}
+@keyframes fsg-drift-b {
+  to {
+    transform: translate3d(-7vw, 8vh, 0) scale(1.08);
+  }
+}
+@keyframes fsg-drift-c {
+  to {
+    transform: translate3d(5vw, -6vh, 0) scale(1.14);
+  }
+}
+
+/* ── The glass surface ───────────────────────────────────────────────────── */
+.fs-glass {
+  position: relative;
+  border-radius: var(--fsg-radius);
+  background: var(--fsg-tint);
+  border: 1px solid var(--fsg-stroke);
+  box-shadow: var(--fsg-shadow-sm), var(--fsg-inset);
+  backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+  -webkit-backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+}
+
+/* The specular rim: a one-pixel gradient ring, brightest at the top-left, that
+   makes a flat rectangle read as a lit edge. Drawn with a mask so it stays
+   exactly on the border and never tints the panel's contents. */
+.fs-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    140deg,
+    var(--fsg-specular) 0%,
+    rgb(255 255 255 / 6%) 26%,
+    transparent 52%,
+    rgb(255 255 255 / 10%) 100%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  opacity: 0.7;
+}
+
+.fs-glass--raised {
+  background: var(--fsg-tint-raised);
+  box-shadow: var(--fsg-shadow), var(--fsg-inset);
+}
+
+.fs-glass--strong {
+  background: var(--fsg-tint-strong);
+  border-color: var(--fsg-stroke-strong);
+  backdrop-filter: blur(var(--fsg-blur-strong)) saturate(var(--fsg-saturate));
+  -webkit-backdrop-filter: blur(var(--fsg-blur-strong)) saturate(var(--fsg-saturate));
+}
+
+.fs-glass--lg {
+  border-radius: var(--fsg-radius-lg);
+}
+
+/*
+ * The seam.
+ *
+ * A well is the one place inside a glass panel where the operational palette
+ * resumes: terminal output, an event list, a canvas, a payload. It is opaque on
+ * purpose. Glass behind text an auditor has to read is a contrast risk with no
+ * benefit, and this class is what stops the shell language leaking inward.
+ */
+.fs-glass__well {
+  background: #0a0d12;
+  border: 1px solid var(--fs-border, #262d36);
+  border-radius: var(--fs-radius, 6px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--fs-text, #e7ebf1);
+}
+
+/* ── Accent roles ────────────────────────────────────────────────────────── */
+.fs-glass[data-accent='cyan'] {
+  --fsg-accent: var(--fsg-cyan);
+}
+.fs-glass[data-accent='violet'] {
+  --fsg-accent: var(--fsg-violet);
+}
+.fs-glass[data-accent='orange'] {
+  --fsg-accent: var(--fsg-orange);
+}
+.fs-glass[data-accent='neutral'] {
+  --fsg-accent: var(--fsg-neutral);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.fs-glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid var(--fsg-stroke-strong);
+  background: var(--fsg-tint-raised);
+  color: var(--fs-text, #e7ebf1);
+  font: inherit;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+  -webkit-backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+  box-shadow: var(--fsg-inset);
+  transition:
+    transform 200ms var(--fsg-ease),
+    background-color 200ms var(--fsg-ease),
+    border-color 200ms var(--fsg-ease);
+}
+
+.fs-glass-button:hover {
+  background: var(--fsg-tint-strong);
+  border-color: rgb(255 255 255 / 28%);
+  color: var(--fs-text, #e7ebf1);
+  transform: translateY(-1px);
+}
+
+.fs-glass-button:active {
+  transform: translateY(0);
+}
+
+.fs-glass-button[data-variant='primary'] {
+  border-color: transparent;
+  color: #04121a;
+  background: linear-gradient(135deg, #8df1ff 0%, #5fe3ff 42%, #7fb6ff 100%);
+  box-shadow:
+    0 10px 30px rgb(60 200 255 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 45%);
+}
+
+.fs-glass-button[data-variant='primary']:hover {
+  color: #04121a;
+  filter: brightness(1.06);
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+.fs-glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--fsg-stroke);
+  background: var(--fsg-tint);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--fs-text-muted, #98a3b2);
+  white-space: nowrap;
+}
+
+/* The dot is decoration. Every chip also carries its word, so meaning survives
+   greyscale, forced colours and colour-vision differences. */
+.fs-glass-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fsg-accent, var(--fsg-neutral));
+  flex: none;
+}
+
+/* ── Degradation ─────────────────────────────────────────────────────────── */
+
+/* No backdrop-filter: fall back to an opaque panel rather than a transparent
+   one, so text never lands on an unpredictable background. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fs-glass,
+  .fs-glass--strong,
+  .fs-glass-button,
+  .fs-glass-chip {
+    background: #141a23;
+  }
+  .fs-glass--raised {
+    background: #18202a;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-ambient__blob {
+    animation: none;
+  }
+  .fs-glass-button {
+    transition: none;
+  }
+  .fs-glass-button:hover {
+    transform: none;
+  }
+}
+
+/* Forced colours discards every custom colour. Keep the structure — borders and
+   focus rings — and drop the effects that would otherwise leave an invisible
+   panel edge. */
+@media (forced-colors: active) {
+  .fs-ambient {
+    display: none;
+  }
+  .fs-glass,
+  .fs-glass-button,
+  .fs-glass-chip {
+    background: Canvas;
+    border: 1px solid CanvasText;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+  .fs-glass::before {
+    display: none;
+  }
+}
+
+/* ── Scoped shell treatment ───────────────────────────────────────────────
+   Applied only to a route that opted in via BaseLayout's `surface="glass"`.
+   Evidence routes keep the flat palette from global.css, because a surface
+   whose job is to be checked closely should not also be translucent. */
+[data-surface='glass'] {
+  background: transparent;
+}
+
+[data-surface='glass'] .fs-nav {
+  background: rgb(7 10 15 / 55%);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-bottom-color: rgb(255 255 255 / 7%);
+}
+
+[data-surface='glass'] .fs-card {
+  background: var(--fsg-tint);
+  border-color: var(--fsg-stroke);
+  border-radius: var(--fsg-radius);
+  box-shadow: var(--fsg-shadow-sm), var(--fsg-inset);
+  backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+  -webkit-backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+}
+
+[data-surface='glass'] .fs-button {
+  border-radius: 999px;
+  border-color: var(--fsg-stroke-strong);
+  background: var(--fsg-tint-raised);
+}
+[data-surface='glass'] .fs-button:hover:not(:disabled) {
+  background: var(--fsg-tint-strong);
+}
+[data-surface='glass'] .fs-button[data-variant='primary'] {
+  border-color: transparent;
+  color: #04121a;
+  background: linear-gradient(135deg, #8df1ff 0%, #5fe3ff 42%, #7fb6ff 100%);
+}
+
+/*
+ * The seam again, this time by role rather than by class.
+ *
+ * Terminal chrome, the viewer canvas, event payloads and pre-formatted output
+ * are read for their content, so they keep the opaque operational palette even
+ * inside a glass route. This is the boundary the design brief draws: the shell
+ * may be glass, the evidence inside it may not.
+ */
+[data-surface='glass'] .fs-terminal-window,
+[data-surface='glass'] .fs-viewer__canvas,
+[data-surface='glass'] .fs-viewer__summary,
+[data-surface='glass'] pre,
+[data-surface='glass'] .fs-device-preview__screen {
+  background: #0a0d12;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-surface='glass'] .fs-card,
+  [data-surface='glass'] .fs-nav,
+  [data-surface='glass'] .fs-button {
+    background: #141a23;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-surface='glass'] .fs-card,
+  [data-surface='glass'] .fs-nav,
+  [data-surface='glass'] .fs-button {
+    background: Canvas;
+    border: 1px solid CanvasText;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+}

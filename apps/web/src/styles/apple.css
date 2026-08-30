@@ -1,0 +1,390 @@
+@import './theme.css';
+
+/*
+ * The launchpad type and colour system.
+ *
+ * # Why this file exists next to global.css and glass.css
+ *
+ * `global.css` is the evidence vocabulary — dense, flat, built to be read
+ * closely by someone checking a claim. It is correct for the product and wrong
+ * for the front door, where a visitor has read nothing yet and needs one idea
+ * at a time.
+ *
+ * This file is that front door: a subtraction-based system where type is either
+ * very large or very small, sections are a full viewport each, and the only
+ * decoration is the product itself. It is scoped to `.ap` so it cannot leak
+ * into a route whose job is to be believed rather than to invite.
+ *
+ * # Why the dark palette rather than the white one
+ *
+ * The reference system defines both, and warns that a dark mode must be
+ * designed rather than inverted — specifically, that product imagery has to be
+ * shot on black. FleetScope's product screens *are* black: the viewer canvas,
+ * the terminal, the event rails. Building the light variant would mean pairing
+ * a white page with dark product shots, which is the exact failure that rule
+ * describes. So true black is the native design here, not a theme.
+ */
+/* ── Reset ────────────────────────────────────────────────────────────────
+   The launchpad deliberately does not import `global.css`. That stylesheet is
+   the app's, and it sets `h2 { font-size: 12px; text-transform: uppercase }` —
+   correct for a dense console section label, and a direct contradiction of a
+   system whose section headlines are 88px and whose only uppercase text is the
+   eyebrow. Overriding it rule by rule would be a losing game, so this page
+   carries its own small reset instead and shares nothing. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body.ap-body {
+  margin: 0;
+  background: var(--theme-bg);
+  /* No horizontal scroll, and nothing relying on it being hidden: every
+     section is measured to fit. */
+  overflow-x: hidden;
+}
+
+/* `[hidden]` must outrank any class that sets `display`. */
+[hidden] {
+  display: none !important;
+}
+
+.ap img {
+  max-width: 100%;
+}
+
+.ap :focus-visible {
+  outline: 2px solid var(--ap-action);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.ap {
+  /* Type scale. Huge or small; nothing in between. */
+  --ap-display-xl: clamp(64px, 9vw, 140px);
+  --ap-display-l: clamp(48px, 6vw, 88px);
+  --ap-display-m: clamp(32px, 3.5vw, 52px);
+  --ap-body-l: 21px;
+  --ap-body: 17px;
+  --ap-caption: 13px;
+
+  /*
+   * Colour is not declared here.
+   *
+   * These are aliases onto `theme.css`, which is the single place a palette is
+   * decided. Keeping the local names means the page's rules read in its own
+   * vocabulary while a theme override still reaches every one of them.
+   */
+  --ap-bg: var(--theme-bg);
+  --ap-bg-2: var(--theme-bg-2);
+  --ap-ink: var(--theme-ink);
+  --ap-ink-muted: var(--theme-ink-muted);
+  --ap-hairline: var(--theme-hairline);
+  --ap-action: var(--theme-accent);
+  --ap-action-hover: var(--theme-accent-hover);
+  --ap-action-ink: var(--theme-accent-ink);
+
+  --ap-ease: var(--theme-ease);
+
+  /* The carousel's backdrop. See the note on --carousel-ink in theme.css for
+     why it does not follow --theme-bg. */
+  --ap-carousel-ink: var(--carousel-ink);
+
+  background: var(--ap-bg);
+  color: var(--ap-ink);
+  /* One typeface. A neutral grotesque, with the platform UI face first so it
+     renders as SF on Apple hardware and Segoe/Roboto elsewhere. */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Inter, sans-serif;
+  font-size: var(--ap-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Sections ─────────────────────────────────────────────────────────────
+   The rhythm rule: the space between two sections is several times the space
+   between any two elements inside one. That is what makes the page read as
+   discrete statements rather than a scroll of content. */
+.ap__section {
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  padding: 160px max(24px, calc((100vw - 1400px) / 2));
+}
+
+.ap__section--auto {
+  min-height: 0;
+  padding-block: 160px;
+}
+
+.ap__section--alt {
+  background: var(--ap-bg-2);
+}
+
+.ap__inner {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Centred statements narrow to a measure that keeps 2-3 line headlines. */
+.ap__inner--narrow {
+  max-width: 900px;
+  text-align: center;
+}
+
+/* ── Type ─────────────────────────────────────────────────────────────────
+   Negative tracking scales with size; leading tightens as size grows. Weight
+   never exceeds 600 — this system reads as semibold at large size, never bold. */
+.ap__display-xl {
+  margin: 0;
+  font-size: var(--ap-display-xl);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+.ap__display-l {
+  margin: 0;
+  font-size: var(--ap-display-l);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.ap__display-m {
+  margin: 0;
+  font-size: var(--ap-display-m);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.ap__lead {
+  margin: 0;
+  font-size: var(--ap-body-l);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+  color: var(--ap-ink-muted);
+  /* Body copy stays under ~60 characters per line. */
+  max-width: 38ch;
+}
+
+.ap__caption {
+  margin: 0;
+  font-size: var(--ap-caption);
+  line-height: 1.4;
+  color: var(--ap-ink-muted);
+}
+
+/*
+ * The eyebrow is the only uppercase text in the system, and it is plain text —
+ * not a pill, not a badge, not bordered, not on a coloured background.
+ */
+.ap__eyebrow {
+  margin: 0 0 24px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-ink-muted);
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────
+   One filled element per section; the secondary action is always a text link,
+   never an outlined twin. */
+.ap__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.ap__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--ap-action);
+  color: var(--ap-action-ink);
+  font-size: var(--ap-body);
+  font-weight: 400;
+  text-decoration: none;
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ap__button:hover {
+  background: var(--ap-action-hover);
+  color: var(--ap-action-ink);
+}
+
+.ap__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--ap-action);
+  font-size: var(--ap-body);
+  text-decoration: none;
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ap__link:hover {
+  opacity: 0.7;
+  color: var(--ap-action);
+}
+
+/* ── Feature screens ─────────────────────────────────────────────────────
+   Two columns, text one side and the product the other, alternating direction
+   each screen. Never a three-up card grid: three features are three screens. */
+.ap__split {
+  display: grid;
+  gap: 80px;
+  align-items: center;
+}
+
+/*
+ * A frame, not a card.
+ *
+ * The hairline exists because one of these product shots is of a Case surface,
+ * which keeps its own light Story design — the enterprise reference this work
+ * did not touch. On a true-black page a bright screenshot with no edge reads as
+ * a hole punched through the page rather than as a photograph of a screen. A
+ * 1px hairline is the system's own border, and it resolves that without
+ * turning the image into a card.
+ */
+.ap__media {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--ap-hairline);
+  /* object-contain on a matching background, not object-cover in a card. */
+  background: var(--ap-bg-2);
+}
+.ap__media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── Spec table ──────────────────────────────────────────────────────────
+   The one place density is allowed. Hairline rows, no zebra striping, no card
+   wrapper, no borders around the whole thing. */
+.ap__specs {
+  margin: 0;
+  border-top: 1px solid var(--ap-hairline);
+}
+.ap__spec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--ap-hairline);
+}
+
+/* Two columns once there is room. A single stacked column at 1400px leaves a
+   six-word value alone on a very long line, which reads as a gap rather than
+   as a table. */
+@media (min-width: 768px) {
+  .ap__spec {
+    grid-template-columns: minmax(0, 20ch) minmax(0, 1fr);
+    gap: 40px;
+    align-items: baseline;
+  }
+}
+.ap__spec dt {
+  font-size: var(--ap-caption);
+  color: var(--ap-ink-muted);
+}
+.ap__spec dd {
+  margin: 0;
+  font-size: var(--ap-body);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+   Arrival, not attention. Content enters once on first view and then stops.
+   Nothing loops, nothing bounces, nothing asks to be looked at. */
+/*
+ * Visible is the default; hidden is opted into.
+ *
+ * The obvious way round — start at `opacity: 0` and let script reveal — means
+ * any failure of that script leaves the page permanently blank. That is not
+ * hypothetical: an observer's callbacks are not delivered while a document is
+ * hidden, so a page opened in a background tab can arrive already broken.
+ *
+ * So the reveal state is inverted. The stylesheet renders finished content, and
+ * `.ap--animate` (set by script, on the root, only once it is actually about to
+ * drive the reveals) is what hides the not-yet-revealed elements.
+ */
+.ap__reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.ap--animate .ap__reveal {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 800ms var(--ap-ease),
+    transform 800ms var(--ap-ease);
+  transition-delay: var(--ap-delay, 0ms);
+}
+
+.ap--animate .ap__reveal[data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (min-width: 1024px) {
+  .ap__split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 112px;
+  }
+  /* Alternating direction, achieved by reordering rather than by duplicating
+     the markup, so the DOM order stays the reading order. */
+  .ap__split--reverse .ap__split-text {
+    order: 2;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ap__section {
+    padding-block: 96px;
+  }
+  .ap__section--auto {
+    padding-block: 96px;
+  }
+  /* Mobile is the same argument at a different cadence: text first, visual
+     second, both left-aligned. Centred text at this width scans badly. */
+  .ap__inner--narrow {
+    text-align: left;
+  }
+  .ap__lead {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap--animate .ap__reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ap--animate .ap__reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

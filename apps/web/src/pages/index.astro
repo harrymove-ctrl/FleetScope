@@ -1,0 +1,446 @@
+---
+import LaunchLayout from '../layouts/LaunchLayout.astro';
+import {
+  LAUNCH_CHAPTERS,
+  provenanceLabel,
+  validateChapters,
+  visibleChapters,
+} from '../features/launch/chapters';
+
+/**
+ * The launchpad.
+ *
+ * # Shape
+ *
+ * A single full-viewport canvas, not a scrolling document: the row of cards is
+ * the page. Wheel or drag moves it, it settles onto the nearest card, and a
+ * click opens that card in focus mode. The layout — wordmark top-left, locator
+ * centred above the row, counter centred below, two quiet corner labels, and a
+ * Close that appears only in focus — is cloned from the NeuroPay landing at
+ * commit 010d0ec1.
+ *
+ * The typography is not cloned. It follows the launchpad's own system: one
+ * grotesque, weights at or under 600, negative tracking on large sizes, and
+ * uppercase reserved for the locator. The reference sets its overlay in a
+ * monospace display face, which is a different product's voice.
+ *
+ * # What is underneath
+ *
+ * The `<noscript>`-safe card list below the canvas is the real content: eight
+ * links with headings, summaries and provenance, server-rendered. Everything
+ * WebGL adds is an enhancement over a page that already works. Below the
+ * desktop gate the list *is* the page — deliberately not the reference's
+ * "Desktop only" holding screen, which FleetScope's own design rules forbid as
+ * a dead end.
+ */
+
+const problems = validateChapters(LAUNCH_CHAPTERS);
+if (problems.length > 0) {
+  throw new Error(
+    `Invalid launch manifest: ${problems.map((p) => `${p.chapterId}: ${p.problem}`).join(', ')}`,
+  );
+}
+
+// A `live` card is withheld until a capability response proves one. This build
+// has none, so such a card is absent rather than shown as a promise.
+const cards = visibleChapters(LAUNCH_CHAPTERS, { liveVerified: false });
+const first = cards[0];
+---
+
+<LaunchLayout
+  title="FleetScope · Watch agent work become evidence"
+  description="Follow a local Gemini or Antigravity session, or inspect a bounded recovery record with the evidence behind it. Local by default."
+  cards={cards}
+>
+  <div class="stage" data-stage>
+    <canvas class="stage__canvas" data-canvas aria-hidden="true"></canvas>
+
+    <!-- Persistent chrome. Exclusion blending keeps it legible over both a
+         bright card and the near-black gaps without a scrim. -->
+    <div class="chrome" data-chrome>
+      <p class="chrome__mark">FleetScope</p>
+      <p class="chrome__corner chrome__corner--left">Local by default</p>
+      <p class="chrome__corner chrome__corner--right">Replay without side effects</p>
+    </div>
+
+    <!-- The locator. The cards carry their own headline, so this names where
+         you are rather than repeating it. -->
+    <p class="locator" data-locator>{first?.label ?? ''}</p>
+
+    <!-- The counter, which trades places with the caption in focus mode. -->
+    <p class="counter" data-counter>
+      <span data-counter-current>01</span><span class="counter__total"> / {String(cards.length).padStart(2, '0')}</span>
+    </p>
+
+    <div class="caption" data-caption hidden>
+      <p class="caption__title" data-caption-title></p>
+      <p class="caption__note" data-caption-note></p>
+      <p class="caption__meta">
+        <a class="caption__link" data-caption-link href="/viewer">Open <span aria-hidden="true">›</span></a>
+        <span class="caption__provenance" data-caption-provenance></span>
+      </p>
+    </div>
+
+    <button class="close" type="button" data-close hidden>Close</button>
+    <p class="cursor" data-cursor aria-hidden="true">Open</p>
+  </div>
+</LaunchLayout>
+
+<script>
+  import { mountCarousel, type CarouselHandle } from '../features/launch/carousel';
+  import { LAUNCH_CHAPTERS, provenanceLabel, visibleChapters } from '../features/launch/chapters';
+
+  const stage = document.querySelector<HTMLElement>('[data-stage]');
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-canvas]');
+  const locator = document.querySelector<HTMLElement>('[data-locator]');
+  const counter = document.querySelector<HTMLElement>('[data-counter]');
+  const counterCurrent = document.querySelector<HTMLElement>('[data-counter-current]');
+  const caption = document.querySelector<HTMLElement>('[data-caption]');
+  const captionTitle = document.querySelector<HTMLElement>('[data-caption-title]');
+  const captionNote = document.querySelector<HTMLElement>('[data-caption-note]');
+  const captionLink = document.querySelector<HTMLAnchorElement>('[data-caption-link]');
+  const captionProvenance = document.querySelector<HTMLElement>('[data-caption-provenance]');
+  const closeButton = document.querySelector<HTMLButtonElement>('[data-close]');
+  const cursor = document.querySelector<HTMLElement>('[data-cursor]');
+  const chrome = document.querySelector<HTMLElement>('[data-chrome]');
+
+  const cards = visibleChapters(LAUNCH_CHAPTERS, { liveVerified: false });
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  // The same gate the stylesheet uses, asked the same way, so script and CSS
+  // can never disagree about which side of it the page is on.
+  const desktop = window.matchMedia('(min-width: 1025px)');
+
+  let engine: CarouselHandle | null = null;
+
+  const setActive = (index: number): void => {
+    const card = cards[index];
+    if (card === undefined) return;
+    if (locator) locator.textContent = card.label;
+    if (counterCurrent) counterCurrent.textContent = String(index + 1).padStart(2, '0');
+  };
+
+  const setFocused = (focused: boolean, index: number): void => {
+    const card = cards[index];
+    if (caption) caption.hidden = !focused;
+    if (counter) counter.hidden = focused;
+    if (closeButton) closeButton.hidden = !focused;
+    if (cursor) cursor.dataset.hidden = focused ? 'true' : 'false';
+    if (!focused || card === undefined) return;
+    if (captionTitle) captionTitle.textContent = card.title;
+    if (captionNote) captionNote.textContent = card.summary;
+    if (captionProvenance) {
+      captionProvenance.textContent = card.eventRef
+        ? `${provenanceLabel(card.provenance)} · ${card.eventRef.runId} · event ${card.eventRef.sequence}`
+        : provenanceLabel(card.provenance);
+    }
+    if (captionLink) {
+      captionLink.href = card.route;
+      captionLink.textContent = `Open ${card.label.replace(/^\d+\s*—\s*/, '')} `;
+      const chevron = document.createElement('span');
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.textContent = '›';
+      captionLink.append(chevron);
+    }
+  };
+
+  let activeIndex = 0;
+
+  const boot = (): void => {
+    if (engine !== null || stage === null || canvas === null) return;
+    if (!desktop.matches) {
+      // The list underneath is the page here. Booting WebGL to drive a row
+      // nobody can reach costs a phone battery for nothing.
+      stage.dataset.mode = 'list';
+      return;
+    }
+    engine = mountCarousel(canvas, {
+      cards,
+      reducedMotion: reduced.matches,
+      onActiveChange: (index) => {
+        activeIndex = index;
+        setActive(index);
+      },
+      onFocusChange: (focused) => setFocused(focused, activeIndex),
+      onEntryDone: () => {
+        stage.dataset.entry = 'done';
+      },
+      onFallback: (reason) => {
+        stage.dataset.mode = 'list';
+        stage.dataset.reason = reason;
+        engine = null;
+      },
+    });
+    if (engine !== null) {
+      stage.dataset.mode = 'canvas';
+      // Reduced motion has no entry to wait for; reveal the chrome at once.
+      if (reduced.matches) stage.dataset.entry = 'done';
+    }
+  };
+
+  boot();
+  desktop.addEventListener('change', () => {
+    if (desktop.matches) boot();
+    else {
+      engine?.dispose();
+      engine = null;
+      if (stage) stage.dataset.mode = 'list';
+    }
+  });
+
+  closeButton?.addEventListener('click', () => engine?.closeFocus());
+
+  // The cursor label trails the pointer, naming what a click will do.
+  if (cursor && stage) {
+    stage.addEventListener('pointermove', (event) => {
+      cursor.style.transform = `translate3d(${event.clientX + 18}px, ${event.clientY + 18}px, 0)`;
+      cursor.dataset.visible = 'true';
+    });
+    stage.addEventListener('pointerleave', () => {
+      cursor.dataset.visible = 'false';
+    });
+  }
+
+  window.addEventListener('pagehide', () => {
+    engine?.dispose();
+    engine = null;
+  });
+
+  if (chrome && reduced.matches && stage) stage.dataset.entry = 'done';
+</script>
+
+<style>
+  /* ── The stage ─────────────────────────────────────────────────────────
+     One viewport, no page scroll. The row is the page. */
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--ap-carousel-ink);
+  }
+
+  .stage__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: pan-y;
+  }
+  .stage__canvas:active {
+    cursor: grabbing;
+  }
+
+  /* Below the gate, and on any fallback, the canvas is removed and the card
+     list underneath becomes the page. */
+  .stage[data-mode='list'] {
+    display: none;
+  }
+
+  /*
+   * Overlay chrome.
+   *
+   * `mix-blend-mode: exclusion` is how the reference keeps one set of labels
+   * legible over both a bright card and the near-black gap behind it, without
+   * a scrim or a second colour. It is the one blend mode on the page.
+   */
+  .chrome,
+  .locator,
+  .counter,
+  .close,
+  .cursor {
+    color: #fff;
+    mix-blend-mode: exclusion;
+  }
+
+  .chrome {
+    pointer-events: none;
+  }
+
+  /*
+   * Absolute, not fixed.
+   *
+   * The reference is a single screen with nothing after it, so its chrome is
+   * `fixed` and can never collide with anything. This page has the chapter
+   * list below the stage, and fixed chrome stayed pinned over that text while
+   * the reader scrolled through it. These belong to the stage, so they scroll
+   * away with it.
+   */
+  .chrome__mark,
+  .chrome__corner,
+  .locator,
+  .counter,
+  .caption,
+  .close {
+    position: absolute;
+    z-index: 20;
+    margin: 0;
+    opacity: 0;
+    transition: opacity 1600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Revealed once the entry choreography settles, so the text does not sit
+     over cards that are still rising. */
+  .stage[data-entry='done'] .chrome__mark,
+  .stage[data-entry='done'] .chrome__corner,
+  .stage[data-entry='done'] .locator,
+  .stage[data-entry='done'] .counter {
+    opacity: 1;
+  }
+
+  .chrome__mark {
+    top: 2vh;
+    left: 4vw;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .chrome__corner {
+    bottom: 2vh;
+    font-size: var(--ap-caption);
+    color: #fff;
+  }
+  .chrome__corner--left {
+    left: 4vw;
+  }
+  .chrome__corner--right {
+    right: 4vw;
+  }
+
+  /* The locator is the page's one uppercase element. */
+  .locator {
+    top: 6%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .counter {
+    bottom: 6%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--ap-caption);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+  .counter__total {
+    opacity: 0.4;
+  }
+
+  /* The caption takes the counter's place in focus mode, so neither ever sits
+     over the enlarged card. */
+  .caption {
+    bottom: 6%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(88vw, 560px);
+    opacity: 1;
+    text-align: center;
+    color: var(--ap-ink);
+    mix-blend-mode: normal;
+  }
+  .caption__title {
+    margin: 0;
+    font-size: var(--ap-display-m);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+  .caption__note {
+    margin: 16px auto 0;
+    max-width: 38ch;
+    font-size: var(--ap-body);
+    line-height: 1.55;
+    color: var(--ap-ink-muted);
+  }
+  .caption__meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0 0;
+  }
+  .caption__link {
+    color: var(--ap-action);
+    font-size: var(--ap-body);
+    text-decoration: none;
+  }
+  .caption__link:hover {
+    opacity: 0.7;
+  }
+  .caption__provenance {
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  .close {
+    top: 2vh;
+    right: 4vw;
+    opacity: 1;
+    padding: 8px 4px;
+    border: 0;
+    background: none;
+    color: #fff;
+    font: inherit;
+    font-size: var(--ap-caption);
+    cursor: pointer;
+  }
+
+  .cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms linear;
+    will-change: transform;
+  }
+  .cursor[data-visible='true'][data-hidden='false'] {
+    opacity: 1;
+  }
+
+  /* A pointer that cannot hover has no cursor label to show. */
+  @media (hover: none) {
+    .cursor {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chrome__mark,
+    .chrome__corner,
+    .locator,
+    .counter,
+    .caption,
+    .close {
+      transition: none;
+    }
+  }
+
+  /* Exclusion blending is a colour trick; forced-colors discards it. */
+  @media (forced-colors: active) {
+    .chrome,
+    .locator,
+    .counter,
+    .close,
+    .cursor {
+      mix-blend-mode: normal;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .stage {
+      display: none;
+    }
+  }
+</style>
