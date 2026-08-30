@@ -1,0 +1,197 @@
+---
+/**
+ * Seven readings of the bundled session, in the mdx-graphs idiom.
+ *
+ * Each sits in a dashed frame with its title on the top edge and is drawn from
+ * characters, not vectors -- which is the point on a surface that is already a
+ * terminal: the panels select, copy and read aloud like the log beside them.
+ *
+ * The set stops at seven because the session stops at seven. mdx-graphs offers
+ * KPI, Plot, Waterfall and Stat as well, and all four want tokens, cost or
+ * latency that this format does not record. Drawing them would mean inventing
+ * numbers on the one surface whose whole claim is that it never does.
+ */
+import {
+  checkRows,
+  flowSteps,
+  ganttRows,
+  specRows,
+  timelineRows,
+  treeRows,
+  uptimeCells,
+} from '../features/viewer/graphs';
+import FullscreenToggle from './FullscreenToggle.astro';
+
+const GANTT_WIDTH = 28;
+const flow = flowSteps();
+const gantt = ganttRows(GANTT_WIDTH);
+const timeline = timelineRows();
+const tree = treeRows();
+const check = checkRows();
+const uptime = uptimeCells();
+const spec = specRows();
+const bar = (count: number, glyph: string) => glyph.repeat(Math.max(0, count));
+---
+
+<section class="graphs" data-session-graphs aria-labelledby="graphs-title">
+  <header class="graphs__head">
+    <h2 id="graphs-title">Session readings</h2>
+    <FullscreenToggle target="[data-session-graphs]" label="readings" />
+  </header>
+
+  <div class="graphs__grid">
+    <figure class="g" data-graph="flow">
+      <figcaption class="g__title">handoffs</figcaption>
+      <pre class="g__body">{flow.map((step) => (step.last ? step.label : `${step.label} ──▶ `)).join('')}</pre>
+    </figure>
+
+    <figure class="g g--wide" data-graph="gantt">
+      <figcaption class="g__title">who held the run</figcaption>
+      <pre class="g__body">{
+        gantt
+          .map((row) =>
+            `${row.label.padEnd(17)}${bar(row.pad, '·')}${bar(row.fill, row.faulted ? '▚' : '█')}${bar(GANTT_WIDTH - row.pad - row.fill, '·')}  ${row.held.toFixed(1).padStart(5)}s${row.faulted ? '  timed out' : ''}`,
+          )
+          .join('\n')
+      }</pre>
+    </figure>
+
+    <figure class="g" data-graph="tree">
+      <figcaption class="g__title">agent tree</figcaption>
+      <pre class="g__body">{
+        tree.map((row) => `${row.glyph}${row.glyph ? ' ' : ''}${row.label.padEnd(20 - row.glyph.length)}${String(row.events).padStart(2)} events`).join('\n')
+      }</pre>
+    </figure>
+
+    <figure class="g" data-graph="check">
+      <figcaption class="g__title">calls answered</figcaption>
+      <pre class="g__body">{
+        check.map((row) => `[${row.done ? 'x' : ' '}] ${row.label.padEnd(16)}${row.note}`).join('\n')
+      }</pre>
+    </figure>
+
+    <figure class="g" data-graph="uptime">
+      <figcaption class="g__title">event health</figcaption>
+      <pre class="g__body">{uptime.map((cell) => (cell === 'ok' ? '█' : '▚')).join(' ')}</pre>
+      <p class="g__note">
+        {uptime.filter((cell) => cell === 'down').length} of {uptime.length} events recorded a failure
+      </p>
+    </figure>
+
+    <figure class="g" data-graph="spec">
+      <figcaption class="g__title">session</figcaption>
+      <pre class="g__body">{spec.map((row) => `${row.label.padEnd(15)}${row.value}`).join('\n')}</pre>
+    </figure>
+
+    <figure class="g g--wide" data-graph="timeline">
+      <figcaption class="g__title">timeline</figcaption>
+      <pre class="g__body">{
+        timeline.map((row) => `${row.at.padStart(6)}  ${row.ok ? '·' : '×'}  ${row.agent.padEnd(18)}${row.note}`).join('\n')
+      }</pre>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .graphs {
+    margin-top: 28px;
+  }
+
+  .graphs__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .graphs__head h2 {
+    margin: 0;
+  }
+
+  .graphs__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  .g--wide {
+    grid-column: 1 / -1;
+  }
+
+  /* The dashed frame with the title sitting on its top edge. */
+  .g {
+    position: relative;
+    margin: 0;
+    padding: 18px 16px 14px;
+    border: 1px dashed var(--fd-line-strong);
+    border-radius: 6px;
+    background: var(--fd-surface);
+    min-width: 0;
+  }
+
+  .g__title {
+    position: absolute;
+    top: -0.65em;
+    left: 12px;
+    padding: 0 7px;
+    background: var(--fd-surface);
+    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fd-muted);
+  }
+
+  .g__body {
+    margin: 0;
+    overflow-x: auto;
+    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre;
+    color: var(--fd-text);
+  }
+
+  .g__note {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--fd-muted);
+  }
+
+  /*
+   * Filled cells read as the accent; the hatch glyph carries failure on its
+   * own, so colour is a second signal rather than the only one.
+   */
+  /*
+   * The chain is the one panel whose length is not bounded by the data shape:
+   * a session with six agents overflows a narrow column. It wraps at the
+   * separators rather than scrolling, so the whole chain stays on screen.
+   */
+  [data-graph='flow'] .g__body {
+    white-space: pre-wrap;
+  }
+
+  [data-graph='gantt'] .g__body,
+  [data-graph='uptime'] .g__body {
+    color: var(--fd-action);
+  }
+
+  [data-graph='timeline'] .g__body,
+  [data-graph='check'] .g__body,
+  [data-graph='tree'] .g__body,
+  [data-graph='spec'] .g__body {
+    color: var(--fd-text);
+  }
+
+  /* Filling the viewport is only useful if the panels use the room. */
+  .graphs:fullscreen {
+    padding: 32px;
+    overflow: auto;
+    background: var(--fd-bg);
+  }
+
+  .graphs:fullscreen .graphs__grid {
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  }
+</style>
