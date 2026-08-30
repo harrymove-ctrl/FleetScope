@@ -1,3 +1,4 @@
+@import './agent-faces.css';
 /*
  * FleetScope visual language.
  *
@@ -282,69 +283,6 @@ a:hover {
   }
 }
 
-/* Deterministic Blobatar-inspired identity marker. */
-.fs-agent-identity {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: var(--fs-agent-bg, #b6d8cf);
-  box-shadow:
-    inset 0 -2px rgb(0 0 0 / 12%),
-    0 0 0 3px rgb(255 255 255 / 10%);
-}
-.fs-agent-identity--sm {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-}
-.fs-agent-identity svg {
-  width: 29px;
-  height: 29px;
-}
-.fs-agent-identity--sm svg {
-  width: 23px;
-  height: 23px;
-}
-.fs-agent-identity__body {
-  fill: var(--fs-agent-fg, #315d59);
-}
-.fs-agent-identity__eye {
-  fill: #f8f7f0;
-}
-.fs-agent-identity__mouth {
-  fill: none;
-  stroke: #f8f7f0;
-  stroke-linecap: round;
-  stroke-width: 1.8;
-}
-.fs-agent-identity--v0 {
-  --fs-agent-bg: #a7d7d0;
-  --fs-agent-fg: #276d6c;
-}
-.fs-agent-identity--v1 {
-  --fs-agent-bg: #d8b5e3;
-  --fs-agent-fg: #6d3e7b;
-}
-.fs-agent-identity--v2 {
-  --fs-agent-bg: #c7e6a3;
-  --fs-agent-fg: #4e773b;
-}
-.fs-agent-identity--v3 {
-  --fs-agent-bg: #f0b0a1;
-  --fs-agent-fg: #984b4f;
-}
-.fs-agent-identity--v4 {
-  --fs-agent-bg: #b5c3eb;
-  --fs-agent-fg: #465992;
-}
-.fs-agent-identity--v5 {
-  --fs-agent-bg: #f0d890;
-  --fs-agent-fg: #89631b;
-}
 /* Terminal-window primitive for future shell panels and the Dashboard preview. */
 .fs-terminal-window {
   overflow: hidden;
