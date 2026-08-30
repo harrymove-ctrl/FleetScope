@@ -255,32 +255,39 @@ interface CompileResult {
  * gradient inside also means the lens refracts it, which a layer behind could
  * not do.
  */
-/**
- * How fast the field drifts.
- *
- * The source says speed 26, but that is a number on its own scale and a
- * literal reading of it is far too quick for something sitting behind content
- * people are reading. Two passes were still called out as too fast — 26/1000
- * and then 26/4200 — so this is a twenty-sixth of the literal number. The
- * reference drifts almost imperceptibly, and a field behind text should read
- * as weather, not as motion.
- */
-const GRAD_SPEED = 26 / 26000;
-
-/**
- * How far up the ramp the field sits.
- *
- * `GRAD_CONTRAST` widens the spread of the noise across the stops and
- * `GRAD_FLOOR` lifts it, so the deep indigo becomes the ground rather than a
- * rare extreme. Without this the field is pale everywhere and nothing drawn
- * over it in light ink can be read.
- */
 /** Corner radius as a fraction of the card's shorter side. */
 const CARD_RADIUS = 0.042;
 
-const GRAD_CONTRAST = 1.45;
-const GRAD_FLOOR = 0.26;
+/**
+ * How fast the field drifts.
+ *
+ * The Blue sky config carries no speed field at all — the reference is
+ * effectively still. This is a very slow breath rather than motion, which is
+ * what a field behind text should be.
+ */
+const GRAD_SPEED = 1 / 900;
 
+/*
+ * The field behind the cards — Blue sky (AOZORA), type SKY.
+ *
+ * Decoded from the source config: four stops (#E6F2FF, #B3D9FF, #80B3FF,
+ * #6699E6) at 12.5 / 37.5 / 62.5 / 87.5 along a 135-degree line, grain 24,
+ * blended in OKLAB.
+ *
+ * SKY is not FLOW. The previous field was a domain-warped noise field with
+ * swirl and distortion; this is a straight ramp with soft cloud modulation
+ * across it, and it carries none of those parameters. Reusing the flow
+ * machinery here would produce a different picture wearing the same colours.
+ *
+ * Blended in Oklab rather than linear sRGB, as the config states. On a ramp of
+ * four blues the difference is visible: sRGB takes the mid-tones through a
+ * greyer middle, and Oklab keeps chroma even across the transition.
+ *
+ * It is drawn into the framebuffer BEFORE the cards, not onto a canvas behind
+ * them. This context is `alpha: false` and both passes write alpha 1, so
+ * nothing behind the canvas can ever show. Putting the field inside also means
+ * the lens refracts it, which a layer behind could not do.
+ */
 const GRAD_FRAG = `
 precision highp float;
 uniform vec2 u_res;
@@ -310,15 +317,42 @@ float fbm(vec2 p) {
   return v;
 }
 
-// A monotone ramp that is 0 at the lower stop, 0.5 at the divider between
-// them, and 1 at the upper stop. This is what makes the divider mean what the
-// source says it means.
-float seg(float f, float a, float d, float b) {
-  return f < d ? 0.5 * smoothstep(a, d, f) : 0.5 + 0.5 * smoothstep(d, b, f);
-}
-
+// sRGB <-> Oklab. The config names Oklab as the blend space, and on a ramp of
+// four blues it is the difference between an even chroma and a grey middle.
 vec3 toLinear(vec3 c) { return pow(c, vec3(2.2)); }
 vec3 toSrgb(vec3 c) { return pow(c, vec3(1.0 / 2.2)); }
+
+vec3 linearToOklab(vec3 c) {
+  float l = 0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b;
+  float m = 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b;
+  float s = 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b;
+  float l_ = pow(max(l, 0.0), 1.0 / 3.0);
+  float m_ = pow(max(m, 0.0), 1.0 / 3.0);
+  float s_ = pow(max(s, 0.0), 1.0 / 3.0);
+  return vec3(
+    0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+  );
+}
+
+vec3 oklabToLinear(vec3 c) {
+  float l_ = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;
+  float m_ = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;
+  float s_ = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;
+  float l = l_ * l_ * l_;
+  float m = m_ * m_ * m_;
+  float s = s_ * s_ * s_;
+  return vec3(
+     4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+  );
+}
+
+vec3 mixLab(vec3 a, vec3 b, float k) {
+  return oklabToLinear(mix(linearToOklab(toLinear(a)), linearToOklab(toLinear(b)), k));
+}
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res;
@@ -326,50 +360,25 @@ void main() {
   vec2 p = vec2(uv.x * aspect, uv.y);
 
   float t = u_time * GRAD_SPEED;
-  vec2 q = p * 2.0;
 
-  // Domain warp: the distortion in the source config.
-  vec2 warp = vec2(fbm(q + t), fbm(q - t + 5.2)) - 0.5;
-  q += warp * 1.1;
+  // A 135-degree ramp, as the source states, softened by slow cloud.
+  float d = (uv.x + (1.0 - uv.y)) * 0.5;
+  d += (fbm(p * 1.6 + vec2(t, -t * 0.7)) - 0.5) * 0.22;
+  d += (fbm(p * 4.1 - vec2(t * 0.6, t)) - 0.5) * 0.07;
+  d = clamp(d, 0.0, 1.0);
 
-  // Swirl: a gentle rotation about the centre, stronger further out.
-  vec2 c = p - vec2(aspect * 0.5, 0.5);
-  float ang = 0.0667 * length(c) * 3.14159;
-  float ca = cos(ang), sa = sin(ang);
-  q = vec2(q.x * ca - q.y * sa, q.x * sa + q.y * ca);
-
-  float f = fbm(q * 0.9 + t * 0.6);
-
-  // Bias the distribution toward the deep end of the ramp.
-  //
-  // fbm lands around the middle of its range, which on these stop positions is
-  // the cyan-to-teal band — the two brightest colours. The field came out
-  // almost entirely pale, the near-white top stop stopped being a highlight,
-  // and white text over it became unreadable. Pushing the distribution up the
-  // ramp makes indigo the ground and celadon the highlight, which is the way
-  // round these palettes are built.
-  f = clamp(f * GRAD_CONTRAST + GRAD_FLOOR, 0.0, 1.0);
-
-  // Blended in linear light, then returned to sRGB.
-  vec3 col = toLinear(u_s0);
-  col = mix(col, toLinear(u_s1), seg(f, 0.125, 0.25, 0.375));
-  col = mix(col, toLinear(u_s2), seg(f, 0.375, 0.5, 0.542));
-  col = mix(col, toLinear(u_s3), seg(f, 0.542, 0.585, 0.792));
+  // The four stops at their stated positions.
+  vec3 col = mixLab(u_s0, u_s1, smoothstep(0.125, 0.375, d));
+  col = mixLab(col, u_s2, smoothstep(0.375, 0.625, d));
+  col = mixLab(col, u_s3, smoothstep(0.625, 0.875, d));
   col = toSrgb(col);
 
-  // A gentle scrim, darkest where content sits. The palette keeps its hues;
-  // only its value comes down, which is what buys the text its contrast back.
-  float vign = 1.0 - 0.30 * smoothstep(0.9, 0.0, length(c) * 1.2);
-  col *= vign;
-
-  // noise 5, so the flats do not band on a wide screen.
-  col += (hash(gl_FragCoord.xy + u_time) - 0.5) * (5.0 / 255.0);
+  // grain 24. Far heavier than the previous field's 5, and it is what stops a
+  // four-stop ramp of near neighbours from banding across a wide screen.
+  col += (hash(gl_FragCoord.xy + u_time) - 0.5) * (24.0 / 255.0);
 
   gl_FragColor = vec4(col, 1.0);
-}`
-  .replace('GRAD_SPEED', GRAD_SPEED.toFixed(6))
-  .replace('GRAD_CONTRAST', GRAD_CONTRAST.toFixed(3))
-  .replace('GRAD_FLOOR', GRAD_FLOOR.toFixed(3));
+}`.replace('GRAD_SPEED', GRAD_SPEED.toFixed(6));
 
 function compile(gl: WebGLRenderingContext, type: number, source: string): CompileResult {
   const shader = gl.createShader(type);
@@ -452,11 +461,12 @@ export function mountLensPass(
   const gradRes = gl.getUniformLocation(gradProg, 'u_res');
   const gradTime = gl.getUniformLocation(gradProg, 'u_time');
   const gradStops = [0, 1, 2, 3].map((i) => gl.getUniformLocation(gradProg, `u_s${i}`));
+  /* Blue sky: MISTED SKY, MISTED SKY, SKY HAZE, RIVER INDIGO. */
   const GRAD_STOPS: readonly (readonly [number, number, number])[] = [
-    [0xea / 255, 0xfb / 255, 0xf7 / 255],
-    [0x5c / 255, 0xe3 / 255, 0xe6 / 255],
-    [0x0f / 255, 0x9c / 255, 0xc2 / 255],
-    [0x27 / 255, 0x4a / 255, 0x78 / 255],
+    [0xe6 / 255, 0xf2 / 255, 0xff / 255],
+    [0xb3 / 255, 0xd9 / 255, 0xff / 255],
+    [0x80 / 255, 0xb3 / 255, 0xff / 255],
+    [0x66 / 255, 0x99 / 255, 0xe6 / 255],
   ];
 
   // A unit quad for cards, and a full-screen triangle for the lens pass.

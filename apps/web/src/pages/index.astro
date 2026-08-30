@@ -268,13 +268,22 @@ const first = cards[0];
    * legible over both a bright card and the near-black gap behind it, without
    * a scrim or a second colour. It is the one blend mode on the page.
    */
+  /*
+   * Dark ink, normal blending.
+   *
+   * These used white with `mix-blend-mode: exclusion`, which was right when
+   * the field behind them was near-black: exclusion inverted the white to stay
+   * legible. Against the Blue sky field it inverts the other way and renders
+   * them rust on blue — low contrast, and reading as a different design. The
+   * field is light now, so the ink is simply dark.
+   */
   .chrome,
   .locator,
   .counter,
   .close,
   .cursor {
-    color: #fff;
-    mix-blend-mode: exclusion;
+    color: var(--carousel-ink-fg);
+    mix-blend-mode: normal;
   }
 
   .chrome {

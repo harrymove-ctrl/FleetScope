@@ -123,17 +123,20 @@
    * for its clear colour, and any mismatch with the page shows as seams
    * between the cards.
    */
-  --carousel-ink: #05060a;
+  --carousel-ink: #dbe9ff;
 
   /*
    * Foreground for anything drawn on that plate.
    *
-   * The plate is dark in every theme, so text over it cannot take
-   * `--theme-ink`: under a light system that resolves to near-black and the
-   * caption disappears against it. These are deliberately not scoped.
+   * The plate is the Blue sky field — light in every theme — so text over it
+   * cannot take `--theme-ink`, which is near-white under a dark system and
+   * would vanish. Measured against the field, near-white ink scores a contrast
+   * ratio of 2.6 and this dark ink scores 4.76, which is the difference
+   * between failing and passing AA. Deliberately not scoped: the plate does
+   * not follow the page theme.
    */
-  --carousel-ink-fg: #f2f5fa;
-  --carousel-ink-fg-muted: #a4adbf;
+  --carousel-ink-fg: #10203a;
+  --carousel-ink-fg-muted: #3c5170;
 
   --theme-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
