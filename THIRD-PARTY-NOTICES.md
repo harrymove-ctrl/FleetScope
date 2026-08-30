@@ -6,20 +6,31 @@ licensing files and do **not** appear in FleetScope product navigation.
 
 ## Adapted source
 
-### canvas-ui Bend — the launchpad fold
+### canvas-ui Bend — the shader fold
 
 |             |                                                                  |
 | ----------- | ---------------------------------------------------------------- |
-| Project     | **canvas-ui** — <https://canvasui.dev/docs/components/bend>      |
-| Obtained by | `pnpm dlx shadcn@latest add @canvas-ui/bend-react`               |
+| Project     | **canvas-ui** — <https://github.com/DavidHDev/canvas-ui>         |
+| Source      | `src/lib/Bend/BendVanilla.ts`, `src/lib/rect-cache.ts`           |
 | Vendored in | `apps/web/src/features/bend/engine.ts`, `.../bend/rect-cache.ts` |
 
-**A vendored copy, not an adaptation.** The shader and the fold mathematics are
-canvas-ui's, kept intact. The file differs from upstream in three ways, each
-marked where it occurs: the React wrapper is removed and the engine is used
-directly from `components/Bend.astro`; the `rect-cache` import points at the
-local copy; and `uCover` waits for a capture that produced pixels, so a failing
-capture degrades to plain DOM instead of an opaque black canvas.
+**A verbatim copy.** Upstream publishes this engine alongside React, Preact,
+Solid, Svelte and Vue wrappers; only the wrappers need a framework, so the
+vanilla build is taken as-is and `Bend.astro` supplies its three DOM elements.
+
+Three deviations, each marked where it occurs:
+
+1. the `rect-cache` import points one directory shallower;
+2. `uCover` waits for a capture that produced pixels — upstream derives it from
+   feature detection alone, so a capture that throws leaves an opaque canvas
+   over a page it never drew;
+3. non-null assertions on `uniforms.*` and defaults on the destructured pixel
+   bytes, because this workspace compiles with `noUncheckedIndexedAccess` and
+   upstream does not. Type-level only; no behaviour changes.
+
+The fold on the landing page is **not** this engine — see
+`apps/web/src/features/bend/fold.ts`, which is FleetScope's own CSS
+implementation and carries no third-party code.
 
 ### liquid-glass-carousel — the launchpad lens mathematics
 

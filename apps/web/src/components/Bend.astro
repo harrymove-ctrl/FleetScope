@@ -1,6 +1,11 @@
 ---
 /**
- * Bend — a scrolling face folded over a cube edge.
+ * Bend — a scrolling face folded over a cube edge, in a shader.
+ *
+ * NOT ON THE LANDING PAGE. That uses `Fold.astro`, which renders the same fold
+ * in CSS and needs no browser flag. This is here for a surface that can require
+ * `chrome://flags/#canvas-draw-element` and wants the rounded crease, pointer
+ * tilt and overscroll tumble the shader adds.
  *
  * Renders the three elements the engine needs and wires them up in the
  * browser. No framework: `createBend` was always plain DOM, so unwrapping it

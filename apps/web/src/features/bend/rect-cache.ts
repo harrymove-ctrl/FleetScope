@@ -7,33 +7,30 @@
  * cost that only shows up as "it feels heavy". This reads it once and again on
  * the events that can actually invalidate it.
  */
-export interface RectCache {
-  readonly current: DOMRect;
-  destroy(): void;
-}
 
-export function createRectCache(element: Element): RectCache {
-  let rect = element.getBoundingClientRect();
+export function createRectCache(element: Element) {
+  let current = element.getBoundingClientRect();
 
-  const refresh = (): void => {
-    rect = element.getBoundingClientRect();
+  const refresh = () => {
+    current = element.getBoundingClientRect();
   };
 
-  // Scroll and resize move the element without resizing it, so the observer
-  // alone is not enough.
-  window.addEventListener('scroll', refresh, { passive: true, capture: true });
+  const observer = new ResizeObserver(refresh);
+  observer.observe(element);
   window.addEventListener('resize', refresh, { passive: true });
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(refresh) : null;
-  observer?.observe(element);
+  window.addEventListener('scroll', refresh, {
+    capture: true,
+    passive: true,
+  });
 
   return {
-    get current(): DOMRect {
-      return rect;
+    get current() {
+      return current;
     },
-    destroy(): void {
-      window.removeEventListener('scroll', refresh, true);
+    destroy() {
+      observer.disconnect();
       window.removeEventListener('resize', refresh);
-      observer?.disconnect();
+      window.removeEventListener('scroll', refresh, true);
     },
   };
 }

@@ -1088,7 +1088,32 @@ marked 1024 as above a 1025 gate, and a motion test asserted that an idle window
 should clear a bad-performance streak — which would let a reader who scrubs in
 bursts never trip the safety valve however slow their machine.
 
-### The Bend fold: shipped, and what it took
+### The fold, and why the shipped one is CSS
+
+The chapter list scrolls on the face of a cube. Two implementations exist and
+only one is mounted.
+
+**What ships is `features/bend/fold.ts` + `components/Fold.astro`.** The face is
+drawn three times, each copy `clip-path`-ed to a band — top zone, flat middle,
+bottom zone — and the two end bands rotated about the crease between them. It
+needs no flag and runs in every browser.
+
+The reason this works where folding real elements did not: `clip-path` cuts
+pixels and the transform applies to the clipped result, so a heading straddling
+the crease is split down its middle and each half rotates with its own band. The
+crease can land mid-paragraph. That was the one thing a per-element hinge could
+never do.
+
+Two copies are inert: `aria-hidden`, `tabindex="-1"`, `<p>` in place of `<h2>`
+and no `id`, so the page keeps one `h1`, eight headings and one tab stop per
+link. `qa-landing.ts` counts only chapters outside `[aria-hidden]`.
+
+**`Bend.astro` + the canvas-ui engine is the other one, and it is not mounted.**
+It is richer — rounded crease, pointer tilt, overscroll tumble — but needs
+html-in-canvas. They are deliberately not stacked: handing one scroll to two
+fold implementations is how the first attempt produced a black page.
+
+### How the shader version was reached
 
 The launchpad carries the Bend effect — the chapter list scrolling on the face
 of a cube. `components/Bend.astro` hosts it; `features/bend/engine.ts` is the

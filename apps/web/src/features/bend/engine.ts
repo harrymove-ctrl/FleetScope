@@ -1,66 +1,85 @@
 /*
- * Bend — canvas-ui, unwrapped from React.
+ * Bend — canvas-ui.
  *
- * Vendored from https://canvasui.dev/docs/components/bend. The upstream file
- * ships an engine plus a React component; only the component needs React, so
- * this module is the engine alone. `createBend` already took three DOM
- * elements and returned a plain object — nothing here was ever framework
- * specific. `Bend.astro` supplies the elements.
+ * Vendored verbatim from the upstream vanilla build:
+ * https://github.com/DavidHDev/canvas-ui/blob/main/src/lib/Bend/BendVanilla.ts
  *
- * That matters practically: `@astrojs/react` is not installable in this
- * workspace (its refresh plugin rejects Astro's CSS virtual modules with
- * "Missing field moduleType", which 500s every stylesheet and unstyles the
- * whole site). Dropping the wrapper drops the integration with it.
+ * Upstream ships this engine alongside React, Preact, Solid, Svelte and Vue
+ * wrappers. Only the wrappers need a framework; the engine takes three DOM
+ * elements and returns a plain object, so this is the file an Astro site wants.
+ * `Bend.astro` supplies the elements. Taking it also means no `@astrojs/react`,
+ * which cannot be installed here — its refresh plugin rejects Astro's CSS
+ * virtual modules with "Missing field moduleType", 500ing every stylesheet.
  *
- * Changes from upstream, all noted at their site:
- *   1. the `rect-cache` import points at the local copy;
- *   2. `uCover` waits for a capture that actually produced pixels, so a
- *      failing capture degrades to the plain DOM instead of a black page;
- *   3. this note.
+ * Deviations from upstream, each marked at its site:
+ *   1. the `rect-cache` import points one directory shallower;
+ *   2. `uCover` waits for a capture that actually produced pixels, so a failing
+ *      capture degrades to plain DOM instead of a black page;
+ *   3. non-null assertions on `uniforms.*` lookups and defaults on the
+ *      destructured pixel bytes. This workspace compiles with
+ *      `noUncheckedIndexedAccess`, which upstream does not; every one of these
+ *      is a type-level accommodation and none changes behaviour.
  *
- * The fold is drawn by capturing the live DOM into a canvas with
- * `CanvasRenderingContext2D.drawElementImage` — the html-in-canvas API, which
- * is experimental. Where it is unavailable `supportsHtmlInCanvas()` is false,
- * `uCover` is 0, and the output canvas paints fully transparent over untouched
- * DOM: the page looks exactly as it would without this component. That is the
- * component's own designed fallback, not a failure.
+ * WHAT YOU WILL SEE. The fold is drawn by capturing live DOM with
+ * `CanvasRenderingContext2D.drawElementImage` — the html-in-canvas API, gated
+ * behind `chrome://flags/#canvas-draw-element`. It is in origin trial for
+ * Chrome 148-150 and no other engine has committed to implementing it, so on
+ * an ordinary browser `supportsHtmlInCanvas()` is false and this engine never
+ * mounts.
  *
- * To see the effect, enable in Chrome:
- *   chrome://flags/#canvas-draw-element
+ * That is why the landing page does not use it. `Fold.astro` renders the same
+ * fold in CSS, runs everywhere, and is what is mounted. This engine is the
+ * richer version — rounded crease, pointer tilt, overscroll tumble — kept
+ * available through `Bend.astro` for a surface that can require the flag.
  *
- * That is the dedicated gate. The broader
- * #enable-experimental-web-platform-features also turns it on, but it turns on
- * a great deal else with it. The API is in origin trial for Chrome 148-150 and
- * no other engine has committed to implementing it, so the unsupported shape
- * below is the one almost every visitor gets — for a long while yet.
+ * The two are not stacked. Handing one scroll to two fold implementations is
+ * how the first attempt produced a black page, and one is enough.
  */
 
 import { createRectCache } from './rect-cache';
 
 export interface BendOptions {
+  /** Height of the folded region at each edge in CSS pixels. */
   zone?: number;
+  /** Maximum fold angle in degrees, reached away from the scroll ends. 90 is a cube edge. */
   angle?: number;
+  /** Radius in CSS pixels of the circular arc that rounds each fold crease. 0 keeps a sharp cube edge. Clamped to the zone height. */
   rounding?: number;
+  /** Perspective focal length in CSS pixels. Smaller values pinch the folded edges harder. */
   perspective?: number;
+  /** "out" folds the edges away from the viewer like the outside of a cube, "in" tilts them toward the viewer. */
   direction?: 'out' | 'in';
+  /** Scroll distance in CSS pixels over which an edge flattens near its scroll end. */
   ease?: number;
+  /** Seconds the bend takes to settle after a scroll. 0 snaps instantly. */
   smoothing?: number;
+  /** Bend the top edge. */
   top?: boolean;
+  /** Bend the bottom edge. */
   bottom?: boolean;
+  /** Overscroll tip strength (0 to 1). Rubber-banding past a scroll end tips the whole face over that edge. 0 disables. */
   tumble?: number;
+  /** Pointer tilt strength (0 to 1). The face leans subtly toward the cursor. 0 disables. */
   tilt?: number;
+  /** CSS rotation applied to the Bend host, used to keep pointer mapping aligned. */
   interactionRotation?: 0 | 90 | -90;
 }
 
 export interface BendElements {
+  /** Canvas with layoutsubtree that hosts the HTML content. */
   source: HTMLCanvasElement;
+  /** The scrollable element inside the source canvas that gets captured. */
   content: HTMLElement;
+  /** Canvas the WebGL effect renders to. */
   output: HTMLCanvasElement;
 }
 
 export interface BendInstance {
+  /** Update effect options live. */
   setOptions: (options: BendOptions) => void;
+  /** Re-read canvas size. Call when the element is resized. */
   resize: () => void;
+  /** Stop the loop and release all GPU resources. */
   destroy: () => void;
 }
 
@@ -262,7 +281,8 @@ function patchHoverRules() {
           try {
             rule.selectorText = rule.selectorText.replace(/:hover\b/g, HOVER_REWRITE);
           } catch {
-            /* a cross-origin sheet cannot be rewritten; leave it */
+            // A read-only or otherwise unwritable rule. Skip it: hover just
+            // keeps its native behaviour there.
           }
         }
         if (rule.cssRules.length) walk(rule.cssRules);
@@ -270,7 +290,7 @@ function patchHoverRules() {
         try {
           walk((rule as CSSGroupingRule).cssRules);
         } catch {
-          /* same */
+          // Some grouping rules refuse enumeration. Nothing to rewrite inside.
         }
       }
     }
@@ -279,7 +299,8 @@ function patchHoverRules() {
     try {
       walk(sheet.cssRules);
     } catch {
-      /* same */
+      // Cross-origin stylesheets throw on `cssRules` access. Expected, and not
+      // ours to rewrite.
     }
   }
   const style = document.createElement('style');
@@ -318,14 +339,15 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
         sourceCtx!.reset();
         sourceCtx!.drawElementImage!(content, 0, 0);
         contentDirty = true;
-        // Upstream sets `uCover` from `htmlInCanvas` alone, so a capture that
-        // throws or yields nothing leaves an opaque canvas over a page it
-        // never drew — a black screen. Cover only once a capture has produced
-        // a non-empty surface.
+        // DEVIATION from upstream: it derives `uCover` from feature detection
+        // alone, so a capture that throws or yields nothing leaves an opaque
+        // canvas over a page it never drew — a black screen. Cover only once a
+        // capture has actually produced a surface.
         capturedOnce = source.width > 0 && source.height > 0;
         wake();
       } catch {
-        /* a paint that throws must not kill the loop */
+        // A capture can fail mid-paint. `capturedOnce` stays as it was, so the
+        // page keeps whatever it last drew rather than going blank.
       }
     };
   }
@@ -395,11 +417,7 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
         bgCtx.clearRect(0, 0, 1, 1);
         bgCtx.fillStyle = css;
         bgCtx.fillRect(0, 0, 1, 1);
-        const data = bgCtx.getImageData(0, 0, 1, 1).data;
-        const r = data[0] ?? 0;
-        const g = data[1] ?? 0;
-        const b = data[2] ?? 0;
-        const a = data[3] ?? 0;
+        const [r = 0, g = 0, b = 0, a = 0] = bgCtx.getImageData(0, 0, 1, 1).data;
         if (a > 0) {
           bg = [r / 255, g / 255, b / 255];
           return;
@@ -477,22 +495,22 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
     gl!.useProgram(program);
     gl!.activeTexture(gl!.TEXTURE0);
     gl!.bindTexture(gl!.TEXTURE_2D, contentTexture);
-    gl!.uniform1i(uniforms['uContent']!, 0);
-    gl!.uniform1f(uniforms['uZone']!, zoneFrac);
-    gl!.uniform1f(uniforms['uAngle']!, Math.min(Math.max(config.angle, 1), 160) * (Math.PI / 180));
-    gl!.uniform1f(uniforms['uPersp']!, Math.max(config.perspective, 50) / h);
-    gl!.uniform1f(uniforms['uDir']!, config.direction === 'in' ? -1 : 1);
-    gl!.uniform1f(uniforms['uTopAmt']!, topCurrent);
-    gl!.uniform1f(uniforms['uBotAmt']!, bottomCurrent);
-    gl!.uniform1f(uniforms['uMaxX']!, contentMaxX);
-    gl!.uniform1f(uniforms['uPxY']!, 1.5 / h);
-    gl!.uniform1f(uniforms['uPxX']!, 1.5 / w);
-    gl!.uniform1f(uniforms['uCover']!, htmlInCanvas && capturedOnce ? 1 : 0);
-    gl!.uniform3f(uniforms['uBg']!, bg[0], bg[1], bg[2]);
-    gl!.uniform1f(uniforms['uTiltX']!, tiltXCurrent);
-    gl!.uniform1f(uniforms['uTiltY']!, tiltYCurrent);
-    gl!.uniform1f(uniforms['uPhi']!, phiCurrent);
-    gl!.uniform1f(uniforms['uRound']!, Math.min(Math.max(config.rounding, 0) / h, zoneFrac));
+    gl!.uniform1i(uniforms.uContent!, 0);
+    gl!.uniform1f(uniforms.uZone!, zoneFrac);
+    gl!.uniform1f(uniforms.uAngle!, Math.min(Math.max(config.angle, 1), 160) * (Math.PI / 180));
+    gl!.uniform1f(uniforms.uPersp!, Math.max(config.perspective, 50) / h);
+    gl!.uniform1f(uniforms.uDir!, config.direction === 'in' ? -1 : 1);
+    gl!.uniform1f(uniforms.uTopAmt!, topCurrent);
+    gl!.uniform1f(uniforms.uBotAmt!, bottomCurrent);
+    gl!.uniform1f(uniforms.uMaxX!, contentMaxX);
+    gl!.uniform1f(uniforms.uPxY!, 1.5 / h);
+    gl!.uniform1f(uniforms.uPxX!, 1.5 / w);
+    gl!.uniform1f(uniforms.uCover!, htmlInCanvas && capturedOnce ? 1 : 0);
+    gl!.uniform3f(uniforms.uBg!, bg[0], bg[1], bg[2]);
+    gl!.uniform1f(uniforms.uTiltX!, tiltXCurrent);
+    gl!.uniform1f(uniforms.uTiltY!, tiltYCurrent);
+    gl!.uniform1f(uniforms.uPhi!, phiCurrent);
+    gl!.uniform1f(uniforms.uRound!, Math.min(Math.max(config.rounding, 0) / h, zoneFrac));
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
     gl!.viewport(0, 0, output.width, output.height);
     gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
@@ -773,12 +791,24 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
     const dy = clientY - rect.top;
 
     if (config.interactionRotation === -90) {
-      return { rect, x: width - dy / (rect.height / width), y: dx / (rect.width / height) };
+      return {
+        rect,
+        x: width - dy / (rect.height / width),
+        y: dx / (rect.width / height),
+      };
     }
     if (config.interactionRotation === 90) {
-      return { rect, x: dy / (rect.height / width), y: height - dx / (rect.width / height) };
+      return {
+        rect,
+        x: dy / (rect.height / width),
+        y: height - dx / (rect.width / height),
+      };
     }
-    return { rect, x: dx / (rect.width / width), y: dy / (rect.height / height) };
+    return {
+      rect,
+      x: dx / (rect.width / width),
+      y: dy / (rect.height / height),
+    };
   }
 
   function localToClient(x: number, y: number, rect: DOMRect) {
@@ -797,7 +827,10 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
         y: rect.top + x * (rect.height / width),
       };
     }
-    return { x: rect.left + x * (rect.width / width), y: rect.top + y * (rect.height / height) };
+    return {
+      x: rect.left + x * (rect.width / width),
+      y: rect.top + y * (rect.height / height),
+    };
   }
 
   function updateHover(clientX: number, clientY: number) {
@@ -887,8 +920,10 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
     const mapped = mapPoint(local.x, local.y);
     if (mapped.alpha < 0.5) return null;
     const point = localToClient(mapped.x, mapped.y, rect);
-    if (Math.hypot(point.x - event.clientX, point.y - event.clientY) < 1.5) return null;
-    return { x: point.x, y: point.y };
+    const tx = point.x;
+    const ty = point.y;
+    if (Math.hypot(tx - event.clientX, ty - event.clientY) < 1.5) return null;
+    return { x: tx, y: ty };
   }
 
   let selecting = false;
@@ -951,11 +986,8 @@ export function createBend(elements: BendElements, options: BendOptions = {}): B
 
   return {
     setOptions(next) {
-      if (
-        !Object.entries(next).some(([key, value]) => config[key as keyof BendOptions] !== value)
-      ) {
+      if (!Object.entries(next).some(([key, value]) => config[key as keyof BendOptions] !== value))
         return;
-      }
       Object.assign(config, next);
       syncScroll();
       start();
