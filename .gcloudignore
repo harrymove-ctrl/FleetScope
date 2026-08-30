@@ -1,0 +1,40 @@
+# What Cloud Build receives.
+#
+# Without this file gcloud falls back to .gitignore, which excludes
+# apps/web/dist -- the one directory the static image is built from. The first
+# build failed exactly there: the source tarball had no dist, so COPY had
+# nothing to copy.
+#
+# Everything below is either rebuilt inside the image, irrelevant to it, or too
+# large to be worth uploading.
+
+.git/
+.github/
+.claude/
+
+# Rebuilt by pnpm install inside the image.
+node_modules/
+**/node_modules/
+
+# Rust build output. The wasm the site needs is already inside apps/web/dist.
+target/
+**/target/
+
+# Local run state and caches.
+.fleetscope/
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+.vscode/
+.idea/
+*.log
+
+# Test fixtures and docs do not enter either image.
+docs/
+examples/
+**/tests/
+**/test-results/
+playwright-report/
+
+# Astro's own cache; the built output in apps/web/dist is kept on purpose.
+apps/web/.astro/

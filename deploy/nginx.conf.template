@@ -1,0 +1,20 @@
+server {
+  listen ${PORT};
+  server_name _;
+  root /usr/share/nginx/html;
+
+  # Astro emits directory-style routes, so /viewer must resolve to
+  # /viewer/index.html rather than 404.
+  location / {
+    try_files $uri $uri/ $uri/index.html /404.html;
+  }
+
+  # No `types` block here on purpose. Declaring one inside `server` replaces
+  # the inherited map rather than extending it, which would have served every
+  # stylesheet and script as application/octet-stream and broken the page. The
+  # base image's mime.types has carried application/wasm since nginx 1.21, so
+  # the projection runtime already gets the type instantiateStreaming needs.
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml application/wasm;
+}

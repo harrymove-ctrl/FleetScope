@@ -16,5 +16,9 @@ apps/adk-worker/.venv
 **/.venv
 dist
 **/dist
+# ...except the built site, which is the entire content of the static image.
+# The API image never copies a dist, so keeping this one costs it nothing.
+!apps/web/dist
+!apps/web/dist/**
 coverage
 *.log

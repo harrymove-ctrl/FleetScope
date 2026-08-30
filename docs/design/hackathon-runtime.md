@@ -153,9 +153,13 @@ fresh pricing check. The available credit is not a reason to widen the runtime.
 
 ## Known external gaps
 
-- project/service/bucket identifiers are not selected in this checkout;
+- project `project-ac0c5f88-868b-46b9-a2e`, service `fleetscope-web`, bucket
+  `fleetscope-sessions-project-ac0c5f88-868b-46b9-a2e`; deploy with
+  `scripts/deploy-cloud-run.sh`;
 - Vertex availability and observed model version are not yet proven;
-- Cloud Run deployment/hosted URL is not yet verified;
+- Cloud Run deployment verified 2026-08-31:
+  https://fleetscope-web-6tes2q7oqa-uc.a.run.app (revision
+  fleetscope-web-00001-g4s);
 - Storage upload is not yet verified;
 - launchpad QA passes across five viewports; deep viewer interaction QA remains
   unverified because the escalated Playwright process opened browser IPC but

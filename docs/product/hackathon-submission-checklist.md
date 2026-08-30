@@ -21,8 +21,12 @@
 - [x] **Google agent framework in code:** `google-adk==2.8.0` constructs the
   fixed `SequentialAgent` and four direct child agents.
 - [ ] **Google agent framework at runtime:** capture the real ADK session/events.
-- [ ] **Google Cloud service:** show the Cloud Run URL/revision for the hosted
-  viewer or read-only endpoint.
+- [x] **Google Cloud service:** Cloud Run serves the viewer at
+  `https://fleetscope-web-6tes2q7oqa-uc.a.run.app`, revision
+  `fleetscope-web-00001-g4s`, region `us-central1`, project
+  `project-ac0c5f88-868b-46b9-a2e`. Verified 2026-08-31: `/`, `/viewer/` and
+  `/dashboard/` return 200 text/html and the projection runtime is served as
+  `application/wasm`.
 - [ ] **Cloud artifact:** optionally show the matching redacted JSONL/proof
   object and generation in Cloud Storage.
 - [ ] All runtime/framework/cloud evidence uses the same session ID.
@@ -79,7 +83,8 @@
 - [ ] Video visibly proves Cloud Run/Google Cloud backend state.
 - [ ] No API key, credential, private prompt, hidden reasoning, or unsafe payload
   is visible.
-- [ ] Hosted URL is entered and works.
+- [ ] Hosted URL is entered on Devpost. It works:
+  `https://fleetscope-web-6tes2q7oqa-uc.a.run.app`
 - [ ] Testing credentials/instructions are included if gated.
 - [ ] Architecture diagram is uploaded.
 
@@ -107,7 +112,7 @@
 | Full workspace gates | Verified locally on 2026-08-30 |
 | Launchpad browser QA | Verified across 375, 768, 1024, 1440, and 2560px viewports |
 | Real Vertex model event | Missing |
-| Cloud Run URL/revision | Missing |
+| Cloud Run URL/revision | fleetscope-web-00001-g4s, verified 2026-08-31 |
 | Cloud Storage generation | Missing/optional |
 | Deep viewer interaction QA | Unverified: Playwright opened IPC but hung for 90s and was stopped |
 | Devpost/video/team/repo sharing | Requires authenticated review |
