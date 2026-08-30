@@ -2,11 +2,10 @@
 //!
 //! # Why this is not the vendored tailer
 //!
-//! The vendored core ships a tailer, but it walks a Claude Code project layout
-//! (`subagents/`, `workflows/`, session-uuid filenames) and parses that
-//! dialect. Reusing it would make the Claude transcript format the domain
-//! model, which is exactly what the plan forbids. This watcher owns discovery
-//! and IO; the renderer only ever receives already-compiled entries.
+//! The vendored core ships a provider-specific project tailer and parser.
+//! Reusing it would make that external transcript format the domain model,
+//! which is exactly what the plan forbids. This watcher owns discovery and IO;
+//! the renderer only ever receives already-compiled entries.
 //!
 //! # Why it recompiles the whole file
 //!

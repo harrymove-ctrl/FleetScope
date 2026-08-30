@@ -17,18 +17,27 @@ use zoetrope::state::{App, Mode};
 use zoetrope::tailer::{replay_from_session, DemoSubagent, UiEvent};
 use zoetrope::ui::brand::{set_branding, Branding};
 
+use agent_viewer_core::viewer::ViewerSession;
 use agent_viewer_core::wire::WireSession;
+
+pub mod manifest;
+pub mod selection;
+pub use manifest::{ViewerManifest, ViewerManifestEntry, ViewerManifestItemKind};
+pub use selection::{
+    clear_selection, graph_nodes, has_node, select_agent, selected_agent, GraphNode,
+    SelectionOutcome,
+};
 
 /// The wordmark the renderer draws in the status bar and help overlay.
 const PRODUCT: &str = "FleetScope";
 
 /// Name the main node after the agent the session actually named.
 ///
-/// Upstream's defaults are its own wordmark and `claude` as the main node's
-/// title. Both are correct for a Claude Code session visualizer and wrong here.
-/// A generic fallback like "root" would be almost as wrong: the developer's
-/// session calls its orchestrator `coordinator`, and a viewer that renames it
-/// is describing a run that did not happen.
+/// Upstream's defaults are its own wordmark and a provider-specific main-node
+/// title. Those defaults are wrong here. A generic fallback like "root" would
+/// be almost as wrong: the developer's session calls its orchestrator
+/// `coordinator`, and a viewer that renames it is describing a run that did not
+/// happen.
 ///
 /// `Branding::main_agent` is `&'static str` and `set_branding` uses a
 /// `OnceLock`, so the label is leaked deliberately: one small allocation, once
@@ -54,11 +63,21 @@ pub enum Playhead {
     Start,
 }
 
-/// Build the renderer app from a compiled session.
+/// Build the renderer app and the manifest that explains its timeline.
 ///
 /// `root_label` names the main node. Pass the root agent's own label so the
 /// graph calls it what the session called it.
-pub fn build(wire: &WireSession, speed: f64, playhead: Playhead, root_label: Option<&str>) -> App {
+///
+/// The manifest is recorded from the SAME fold the app is built from, so the
+/// two can never describe different timelines. Building it from a second fold
+/// would reintroduce exactly the drift it exists to remove.
+pub fn build_with_manifest(
+    wire: &WireSession,
+    session: &ViewerSession,
+    speed: f64,
+    playhead: Playhead,
+    root_label: Option<&str>,
+) -> (App, ViewerManifest) {
     // Idempotent (a `OnceLock` behind the scenes), and cheap enough to do at
     // every load rather than relying on a caller remembering to call it before
     // the first frame.
@@ -77,6 +96,8 @@ pub fn build(wire: &WireSession, speed: f64, playhead: Playhead, root_label: Opt
         .collect();
 
     let (items, info) = replay_from_session(&wire.main, &subagents);
+    // Recorded before `items` is handed to the app, which consumes it.
+    let manifest = ViewerManifest::build(&items, session);
 
     let mut app = App::new(wire.session_id.clone(), Mode::Replay);
     app.handle_ui_event(UiEvent::ReplayLoaded {
@@ -89,7 +110,21 @@ pub fn build(wire: &WireSession, speed: f64, playhead: Playhead, root_label: Opt
     if playhead == Playhead::Edge {
         app.go_live();
     }
-    app
+    (app, manifest)
+}
+
+/// The app alone, for callers that never address an event by identity.
+///
+/// The terminal frontend is one: it drives the graph through the renderer's own
+/// keyboard handling and has no need to name an event.
+pub fn build(
+    wire: &WireSession,
+    session: &ViewerSession,
+    speed: f64,
+    playhead: Playhead,
+    root_label: Option<&str>,
+) -> App {
+    build_with_manifest(wire, session, speed, playhead, root_label).0
 }
 
 /// How many renderer entries the timeline folded.
@@ -115,14 +150,31 @@ pub struct ViewerSnapshot {
     #[serde(rename = "atEdge")]
     pub at_edge: bool,
     pub transport: &'static str,
-    #[serde(rename = "selectedAgentId", skip_serializing_if = "Option::is_none")]
+    /// The renderer's own selection, always present.
+    ///
+    /// Serialized even when absent, as an explicit `null`. Omitting the field
+    /// would make "nothing is selected" indistinguishable from "this build does
+    /// not report selection", and a shell cannot tell those apart.
+    #[serde(rename = "selectedAgentId")]
     pub selected_agent_id: Option<String>,
+    /// The viewer event the playhead rests on, resolved through the manifest.
+    ///
+    /// `None` is a real answer: the playhead may be sitting on a sub-agent
+    /// sidecar, which is renderer state that came from no event. Callers must
+    /// show "no event here" rather than the nearest one, and there is
+    /// deliberately no second identifier alongside this: `sequence` is the only
+    /// event key in the system.
+    pub sequence: Option<u64>,
 }
 
-pub fn snapshot(app: &App) -> ViewerSnapshot {
+pub fn snapshot(app: &App, manifest: &ViewerManifest) -> ViewerSnapshot {
     use zoetrope::state::Transport;
+    // `fold_target` is a COUNT of folded items; the index of the last one is
+    // that count minus one.
+    let entry_index = app.timeline.fold_target().saturating_sub(1);
     ViewerSnapshot {
-        entry_index: app.timeline.fold_target().saturating_sub(1),
+        sequence: manifest.sequence_at(entry_index),
+        entry_index,
         entry_count: app.timeline.items.len(),
         at_edge: app.timeline.at_edge(),
         transport: match app.transport() {
@@ -132,6 +184,8 @@ pub fn snapshot(app: &App) -> ViewerSnapshot {
             Transport::History => "history",
             Transport::Idle => "idle",
         },
-        selected_agent_id: app.selected_agent_id(),
+        // The SESSION agent id, not the renderer's node id: the root node is
+        // called `main` inside the renderer and nothing outside it knows that.
+        selected_agent_id: selection::selected_agent(app, manifest.root_agent_id()),
     }
 }

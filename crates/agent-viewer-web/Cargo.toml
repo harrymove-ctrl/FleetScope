@@ -49,6 +49,10 @@ web-sys = { version = "0.3", features = [
   "Element",
   "EventTarget",
   "WheelEvent",
+  # Selection changes are pushed to the shell as a DOM CustomEvent, so the
+  # Astro side never polls the renderer for what it just did.
+  "CustomEvent",
+  "CustomEventInit",
 ] }
 # ratzilla force-enables ratatui's `layout-cache`, whose global cache is guarded
 # by `critical-section`. wasm32-unknown-unknown has no default impl, so linking

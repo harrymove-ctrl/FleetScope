@@ -20,6 +20,7 @@ fleetscope — local Agent Viewer for Gemini/ADK multi-agent sessions
 USAGE
     fleetscope <path> [options]        open the viewer
     fleetscope inspect <path>          print a headless summary
+    fleetscope demo [--open]           show the local demo surfaces
 
     <path> is a session file or a directory containing one. A directory opens
     the most recently modified session found in it or one level below.
@@ -56,9 +57,22 @@ enum Command {
     /// error when detection refuses a file, so "unsupported" is always
     /// actionable rather than a dead end.
     Formats,
+    /// Point the operator at the local demo surfaces.
+    ///
+    /// It prints where to look and, with `--open`, opens the viewer. It does
+    /// NOT start a run: starting one spends money and reaches the internet, and
+    /// that control is a loopback-only action on the local API. A CLI flag that
+    /// silently began spending would be exactly the wrong affordance.
+    Demo {
+        open: bool,
+        url: String,
+    },
     Help,
     Version,
 }
+
+/// Where the local viewer is served during development.
+const DEFAULT_DEMO_URL: &str = "http://localhost:4321/viewer";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -77,6 +91,21 @@ fn main() -> ExitCode {
         }
         Command::Version => {
             println!("fleetscope {}", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
+        }
+        Command::Demo { open, url } => {
+            print!("{}", demo_banner(&url));
+            if open {
+                match open_in_browser(&url) {
+                    Ok(()) => println!("Opened {url}"),
+                    Err(error) => {
+                        // Say why rather than exiting silently: the URL is
+                        // printed above and remains usable by hand.
+                        eprintln!("fleetscope: could not open a browser ({error}). Open {url}");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            }
             ExitCode::SUCCESS
         }
         Command::Formats => {
@@ -117,6 +146,27 @@ fn parse(args: &[String]) -> Result<Command, String> {
 
     let mut rest = args;
     let mut inspect = false;
+    if args[0] == "demo" {
+        let mut open = false;
+        let mut url = DEFAULT_DEMO_URL.to_string();
+        let mut index = 1;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--open" => open = true,
+                "--url" => {
+                    index += 1;
+                    url = args
+                        .get(index)
+                        .ok_or_else(|| "--url needs an address".to_string())?
+                        .clone();
+                }
+                "-h" | "--help" => return Ok(Command::Help),
+                other => return Err(format!("unknown option {other:?}")),
+            }
+            index += 1;
+        }
+        return Ok(Command::Demo { open, url });
+    }
     if args[0] == "inspect" {
         inspect = true;
         rest = &args[1..];
@@ -180,6 +230,54 @@ fn parse(args: &[String]) -> Result<Command, String> {
     }
 }
 
+/// What the demo command prints.
+///
+/// It deliberately does not restate the scenario's budget or target. Those live
+/// in the run controller's allowlist, in one place, and the capability endpoint
+/// reports them; copying them here would create a second source of truth that
+/// drifts.
+fn demo_banner(url: &str) -> String {
+    format!(
+        "FleetScope\n\
+         Local agent session viewer and run control\n\
+         \n\
+         \x20 viewer      {url}\n\
+         \x20 capability  GET /runs/capability on the local API\n\
+         \x20 start a run POST /runs, loopback only, one fixed scenario\n\
+         \n\
+         This command opens the viewer. It does not start a run: starting one\n\
+         spends model calls and performs an external read, so it stays an\n\
+         explicit action on the local API rather than a CLI flag.\n"
+    )
+}
+
+/// Ask the desktop to open a URL. No browser is bundled or assumed.
+fn open_in_browser(url: &str) -> Result<(), String> {
+    // Only a http(s) URL is ever passed to the shell helper, so a crafted
+    // argument cannot become a command.
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err(format!("refusing to open a non-http URL: {url}"));
+    }
+    let program = if cfg!(target_os = "macos") {
+        "open"
+    } else if cfg!(target_os = "windows") {
+        "explorer"
+    } else {
+        "xdg-open"
+    };
+    std::process::Command::new(program)
+        .arg(url)
+        .status()
+        .map_err(|error| error.to_string())
+        .and_then(|status| {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(format!("{program} exited with {status}"))
+            }
+        })
+}
+
 fn run_inspect(
     path: &std::path::Path,
     format: Option<&str>,
@@ -223,7 +321,7 @@ fn run_view(
     };
 
     let root_label = loaded.session.root().map(|agent| agent.label.as_str());
-    let app = scene::build(&loaded.wire, speed, playhead, root_label);
+    let app = scene::build(&loaded.wire, &loaded.session, speed, playhead, root_label);
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

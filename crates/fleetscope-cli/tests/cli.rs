@@ -76,12 +76,20 @@ fn a_missing_path_fails_with_the_path_in_the_message() {
 
 #[test]
 fn a_directory_with_no_session_says_what_it_looked_for() {
-    let empty = std::env::temp_dir().join("fleetscope-empty-session-test");
+    // The directory name has to be unique per process. A fixed path races when
+    // two test binaries run at once: one removes the directory while the other
+    // is still using it, and the failure looks like a viewer bug rather than a
+    // test bug. This is why `cargo test` needed to be run sequentially.
+    let empty = std::env::temp_dir().join(format!(
+        "fleetscope-empty-session-{}-{}",
+        std::process::id(),
+        line!()
+    ));
     std::fs::create_dir_all(&empty).expect("temp dir");
     let (ok, _, stderr) = run(&["inspect", empty.to_str().unwrap()]);
+    let _ = std::fs::remove_dir(&empty);
     assert!(!ok);
     assert!(stderr.contains(".jsonl"), "got: {stderr}");
-    let _ = std::fs::remove_dir(&empty);
 }
 
 #[test]
@@ -123,26 +131,86 @@ fn the_readable_formats_are_listable() {
     let (ok, stdout, _) = run(&["--formats"]);
     assert!(ok);
     assert!(stdout.contains("google-adk@1"), "got: {stdout}");
-    assert!(stdout.contains("claude-code@1"), "got: {stdout}");
+    if cfg!(feature = "legacy-claude") {
+        assert!(stdout.contains("claude-code@1"), "got: {stdout}");
+    } else {
+        assert!(
+            !stdout.contains("claude-code@1"),
+            "the default hackathon build must not advertise the legacy Claude dialect: {stdout}"
+        );
+    }
 }
 
 #[test]
-fn a_format_can_be_forced_from_the_command_line() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/claude-code-session");
-    let (ok, stdout, stderr) = run(&[
-        "inspect",
-        dir.to_str().unwrap(),
-        "--format",
-        "claude-code@1",
-    ]);
+fn the_google_format_can_be_forced_from_the_command_line() {
+    let dir = fixture_dir();
+    let (ok, stdout, stderr) = run(&["inspect", dir.to_str().unwrap(), "--format", "google-adk@1"]);
     assert!(ok, "{stderr}");
-    assert!(stdout.contains("claude-code@1"), "got: {stdout}");
+    assert!(stdout.contains("google-adk@1"), "got: {stdout}");
 }
 
 #[test]
 fn forcing_a_format_that_does_not_exist_fails_with_the_list() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/claude-code-session");
+    let dir = fixture_dir();
     let (ok, _, stderr) = run(&["inspect", dir.to_str().unwrap(), "--format", "nope@1"]);
     assert!(!ok);
     assert!(stderr.contains("google-adk@1"), "got: {stderr}");
+}
+
+// ── `fleetscope demo` ───────────────────────────────────────────────────────
+
+#[test]
+fn demo_points_at_the_local_surfaces() {
+    let (ok, stdout, stderr) = run(&["demo"]);
+    assert!(ok, "{stderr}");
+    for expected in ["viewer", "capability", "POST /runs", "loopback only"] {
+        assert!(
+            stdout.contains(expected),
+            "demo omits {expected:?}:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn demo_says_plainly_that_it_starts_nothing() {
+    // Starting a run spends model calls and performs an external read. A CLI
+    // flag that silently began spending would be the wrong affordance, so the
+    // command has to say what it does not do.
+    let (_, stdout, _) = run(&["demo"]);
+    assert!(stdout.contains("does not start a run"), "got:\n{stdout}");
+}
+
+#[test]
+fn demo_refuses_to_hand_a_non_http_url_to_the_shell() {
+    // Only an http(s) URL ever reaches the desktop open helper, so a crafted
+    // argument cannot become a command.
+    let (ok, _, stderr) = run(&["demo", "--url", "file:///etc/passwd", "--open"]);
+    assert!(!ok);
+    assert!(stderr.contains("non-http"), "got: {stderr}");
+}
+
+#[test]
+fn demo_rejects_an_unknown_option() {
+    let (ok, _, stderr) = run(&["demo", "--start-now"]);
+    assert!(!ok);
+    assert!(stderr.contains("unknown option"), "got: {stderr}");
+}
+
+#[test]
+fn the_existing_commands_are_unchanged_by_the_demo_subcommand() {
+    // `demo` is a new word in the same parser. The regression that matters is
+    // an existing invocation changing meaning.
+    let (ok, stdout, _) = run(&["--formats"]);
+    assert!(ok);
+    assert!(stdout.contains("google-adk@1"));
+    if cfg!(feature = "legacy-claude") {
+        assert!(stdout.contains("claude-code@1"));
+    } else {
+        assert!(!stdout.contains("claude-code@1"));
+    }
+
+    let dir = fixture_dir();
+    let (inspect_ok, inspect_out, _) = run(&["inspect", dir.to_str().unwrap()]);
+    assert!(inspect_ok);
+    assert!(inspect_out.contains("adapter   google-adk@1"));
 }

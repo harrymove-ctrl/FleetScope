@@ -11,6 +11,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# clap's `NO_COLOR` parser expects a boolean value, while the common shell
+# convention uses `1`. Normalize the convention before invoking Trunk so a
+# caller's environment cannot make an otherwise valid WASM build fail.
+if [[ "${NO_COLOR:-}" == "1" ]]; then
+  export NO_COLOR=true
+fi
+
 if ! command -v trunk >/dev/null 2>&1; then
   echo "ERROR: 'trunk' is not installed." >&2
   echo "Install it with:  cargo install --locked trunk" >&2

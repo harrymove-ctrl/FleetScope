@@ -6,6 +6,13 @@ rust-version.workspace = true
 license.workspace = true
 description = "FleetScope Agent Viewer — the portable, IO-free projection core."
 
+[features]
+# The hackathon build is intentionally Gemini/Google ADK only. The legacy
+# Claude dialect remains available as an explicit opt-in for historical fixture
+# tests, but it is never part of the default product surface.
+default = []
+legacy-claude = []
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

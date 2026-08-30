@@ -165,7 +165,7 @@ fn line_timestamps_are_strictly_increasing_across_files() {
 #[test]
 fn the_session_folds_into_the_renderer_with_every_agent_present() {
     let (session, wire) = loaded();
-    let app = scene::build(&wire, 1.0, Playhead::Edge, None);
+    let app = scene::build(&wire, &session, 1.0, Playhead::Edge, None);
 
     assert!(
         scene::folded_len(&app) > 0,
@@ -188,8 +188,8 @@ fn the_session_folds_into_the_renderer_with_every_agent_present() {
 
 #[test]
 fn a_finished_session_opens_parked_at_its_outcome() {
-    let (_, wire) = loaded();
-    let app = scene::build(&wire, 1.0, Playhead::Edge, None);
+    let (session, wire) = loaded();
+    let app = scene::build(&wire, &session, 1.0, Playhead::Edge, None);
     assert!(
         app.timeline.at_edge(),
         "a recording opened with --follow must show the end, not the beginning"
@@ -200,8 +200,8 @@ fn a_finished_session_opens_parked_at_its_outcome() {
 fn seeking_moves_the_playhead_off_the_edge_and_returning_puts_it_back() {
     // Transport state is derived from the playhead and the live edge rather
     // than from a mode flag, so this is the whole pause/seek/return contract.
-    let (_, wire) = loaded();
-    let mut app = scene::build(&wire, 1.0, Playhead::Edge, None);
+    let (session, wire) = loaded();
+    let mut app = scene::build(&wire, &session, 1.0, Playhead::Edge, None);
 
     app.seek_to_fraction(0.0);
     assert!(
@@ -246,7 +246,7 @@ fn a_deeper_tree_is_flattened_and_says_so() {
     assert!(note.contains("one level deep"), "got: {note}");
 
     // Flattened, but not lost: the node is still there and still named by path.
-    let app = scene::build(&wire, 1.0, Playhead::Edge, None);
+    let app = scene::build(&wire, &deep, 1.0, Playhead::Edge, None);
     assert!(app.session.agent("root/mid/leaf").is_some());
 }
 
@@ -262,7 +262,7 @@ fn the_fixture_projects_to_a_stable_fingerprint() {
     // If this value changes, the projection changed. That is allowed — update
     // it deliberately, and know that every frontend now shows something new.
     let projection = fleetscope_cli::load(&fixture()).expect("loads");
-    assert_eq!(projection.fingerprint(), "e2728f4f985c7f33");
+    assert_eq!(projection.fingerprint(), "2850b12b0760257f");
 }
 
 #[test]

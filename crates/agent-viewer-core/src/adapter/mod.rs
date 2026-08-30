@@ -13,6 +13,7 @@ use std::path::PathBuf;
 use crate::viewer::ViewerSession;
 
 pub mod adk;
+#[cfg(feature = "legacy-claude")]
 pub mod claude_code;
 
 /// A file that sits alongside the main transcript.
@@ -151,10 +152,20 @@ pub trait SessionAdapterExt {
 
 /// Every adapter compiled into this build, in preference order.
 pub fn registry() -> Vec<Box<dyn SessionAdapter>> {
-    vec![
-        Box::new(adk::AdkAdapter),
-        Box::new(claude_code::ClaudeCodeAdapter),
-    ]
+    #[cfg(feature = "legacy-claude")]
+    {
+        let mut adapters: Vec<Box<dyn SessionAdapter>> = vec![Box::new(adk::AdkAdapter)];
+        // Keep the historical dialect available only when a caller explicitly
+        // opts in. The default binary and browser therefore present one honest
+        // supported format for the Gemini hackathon path.
+        adapters.push(Box::new(claude_code::ClaudeCodeAdapter));
+        adapters
+    }
+
+    #[cfg(not(feature = "legacy-claude"))]
+    {
+        vec![Box::new(adk::AdkAdapter) as Box<dyn SessionAdapter>]
+    }
 }
 
 /// The ids `--format` accepts, for help text and error messages.
