@@ -1,10 +1,15 @@
 # FleetScope system design
 
+> **Deprecated scope:** this system design describes the earlier enterprise
+> Case/control-plane architecture. The current system design is
+> [Session Observer](session-observer.md): producer JSONL → adapters → shared
+> projection → graph/inspector/replay.
+
 Status: draft  
 
 Scope: system-wide  
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
 
 ## Mission
 
@@ -17,6 +22,14 @@ discover a versioned agent, execute and resume it, constrain private access and
 delegation, screen untrusted inputs, investigate incidents, and reconstruct the
 
 recorded Case state without replaying side effects.
+
+> **Scope split (2026-08-30):** The private bounded CASE-1042 submission proof
+> is the primary hackathon path. It must connect a real Gemini 3.5+ model, a
+> Google agent framework, and a Google Cloud service to the event/evidence
+> spine. The public/local observer over Gemini/Antigravity transcripts and the
+> bundled recording remain developer and fallback paths. Local viewing must not
+> be presented as proof that the enterprise integrations, Gemini 3.5+, ADK, or
+> Cloud Run path has executed.
 
 ## Design principles
 
@@ -340,7 +353,11 @@ deduplication key, next sequence, event append, and high-water mark.
 
 For the budget MVP, the Scenario Compiler canonicalizes the recorded fixture and
 
-the optional live backend canonicalizes its bounded append. No Pub/Sub is
+the private submission backend canonicalizes its bounded append. The backend is
+
+optional for public browsing but mandatory for the hackathon evidence bundle.
+
+No Pub/Sub is
 
 required. A later production transport may use ordering keys, but transport is
 
@@ -352,9 +369,15 @@ events rather than mutating certified history.
 
 The MVP serializes this model as bundled JSON/NDJSON plus an evidence manifest;
 
-the optional live backend may hold one Case in memory for the duration of a
+the local recorded path may hold one Case in memory for the duration of a
 
-request. Firestore is a post-MVP storage adapter, not a six-day dependency.
+request. The private Cloud Run proof cannot use that process-local state to
+
+claim restart durability; it needs a selected durable store or must leave that
+
+claim explicitly unproven. Firestore is otherwise a post-MVP storage adapter,
+
+not a default six-day dependency.
 
 ```text
 
@@ -548,9 +571,9 @@ implementation claims.
 
 - One recorded Case with up to 5 agents, 5 Sessions, 2,000 Canonical Events, and
 
-  a simulated burst of 10 events/second; the optional live path appends one
+  a simulated burst of 10 events/second; the private submission path may append
 
-  bounded decision/result pair.
+  one bounded decision/result pair after its Cloud/model/framework gate passes.
 
 - p95 canonical acceptance to visible UI under 2 seconds.
 
@@ -582,7 +605,9 @@ implementation claims.
 
 - Ten consecutive recorded governed-Case runs before recording; three
 
-  consecutive bounded runs for the selected live proof if enabled.
+  consecutive bounded runs for the private submission proof. The public live
+
+  control may remain disabled.
 
 ## Open points
 
@@ -602,19 +627,22 @@ implementation claims.
 
 ## Links
 
-- [Product requirements](../requirements/[fleetscope.md](http://fleetscope.md))
+- [Product requirements](../requirements/fleetscope.md)
 
-- [Budget-constrained demo design]([budget-demo.md](http://budget-demo.md))
+- [Frontend experience](fleetscope-frontend-experience.md)
 
-- [Enterprise fleet lifecycle](../requirements/fleetscope/[enterprise-fleet.md](http://enterprise-fleet.md))
+- [Budget-constrained demo design](budget-demo.md)
 
-- [Audit and replay](../requirements/fleetscope/[audit-and-replay.md](http://audit-and-replay.md))
+- [Enterprise fleet lifecycle](../requirements/fleetscope/enterprise-fleet.md)
 
-- [Agent Viewer](../requirements/fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
+- [Audit and replay](../requirements/fleetscope/audit-and-replay.md)
 
-- [Warden intervention](../requirements/fleetscope/[warden-intervention.md](http://warden-intervention.md))
+- [Agent Viewer](../requirements/fleetscope/fleet-cockpit.md)
 
-- [UI/UX plan](../product/[ui-ux-plan.md](http://ui-ux-plan.md))
+- [Warden intervention](../requirements/fleetscope/warden-intervention.md)
 
-- [Glossary](../requirements/[glossary.md](http://glossary.md))
+- [UI/UX plan](../product/ui-ux-plan.md)
 
+- [Hackathon runtime](hackathon-runtime.md)
+
+- [Glossary](../requirements/glossary.md)

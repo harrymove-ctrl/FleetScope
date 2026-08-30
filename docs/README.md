@@ -1,74 +1,46 @@
-# FleetScope product documentation
+# FleetScope documentation
 
-Status: draft working set
+**Current product:** the read-only Session Observer — JSONL in, graph,
+inspector, live follow, and replay out.
 
-FleetScope v1 is a local-first developer tool for viewing Gemini/ADK
-multi-agent sessions. Its user-facing surface is **Agent Viewer**: a CLI-first
-experience for live-follow, replay, timeline scrubbing, and agent inspection.
-Enterprise governance and additional providers are later phases.
+Start here:
 
-## Read this set
+1. [Idea and pitch](product/idea-and-pitch.md) — current idea, Taskmaster fit,
+   verbal pitch, and deck outline.
+2. [Session Observer product brief](product/session-observer.md) — feature map,
+   Google workflow, truth contract, and four-minute demo.
+3. [Session Observer requirements](requirements/session-observer.md) — problem,
+   scope, success measures, non-goals, and open points.
+4. [Session Observer design](design/session-observer.md) — adapters, projection,
+   live/replay state, failure behavior, and minimal hosted proof.
+5. [Google runtime runbook](design/hackathon-runtime.md) — zero-cost validation,
+   real run, live follow, and cloud evidence capture.
+6. [Hackathon checklist](product/hackathon-submission-checklist.md) — Gemini,
+   Google ADK, Cloud Run/Storage, video, repo, and Devpost gates.
+7. [Architecture overview](architecture.md) — repository package boundaries.
 
-1. [Product plan](product/[product-plan.md](http://product-plan.md)) — positioning, users, outcomes,
+## Navigation
 
-   assumptions, competition, launch, and product decisions.
+- [Product](product/README.md) — current brief plus historical product notes.
+- [Requirements](requirements/README.md) — current requirements plus deprecated
+  enterprise modules.
+- [Design](design/README.md) — current design plus deprecated system proposals.
+- [Decisions](decisions/README.md) — ADRs, including the superseded enterprise
+  runtime and the accepted Session Observer boundary.
+- [Plans](plans/README.md) — current entry point and historical plans.
+- [Reports](reports/README.md) — dated command/evidence records.
+- [Handoffs](handoffs/README.md) — continuation prompts and historical handoffs.
 
-2. [UI/UX plan](product/[ui-ux-plan.md](http://ui-ux-plan.md)) — Agent Viewer, CLI/browser
+## Scope rule
 
-   interaction model, visual system, and demo flow.
+The old CASE-1042 enterprise Case, Warden, Model Armor, ERP, Firestore, and
+Pub/Sub materials are retained for traceability only. They are marked
+deprecated/superseded and must not be used to expand the Session Observer demo.
 
-3. [Context intake](product/[context-intake.md](http://context-intake.md)) — the facts and artifacts still
+## Verification rule
 
-   needed to turn the draft into an evidence-backed active plan.
-
-4. [Requirements entry point](requirements/[fleetscope.md](http://fleetscope.md)) — product contract,
-
-   scope, success criteria, and capability map.
-
-5. [Glossary](requirements/[glossary.md](http://glossary.md)) — normative names and boundaries.
-
-6. [System design](design/[system.md](http://system.md)) — components, event protocol, Warden
-
-   control loop, security, and failure handling.
-
-7. [USD 35 demo design](design/[budget-demo.md](http://budget-demo.md)) — browser visualization reuse,
-
-   static-first architecture, scenario compiler, credit guardrails, and slices.
-
-8. [React Bits Agent Viewer UI plan](design/react-bits-agent-viewer.md) — onboarding/dashboard
-
-   composition, safe registry configuration, and the Astro/React integration boundary.
-
-9. [Six-day delivery plan](plans/[six-day-delivery.md](http://six-day-delivery.md)) — work breakdown,
-
-   milestones, owners, gates, and cuts.
-
-10. [Demo and validation plan](plans/[demo-validation.md](http://demo-validation.md)) — the proof the team
-
-   must capture for judges and for internal acceptance.
-
-10. [Zoetrope audit and implementation plan](plans/zoetrope-audit-and-implementation-plan.md) —
-
-    the renderer decision, and the four points where the plan was wrong.
-
-11. [Implementation report, 2026-08-26](reports/fleetscope-end-to-end-implementation-2026-08-26.md) —
-
-    **what was actually built, with real command output.** Read this before
-
-    trusting any status claim in the plans above.
-
-12. [UI completion report, 2026-08-26](reports/fleetscope-ui-completion-2026-08-26.md) —
-
-    the product-UI audit, what was changed route by route, the browser QA and
-
-    accessibility results, and the executed live-proof-from-the-UI evidence.
-
-13. [Decisions](decisions/) — 0001 tooling · 0002 renderer boundary (resolved) ·
-
-    0003 bounded live path · 0004 render manifest · 0005 redaction boundaries.
-
-The requirements use **MUST**, **SHOULD**, and **MAY** as normative terms.
-
-MUST is required for the MVP to conform; SHOULD is the default unless a
-
-documented tradeoff is accepted; MAY is optional.
+A local fixture, configured model string, dependency, screenshot, or green unit
+test is not Google Cloud execution proof. The live hackathon label requires the
+same session ID tied to provider-owned Gemini `modelVersion`, real Google ADK
+events, and visible Cloud Run deployment evidence. Cloud Storage upload is an
+optional matching artifact, not a substitute for the running backend proof.

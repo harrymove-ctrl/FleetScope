@@ -1,8 +1,28 @@
 # FleetScope demo and validation plan
 
+> **Deprecated scope:** this plan targets the earlier CASE-1042 enterprise
+> recovery demo. Use [Session Observer](../product/session-observer.md) for the
+> current demo and [hackathon checklist](../product/hackathon-submission-checklist.md)
+> for the remaining proof gates.
+
 Status: draft  
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
+
+> **Frontend and deployment precedence:** the canonical
+> [frontend experience design](../design/fleetscope-frontend-experience.md)
+> owns the public launchpad and onboarding composition. This plan remains the
+> source for demo choreography and evidence capture. A judge-facing live claim
+> still requires a verified Gemini 3.5+ model, Google framework, Google Cloud
+> service, and the bounded async event/replay proof; a polished carousel is not
+> evidence.
+
+Read [`docs/product/idea-and-pitch.md`](../product/idea-and-pitch.md) for the
+four-minute judge storyboard, [`docs/product/feature-flows.md`](../product/feature-flows.md)
+for the feature-by-feature evidence contract, and
+[`docs/product/hackathon-submission-checklist.md`](../product/hackathon-submission-checklist.md)
+for the current Devpost gate status. This plan is the test/evidence companion
+to those product docs.
 
 ## Demo promise
 
@@ -200,7 +220,7 @@ policy-routed, guarded, observable, and recoverable—inside one real workflow.�
 
 | V19 | Accessibility | Keyboard + reduced-motion walkthrough | All core journeys usable |
 
-| V20 | End-to-end reliability | 10 recorded golden Cases; 3 bounded live proofs if enabled | 10 complete recorded evidence packages and 3/3 selected live proofs |
+| V20 | End-to-end reliability | 10 recorded golden Cases; 3 bounded private submission proofs | 10 complete recorded evidence packages and 3/3 live proofs tied to the Cloud/model/framework evidence bundle |
 
 ## User-test prompts
 
@@ -274,9 +294,19 @@ approval, Intervention request, and confirmed result.
 
   “reasoning chain” claim.
 
-- [ ] Architecture diagram matches the static deployment and any optional live
+- [ ] Architecture diagram matches the static deployment and the private live
 
-      component actually enabled.
+      submission component actually enabled.
+
+- [ ] Evidence bundle includes a Cloud Run service/revision and reachable URL,
+
+      the verified Gemini 3.5+ model log, the Google agent-framework trace, and
+
+      one correlated run ID through controlled fault, Warden authorization,
+
+      exactly one idempotent retry, terminal result, restart, and zero-side-
+
+      effect replay.
 
 - [ ] Evidence package contains platform response fixtures, event schemas,
 
@@ -298,13 +328,16 @@ approval, Intervention request, and confirmed result.
 
 ## Links
 
-- [Product plan](../product/[product-plan.md](http://product-plan.md))
+- [Frontend experience](../design/fleetscope-frontend-experience.md)
 
-- [UI/UX plan](../product/[ui-ux-plan.md](http://ui-ux-plan.md))
+- [Agent Workspace normative pack](../design/agent-workspace/README.md)
 
-- [Product requirements](../requirements/[fleetscope.md](http://fleetscope.md))
+- [Product plan](../product/product-plan.md)
 
-- [System design](../design/[system.md](http://system.md))
+- [UI/UX plan](../product/ui-ux-plan.md)
 
-- [Six-day delivery plan]([six-day-delivery.md](http://six-day-delivery.md))
+- [Product requirements](../requirements/fleetscope.md)
 
+- [System design](../design/system.md)
+
+- [Six-day delivery plan](six-day-delivery.md)

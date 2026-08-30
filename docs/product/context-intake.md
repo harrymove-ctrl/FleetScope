@@ -1,8 +1,14 @@
 # FleetScope context intake
 
+> **Superseded:** this intake was written for the rejected Fortified Enterprise
+> Fleet/CASE-1042 scope. The current accepted context is the bounded
+> `google-cloud-launch-readiness` producer and read-only Session Observer in
+> [the active product brief](session-observer.md), [requirements](../requirements/session-observer.md),
+> and [design](../design/session-observer.md).
+
 Status: required inputs before requirements become active  
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
 
 The current product and design set is complete enough to start a day-1 vertical
 
@@ -210,9 +216,13 @@ Provide:
 
 - recording/editing tools and caption requirements.
 
-- whether the presentation network is reliable enough for the optional live
+- whether the presentation network is reliable enough to show the private live
 
-  proof; the public/default path remains static and recorded either way.
+  proof during judging. The proof is still required in the submission evidence
+
+  bundle; the public/default visitor path remains static and recorded either
+
+  way.
 
 Decision enabled: final layout, motion budget, live versus recorded path, and
 
@@ -298,13 +308,14 @@ If the team can answer only ten questions, answer these in order:
 
 ## Links to update after intake
 
-- [Product requirements open points](../requirements/[fleetscope.md](http://fleetscope.md)#open-points)
+- [Product requirements open points](../requirements/fleetscope.md#open-points)
 
-- [System design open points](../design/[system.md](http://system.md)#open-points)
+- [System design open points](../design/system.md#open-points)
 
-- [Product plan decisions]([product-plan.md](http://product-plan.md)#open-product-decisions)
+- [Product plan decisions](product-plan.md#open-product-decisions)
 
-- [Six-day delivery gates](../plans/[six-day-delivery.md](http://six-day-delivery.md))
+- [Frontend experience gates](../design/fleetscope-frontend-experience.md#16-open-points)
 
-- [Demo plan open points](../plans/[demo-validation.md](http://demo-validation.md)#open-points)
+- [Six-day delivery gates](../plans/six-day-delivery.md)
 
+- [Demo plan open points](../plans/demo-validation.md#open-points)

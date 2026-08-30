@@ -2,13 +2,22 @@
 
 Status: draft  
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
+
+> **Frontend sequencing:** the canonical
+> [frontend experience design](../design/fleetscope-frontend-experience.md)
+> owns public launchpad/onboarding composition. This plan's runtime and
+> evidence gates come first: prove the bounded live path and its replay before
+> spending time on carousel or premium UI polish. `/live` follows the
+> [Agent Workspace normative pack](../design/agent-workspace/README.md).
 
 ## Delivery objective
 
 By day 5 noon, one deterministic Recorded Vendor Onboarding Case must reliably
 
-complete, with one optional bounded live decision appended into the same flow:
+complete, and one private bounded live decision must be appended into the same
+
+flow as the hackathon submission proof:
 
 `discover version → launch → wait/resume → recall memory → authorize ERP →
 
@@ -34,13 +43,17 @@ Day 6 is reserved for recording, truthfulness review, submission, and buffer.
 
 - One Warden Intervention projects exactly once and has an authoritative
 
-  recorded result; if selected for the live proof, Runtime also confirms it.
+  recorded result; the private submission run must also have Runtime-confirmed
+
+  live evidence for this step. The public visitor path may stay recorded.
 
 - Case Workspace and Fleet Cockpit derive from the same Canonical Events.
 
 - Golden replay, failure fixtures, and ten consecutive recorded Cases pass;
 
-  the optional live proof passes three consecutive bounded runs.
+  the private submission proof passes three consecutive bounded runs. A live
+
+  control in the public visitor experience remains optional.
 
 - Public fallback is recorded/read-only; unsupported or simulated behavior is
 
@@ -62,7 +75,7 @@ Day 6 is reserved for recording, truthfulness review, submission, and buffer.
 
 | Frontend/UX | Astro shell, Catalog, Case Workspace, reused WASM Cockpit, evidence rail |
 
-| Cloud/reliability | Static deployment, optional bounded live API, secrets, smoke/fallback |
+| Cloud/reliability | Static fallback, private bounded Cloud API, secrets, deployment proof, smoke/fallback |
 
 One person may own several workstreams, but each must have a named owner before
 
@@ -104,9 +117,11 @@ availability/schema classification, and one bounded live proof is selected.
 
 - Install `trunk`, run upstream tests, and build the browser/WASM app locally.
 
-- Keep cloud resources off; provision only an optional min-zero/max-one live API
+- Keep cloud resources off during ordinary development; provision the required
 
-  after the complete recorded path works.
+  min-zero/max-one private live API only after the complete recorded path
+
+  works, then capture and tear down or disable it according to the budget plan.
 
 - Generate `registry.version_resolved` and `case.created` fixture events;
 
@@ -382,15 +397,18 @@ evidence. Those are the track thesis; their execution mode must remain visible.
 
 ## Links
 
-- [Product plan](../product/[product-plan.md](http://product-plan.md))
+- [Frontend experience](../design/fleetscope-frontend-experience.md)
 
-- [UI/UX plan](../product/[ui-ux-plan.md](http://ui-ux-plan.md))
+- [Agent Workspace normative pack](../design/agent-workspace/README.md)
 
-- [Product requirements](../requirements/[fleetscope.md](http://fleetscope.md))
+- [Product plan](../product/product-plan.md)
 
-- [System design](../design/[system.md](http://system.md))
+- [UI/UX plan](../product/ui-ux-plan.md)
 
-- [Budget-constrained demo design](../design/[budget-demo.md](http://budget-demo.md))
+- [Product requirements](../requirements/fleetscope.md)
 
-- [Demo and validation plan]([demo-validation.md](http://demo-validation.md))
+- [System design](../design/system.md)
 
+- [Budget-constrained demo design](../design/budget-demo.md)
+
+- [Demo and validation plan](demo-validation.md)

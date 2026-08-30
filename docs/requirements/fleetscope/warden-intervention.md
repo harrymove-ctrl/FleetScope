@@ -202,13 +202,14 @@ For every recommendation or action, FleetScope MUST record:
 
 ## Links
 
-- [Product requirements](../[fleetscope.md](http://fleetscope.md))
+- [Product requirements](../fleetscope.md)
 
-- [Enterprise fleet lifecycle]([enterprise-fleet.md](http://enterprise-fleet.md))
+- [Enterprise fleet lifecycle](enterprise-fleet.md)
 
-- [Audit and replay]([audit-and-replay.md](http://audit-and-replay.md))
+- [Audit and replay](audit-and-replay.md)
 
-- [Fleet Cockpit]([fleet-cockpit.md](http://fleet-cockpit.md))
+- [Fleet Cockpit](fleet-cockpit.md)
 
-- [System design](../../design/[system.md](http://system.md))
+- [Frontend experience](../../design/fleetscope-frontend-experience.md)
 
+- [System design](../../design/system.md)

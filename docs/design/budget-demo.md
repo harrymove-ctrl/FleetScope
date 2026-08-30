@@ -1,10 +1,23 @@
 # FleetScope budget-constrained demo design
 
+> **Deprecated scope:** this document contains the earlier enterprise Case
+> budget plan. The current cost plan is the Session Observer: local JSONL
+> viewing at USD 0, plus one bounded optional Google ADK/Vertex take. See
+> [Session Observer](../product/session-observer.md).
+
 Status: draft  
 
 Scope: six-day hackathon vertical slice under a USD 35 cloud-credit ceiling  
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
+
+> **Composition and rubric update:** the canonical
+> [frontend experience design](fleetscope-frontend-experience.md) owns the
+> public launchpad, preloader, carousel, and integration gates. This document
+> remains authoritative for static-first cost controls and the recorded/live
+> split. Any submission path must additionally prove Gemini 3.5 or newer, one
+> Google agent framework, and a Google Cloud service; the visual shell is not
+> that proof.
 
 ## Decision
 
@@ -88,11 +101,11 @@ Evidence behind the choice:
 
         |
 
-        | optional live proof, guarded by budget
+        | private submission proof, guarded by budget
 
         v
 
- Small local/Cloud Run API -&gt; Gemini Flash + available GEAP adapters
+ Target private Cloud Run API -&gt; verified Gemini 3.5+ model + Google agent framework
 
         |
 
@@ -102,19 +115,28 @@ Evidence behind the choice:
 
 ```
 
+A local API is a contract/test surface only. It cannot substitute for the
+private Google Cloud deployment proof.
+
 ### Browser shell
 
 Extend the existing Astro site rather than adding a second frontend framework.
 
 Routes for the MVP:
 
-- `/` or `/catalog` — one approved Vendor Onboarding Orchestrator card;
+- `/` — public launchpad, then Dashboard-first local onboarding;
 
-- `/cases/CASE-1042` — one Case Workspace;
+- `/dashboard` — local CLI/session setup, readiness, and truthful fallback;
 
-- `/cockpit/CASE-1042` — WASM graph plus DOM evidence rail;
+- `/viewer` — the local browser/WASM observer;
 
-- `/audit/CASE-1042` — unified recorded evidence.
+- `/live` — private allowlisted proof only after fresh capability and provenance
+  evidence; otherwise recorded/unavailable;
+
+- `/catalog` — deferred enterprise-storyboard launcher, never the `/` entry;
+
+- `/cases/CASE-1042`, `/cockpit/CASE-1042`, and `/audit/CASE-1042` —
+  recorded enterprise evidence surfaces.
 
 The public deployment is static and read-only. Static hosting can be Vercel,
 
@@ -186,11 +208,18 @@ Do not implement custom Registry/Memory/Identity/Gateway/Armor node renderers in
 
 Rust for MVP. Their tool chips plus DOM Decision Evidence are sufficient.
 
-### Optional live backend
+### Private submission live backend
+
+This backend is optional for public browsing and remains off during ordinary
+development. It is mandatory for the current hackathon evidence bundle: the
+recorded fallback alone cannot prove that the backend ran on Google Cloud or
+that a current Gemini/Google-agent-framework path executed.
 
 One endpoint accepts a fixed scenario step and returns a schema-constrained
 
-decision. It may call Gemini Flash and any confirmed platform adapters. It must:
+decision. The private submission deployment must call the exact verified
+Gemini 3.5+ model through the selected Google agent framework and any confirmed
+platform adapters. It must:
 
 - accept only allowlisted Case/step IDs, not arbitrary prompts;
 
@@ -332,9 +361,10 @@ Gate: clicking Memory/Identity/Gateway/Armor/Incident jumps to the correct
 
 historical evidence.
 
-### Slice 4 — one live proof, one day
+### Slice 4 — one private live proof, one day
 
-- implement bounded backend and one confirmed Gemini/GEAP path;
+- implement the bounded backend and one confirmed Gemini 3.5+/Google-framework
+  path;
 
 - append its real result into the WASM session;
 
@@ -342,9 +372,9 @@ historical evidence.
 
 - capture billing after the first call and update the envelope.
 
-Gate: one live decision is real, correlated, and safe; disabling live mode leaves
-
-the complete demo functional.
+Gate: the private submission decision is real, correlated, and safe, with three
+bounded consecutive runs and Cloud Run/model/framework evidence; disabling the
+public live control leaves the complete recorded demo functional.
 
 ### Slice 5 — hardening and recording, two days
 
@@ -368,7 +398,9 @@ the complete demo functional.
 
 6. Blocked input has no downstream-use event in the fixture or live result.
 
-7. One live proof respects call/token/run limits and can be disabled without UI
+7. The private live proof respects call/token/run limits and passes three
+
+   bounded consecutive runs; its public control can be disabled without UI
 
    regression.
 
@@ -408,11 +440,14 @@ the complete demo functional.
 
 ## Links
 
-- [System design]([system.md](http://system.md))
+- [Frontend experience](fleetscope-frontend-experience.md)
 
-- [Product requirements](../requirements/[fleetscope.md](http://fleetscope.md))
+- [Agent Workspace normative pack](agent-workspace/README.md)
 
-- [UI/UX plan](../product/[ui-ux-plan.md](http://ui-ux-plan.md))
+- [System design](system.md)
 
-- [Six-day delivery plan](../plans/[six-day-delivery.md](http://six-day-delivery.md))
+- [Product requirements](../requirements/fleetscope.md)
 
+- [UI/UX plan](../product/ui-ux-plan.md)
+
+- [Six-day delivery plan](../plans/six-day-delivery.md)

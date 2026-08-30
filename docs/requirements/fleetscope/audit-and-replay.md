@@ -174,11 +174,12 @@ escalation opened/resolved.
 
 ## Links
 
-- [Product requirements](../[fleetscope.md](http://fleetscope.md))
+- [Product requirements](../fleetscope.md)
 
-- [Enterprise fleet lifecycle]([enterprise-fleet.md](http://enterprise-fleet.md))
+- [Enterprise fleet lifecycle](enterprise-fleet.md)
 
-- [Glossary](../[glossary.md](http://glossary.md))
+- [Glossary](../glossary.md)
 
-- [System design](../../design/[system.md](http://system.md))
+- [Frontend experience](../../design/fleetscope-frontend-experience.md)
 
+- [System design](../../design/system.md)

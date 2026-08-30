@@ -1,8 +1,14 @@
 # FleetScope product requirements
 
-Status: draft  
+> **Deprecated scope:** this file describes the earlier enterprise Case
+> control-plane requirements. The current requirements are in
+> [Session Observer requirements](session-observer.md). Keep this file for
+> historical traceability only; do not use its Warden/Armor/ERP requirements to
+> scope the demo.
 
-Last updated: 2026-08-26
+Status: draft — hackathon submission contract plus local/recorded fallback
+
+Last updated: 2026-08-30
 
 ## Product thesis
 
@@ -29,6 +35,32 @@ The primary submission target is **The Fortified Enterprise Fleet**. FleetScope
 maps every recommended Gemini Enterprise Agent Platform capability into one
 
 coherent workflow rather than displaying a collection of integrations.
+
+## Scope split: local product path and submission proof path
+
+These requirements intentionally describe two related but separate paths. The
+path a developer can use today is not evidence that the private hackathon path
+has been completed.
+
+| Path | Purpose and boundary | Claim allowed | Gate |
+|---|---|---|---|
+| **Local observer product path (current v1)** | Dashboard → a Gemini/Antigravity CLI session or bundled recording → Agent Viewer; a chosen transcript is read locally and is never uploaded | Local observation, projection, and replay only; no provider, governance, or Cloud Run claim | Local projection, privacy, accessibility, and recorded-fallback checks |
+| **Hackathon submission proof path (mandatory)** | A private, bounded, allowlisted asynchronous scenario with a real model/framework and Google Cloud service | Live execution and platform controls only after matching runtime and deployment evidence exists | Gemini 3.5+ (or the exact current rubric equivalent), one Google agent framework, Cloud Run/Google Cloud evidence, and `Controlled Fault → Warden authorized → exactly one idempotent retry → terminal result`; restart/replay must be side-effect free |
+| **Public recorded fallback** | Static, read-only evidence for visitors when the private path is unavailable | `Recorded` or `Unavailable`, never live | Must remain functional without the live service and cannot substitute for the mandatory submission proof |
+
+The vendor-onboarding workflow below is the enterprise scenario and the spine
+of the submission proof. Until its private live gate is independently verified,
+the public product presents it as recorded or synthetic. A local transcript,
+configuration value, or historical report is not a live-proof result.
+
+The current feature-by-feature flow, pitch, and Devpost field status are kept in
+[`../product/feature-flows.md`](../product/feature-flows.md),
+[`../product/idea-and-pitch.md`](../product/idea-and-pitch.md), and
+[`../product/hackathon-submission-checklist.md`](../product/hackathon-submission-checklist.md).
+
+Historical reports that name `gemini-2.5-flash`, `mode=live`, or a local API run
+are retained for engineering context only. They are non-rubric evidence and do
+not satisfy the Gemini 3.5+/Google framework/Google Cloud submission gate.
 
 ## Primary workflow: vendor onboarding case
 
@@ -140,9 +172,11 @@ through one believable Case—not seven disconnected service badges.
 
    intervene → audit journey passes **10 consecutive recorded runs** before
 
-   recording. If live mode is enabled, its selected proof passes **3 consecutive
+   recording. The private submission proof passes **3 consecutive bounded live
 
-   bounded runs** before it appears in the final take.
+   runs** before it appears in the final take. Public live controls may remain
+
+   disabled; disabling them does not waive the private proof gate.
 
 ## Product principles
 
@@ -218,9 +252,13 @@ FleetScope MUST provide:
 
   armor, agent/tool, policy, intervention, and result records;
 
-- a static browser deployment and recorded read-only fallback Case; any live
+- a static browser deployment and recorded read-only fallback Case. Public live
 
-  Cloud backend MUST be bounded, optional, and disabled for the public replay.
+  controls are optional and MUST be bounded and disabled for the public replay
+
+  by default. The separate private Gemini 3.5+/Google framework/Google Cloud
+
+  proof remains mandatory for hackathon submission.
 
 FleetScope SHOULD provide:
 
@@ -270,13 +308,13 @@ after all MUST requirements pass.
 
 ## Capability requirements
 
-- [Enterprise fleet lifecycle](fleetscope/[enterprise-fleet.md](http://enterprise-fleet.md))
+- [Enterprise fleet lifecycle](fleetscope/enterprise-fleet.md)
 
-- [Audit and replay](fleetscope/[audit-and-replay.md](http://audit-and-replay.md))
+- [Audit and replay](fleetscope/audit-and-replay.md)
 
-- [Fleet Cockpit](fleetscope/[fleet-cockpit.md](http://fleet-cockpit.md))
+- [Fleet Cockpit](fleetscope/fleet-cockpit.md)
 
-- [Warden intervention](fleetscope/[warden-intervention.md](http://warden-intervention.md))
+- [Warden intervention](fleetscope/warden-intervention.md)
 
 ## Locked product decisions
 
@@ -316,9 +354,13 @@ after all MUST requirements pass.
 
   evidence by default. Third-party notices stay in repository licensing files,
 
-  not product navigation. One bounded live backend proof is optional; Firestore,
+  not product navigation. Public live access is optional, but one private,
 
-  Pub/Sub, and always-on services are excluded from the MVP path.
+  bounded live backend proof is a submission gate. Always-on services are
+
+  excluded; the durable store for that proof must be chosen and evidenced
+
+  rather than inferred from a container filesystem.
 
 ## Assumptions and risks
 
@@ -328,7 +370,7 @@ after all MUST requirements pass.
 
 | The supplied track description is current and complete | Track mapping and prize narrative | Verify official live rules before day 1 ends |
 
-| Recommended platform services are available to the team/project | One or more P0 proofs must be recorded or simulated | Review API/schema availability for all seven on day 1, select one bounded live proof, and label every other mode honestly |
+| Required model, framework, and Google Cloud services are available to the team/project | The hackathon submission gate cannot pass; a simulation is only a fallback artifact | Review current API/model availability, prove the bounded private path, and label every recorded or synthetic capability honestly |
 
 | Agent Runtime exposes long-running state and one usable control operation | Async and Warden claims weaken | Prove wait/resume and control by day 2 noon |
 
@@ -364,17 +406,18 @@ after all MUST requirements pass.
 
 ## Links
 
-- [Glossary]([glossary.md](http://glossary.md))
+- [Glossary](glossary.md)
 
-- [System design](../design/[system.md](http://system.md))
+- [Frontend experience](../design/fleetscope-frontend-experience.md)
 
-- [Budget-constrained demo design](../design/[budget-demo.md](http://budget-demo.md))
+- [System design](../design/system.md)
 
-- [Product plan](../product/[product-plan.md](http://product-plan.md))
+- [Budget-constrained demo design](../design/budget-demo.md)
 
-- [UI/UX plan](../product/[ui-ux-plan.md](http://ui-ux-plan.md))
+- [Product plan](../product/product-plan.md)
 
-- [Six-day delivery plan](../plans/[six-day-delivery.md](http://six-day-delivery.md))
+- [UI/UX plan](../product/ui-ux-plan.md)
 
-- [Demo and validation plan](../plans/[demo-validation.md](http://demo-validation.md))
+- [Six-day delivery plan](../plans/six-day-delivery.md)
 
+- [Demo and validation plan](../plans/demo-validation.md)

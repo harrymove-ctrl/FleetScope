@@ -1,6 +1,17 @@
-# CASE-1042 judge demo — 90 second script
+# CASE-1042 judge demo — 90 second recorded fallback
 
-Last updated: 2026-08-29
+> **Deprecated demo:** this is the earlier enterprise recovery rehearsal. The
+> current demo is the read-only Session Observer; use
+> [Session Observer](session-observer.md) for the script.
+
+Last updated: 2026-08-30
+
+> **Recorded public script:** This is a read-only fallback and rehearsal for the
+> judge-facing story. The primary submission take is the under-four-minute
+> private cloud storyboard in [Idea and pitch](idea-and-pitch.md). This script
+> does not prove that a Gemini 3.5+ model, Google agent framework, or Google
+> Cloud backend ran. See the [submission checklist](hackathon-submission-checklist.md)
+> and [frontend experience proof plan](../design/fleetscope-frontend-experience.md#13-cloud-run-vertex-and-adk-proof-plan).
 
 ## Open
 
@@ -17,7 +28,7 @@ be opened.
 |---|---|---|
 | 0–15s | "This is recorded canonical evidence from one vendor onboarding case. Nothing is executing." | Point at `● Recorded CASE-1042 evidence — nothing is executing`, then the outcome line. |
 | 15–30s | "The agent was sent a prompt injection over vendor email. It was blocked before it became memory." | Start guided tour, Next to step 3 (Screen). View evidence → `evt-0016`. |
-| 30–50s | "The logistics check timed out three times. Policy permitted exactly one retry, and it worked." | Next to step 4 (Recover). View evidence → `evt-0036`. |
+| 30–50s | "The logistics check timed out three times. Policy permitted exactly one retry, and it worked." | Next to step 4 (Recover). View Warden evidence → `evt-0031`, then Runtime-confirmed result → `evt-0036`. |
 | 50–70s | "The externally visible action waited for a person." | Next to step 5 (Approve). View evidence → `evt-0045`. |
 | 70–85s | "The vendor was activated under that approval, and identity allowed the approved request." | Next to step 6 (Activate). View evidence → `evt-0053`. |
 | 85–90s | "The same evidence in the expert surface, at the same event." | Open in Expert Mode. |
@@ -88,3 +99,9 @@ git diff --check
 ## Screenshots
 
 `docs/product/screenshots/case-1042-tour-{1440x900,1280x720,1180x800}.png`
+
+## Links
+
+- [Idea and pitch](idea-and-pitch.md) — primary under-four-minute cloud storyboard.
+- [Feature flows](feature-flows.md) — evidence contract for every step.
+- [Submission checklist](hackathon-submission-checklist.md) — current gate status.

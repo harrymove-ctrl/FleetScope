@@ -214,11 +214,12 @@ identity, routing, memory, screening, and runtime enforcement.
 
 ## Links
 
-- [Product requirements](../[fleetscope.md](http://fleetscope.md))
+- [Product requirements](../fleetscope.md)
 
-- [Fleet Cockpit]([fleet-cockpit.md](http://fleet-cockpit.md))
+- [Fleet Cockpit](fleet-cockpit.md)
 
-- [Audit and replay]([audit-and-replay.md](http://audit-and-replay.md))
+- [Audit and replay](audit-and-replay.md)
 
-- [System design](../../design/[system.md](http://system.md))
+- [Frontend experience](../../design/fleetscope-frontend-experience.md)
 
+- [System design](../../design/system.md)

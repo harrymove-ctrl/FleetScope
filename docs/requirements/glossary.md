@@ -8,7 +8,7 @@ Scope: FleetScope agent discovery, long-running Case orchestration, platform
 
 security, observability, replay, and response. Related requirements are indexed
 
-in [Requirements]([README.md](http://README.md)).
+in [the requirements entry point](fleetscope.md).
 
 ## Product and actors
 
@@ -321,4 +321,3 @@ Intervention ID.
 A demo-friendly but imprecise label. Requirements and interfaces use **cancel**
 
 or **terminate** to distinguish graceful and forced operations.
-
