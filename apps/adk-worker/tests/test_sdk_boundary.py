@@ -39,7 +39,7 @@ def test_the_core_modules_do_not_import_the_vendor_sdk():
 
 
 #: The only modules permitted to import the vendor SDK.
-SDK_MODULES = {"agents.py", "adk_runtime.py"}
+SDK_MODULES = {"agents.py", "adk_runtime.py", "google_session.py"}
 
 
 def test_only_the_declared_modules_import_the_sdk():

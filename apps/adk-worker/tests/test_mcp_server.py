@@ -206,16 +206,22 @@ def test_every_event_carries_the_run_and_correlation_id():
 # ── publishing ──────────────────────────────────────────────────────────────
 
 
-def test_a_successful_call_publishes_its_evidence_once():
+def test_a_successful_call_publishes_its_evidence_once(monkeypatch):
+    # The MCP integration test must stay deterministic and offline. The
+    # production default is the real read-only transport; opt into the fixture
+    # explicitly rather than allowing ambient network state to change the test.
+    monkeypatch.setenv("FLEETSCOPE_WORKER_OFFLINE", "true")
     api = FakeApi(active())
     handle_call(api, DEPENDENCY_ONBOARDING.target, client="antigravity-cli")
     assert api.publish_calls == 1
     assert len(api.published) == 8
 
 
-def test_the_agent_still_gets_an_answer_when_publishing_fails():
+def test_the_agent_still_gets_an_answer_when_publishing_fails(monkeypatch):
     # Losing the ledger is bad. Hanging the developer's agent session because
     # of it is worse, and the failure is logged to stderr rather than swallowed.
+    monkeypatch.setenv("FLEETSCOPE_WORKER_OFFLINE", "true")
+
     class Broken(FakeApi):
         def publish(self, run_id: str, events: list[WorkerEvent]) -> None:
             raise ConnectionError("api is down")

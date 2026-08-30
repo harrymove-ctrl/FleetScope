@@ -16,9 +16,10 @@ The callback signatures below were taken from google-adk 2.8.0 itself
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from google.adk.agents import LlmAgent
+from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.tools import FunctionTool
 
 from .capture import CallbackCapture, ModelBudget
@@ -96,4 +97,85 @@ def build_agents(
         instruction=_ROOT_INSTRUCTION,
         sub_agents=[review],
         before_model_callback=capture.before_model,
+    )
+
+
+def build_launch_readiness_workflow(
+    *,
+    model: str,
+    before_model_callback: Any,
+    cloud_run_probe: Any,
+    storage_probe: Any,
+    budget_report: dict[str, Any],
+) -> SequentialAgent:
+    """Build the fixed four-task workflow used in the Session Observer demo.
+
+    A ``SequentialAgent`` makes the demo reliable: every named specialist runs
+    once, every result lands in shared session state, and the final reviewer
+    sees all three reports. The agents are direct children of the workflow so
+    FleetScope's current one-level graph can display the whole team without
+    inventing a second orchestration layer.
+    """
+
+    cloud_run_agent = LlmAgent(
+        name="cloud_run_probe",
+        model=model,
+        description="Checks the configured Cloud Run service using one read-only tool.",
+        instruction=(
+            "Call inspect_cloud_run_service exactly once. Report whether the service is ready, "
+            "which revision is ready, its URI, and the percent of traffic on the latest revision. "
+            "Do not guess missing values and do not call any other agent."
+        ),
+        tools=[FunctionTool(cloud_run_probe)],
+        output_key="cloud_run_report",
+        before_model_callback=before_model_callback,
+    )
+    storage_agent = LlmAgent(
+        name="storage_probe",
+        model=model,
+        description="Checks the configured Cloud Storage bucket using one read-only tool.",
+        instruction=(
+            "Call inspect_storage_bucket exactly once. Report the bucket location, storage class, "
+            "uniform-access state, and versioning state. Do not list or read objects and do not "
+            "guess missing values."
+        ),
+        tools=[FunctionTool(storage_probe)],
+        output_key="storage_report",
+        before_model_callback=before_model_callback,
+    )
+    budget_agent = LlmAgent(
+        name="budget_guard",
+        model=model,
+        description="Checks the fixed model-call, timeout, and cloud-write limits.",
+        instruction=(
+            "Verify the server-owned budget report below. Confirm that the workflow is bounded to "
+            "six model calls and 180 seconds or less, uses only two Cloud reads, performs no Cloud "
+            "write during the agent workflow, and leaves FleetScope read-only. Do not call a tool "
+            "or invent a different limit.\n\nBudget report:\n"
+            + json.dumps(budget_report, separators=(",", ":"), sort_keys=True)
+        ),
+        output_key="budget_report",
+        before_model_callback=before_model_callback,
+    )
+    reviewer = LlmAgent(
+        name="launch_reviewer",
+        model=model,
+        description="Combines the three specialist reports into one evidence-based decision.",
+        instruction=(
+            "Review all three reports below. Return READY only when Cloud Run is ready, the bucket "
+            "check succeeded, and the budget guardrails are bounded. Otherwise return NOT_READY. "
+            "Name each failed or unknown condition and never claim that FleetScope performed an "
+            "agent or Cloud action.\n\n"
+            "Cloud Run report:\n{cloud_run_report}\n\n"
+            "Cloud Storage report:\n{storage_report}\n\n"
+            "Budget report:\n{budget_report}"
+        ),
+        output_key="launch_decision",
+        before_model_callback=before_model_callback,
+    )
+
+    return SequentialAgent(
+        name="launch_readiness",
+        description="Runs four bounded Google Cloud launch-readiness tasks.",
+        sub_agents=[cloud_run_agent, storage_agent, budget_agent, reviewer],
     )

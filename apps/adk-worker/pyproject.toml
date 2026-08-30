@@ -1,13 +1,16 @@
 [project]
 name = "fleetscope-adk-worker"
 version = "0.1.0"
-description = "The FleetScope ADK worker: a root agent that delegates a security review."
+description = "A bounded Google ADK multi-agent session producer for FleetScope."
 requires-python = ">=3.10"
 
 # PINNED, not floated. The demo's claim is that a specific agent runtime produced
 # the evidence, so the runtime version is part of the evidence. A floating range
 # would let a background upgrade change the recorded behaviour.
 dependencies = ["google-adk==2.8.0", "mcp==1.19.0"]
+
+[project.scripts]
+fleetscope-google-session = "fleetscope_worker.google_session:main"
 
 [project.optional-dependencies]
 dev = ["pytest==8.3.4"]
