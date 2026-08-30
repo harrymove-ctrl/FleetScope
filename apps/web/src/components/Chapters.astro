@@ -8,6 +8,7 @@
  * the tab order, and must not duplicate the ids the real one owns.
  */
 import { provenanceLabel, type LaunchChapter } from '../features/launch/chapters';
+import AgentIdentity from './AgentIdentity.astro';
 
 interface Props {
   cards: readonly LaunchChapter[];
@@ -77,6 +78,26 @@ const { cards, decorative = false } = Astro.props;
                 {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
               </span>
             </p>
+
+            {
+              card.agents && card.agents.length > 0 && (
+                <div class="chapter__crew">
+                  <p class="chapter__crew-note">
+                    The {card.agents.length} agents in the bundled session
+                  </p>
+                  <ul class="chapter__crew-list">
+                    {card.agents.map((id) => (
+                      <li class="chapter__agent">
+                        <span class="chapter__agent-face" aria-hidden="true">
+                          <AgentIdentity agentId={id} label={id} size="sm" />
+                        </span>
+                        <span class="chapter__agent-id">{id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            }
           </div>
         </li>
       ))
@@ -319,6 +340,146 @@ const { cards, decorative = false } = Astro.props;
     justify-content: flex-end;
     gap: 24px;
     margin: 20px 0 0;
+  }
+
+  /*
+   * The crew.
+   *
+   * Faces from `AgentIdentity`, seeded by each agent's real id in the bundled
+   * session, so the same agent keeps the same face here, in the agent tree and
+   * in the viewer. They fill the corner block's dead space with something
+   * factual rather than with decoration, and the count beside them is what a
+   * screen reader gets — the faces are `role="img"` with their own labels, not
+   * the only carrier of the information.
+   */
+  .chapter__crew {
+    margin: 26px 0 0;
+  }
+
+  .chapter__crew-note {
+    margin: 0 0 10px;
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  /*
+   * The names carry the identity; the faces only make the row scannable.
+   *
+   * Six body colours times three eyes is eighteen faces, so four agents drawn
+   * from it collide about a quarter of the time — and two of the bundled
+   * session's four do. That is inherent: a face seeded purely from the id is
+   * what keeps an agent looking the same here, in the agent tree and in the
+   * viewer, and no such function can also promise every set it is handed comes
+   * out distinct. So the id is printed beside the face rather than encoded in
+   * it, and the face is `aria-hidden` here because the text already says it.
+   */
+  .chapter__crew-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chapter__agent {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 11px 4px 4px;
+    border: 1px solid var(--ap-hairline);
+    border-radius: 999px;
+  }
+
+  .chapter__agent-face {
+    display: inline-flex;
+  }
+
+  .chapter__agent-id {
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    color: var(--ap-ink);
+    white-space: nowrap;
+  }
+
+  /*
+   * The faces' own styles live in `global.css`, which this page deliberately
+   * does not load — that stylesheet is a dense-console vocabulary and its
+   * `h2 { font-size: 12px }` is a contradiction of a 52px headline. Without
+   * them the component renders at zero width, which is exactly what happened.
+   *
+   * Restated here, scoped to this row and reaching the child with `:global`,
+   * rather than by editing the shared component: the viewer and the agent tree
+   * already style it their own way, and this page has no business changing how
+   * it looks there.
+   */
+  .chapter__crew :global(.fs-agent-identity) {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: var(--fs-agent-bg, #b6d8cf);
+    box-shadow: inset 0 -2px rgb(0 0 0 / 12%);
+  }
+
+  .chapter__crew :global(.fs-agent-identity svg) {
+    width: 25px;
+    height: 25px;
+  }
+
+  .chapter__crew :global(.fs-agent-identity__body) {
+    fill: var(--fs-agent-fg, #315d59);
+  }
+
+  .chapter__crew :global(.fs-agent-identity__eye) {
+    fill: #f8f7f0;
+  }
+
+  .chapter__crew :global(.fs-agent-identity__mouth) {
+    fill: none;
+    stroke: #f8f7f0;
+    stroke-linecap: round;
+    stroke-width: 1.8;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v0) {
+    --fs-agent-bg: #a7d7d0;
+    --fs-agent-fg: #276d6c;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v1) {
+    --fs-agent-bg: #d8b5e3;
+    --fs-agent-fg: #6d3e7b;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v2) {
+    --fs-agent-bg: #f3c9a4;
+    --fs-agent-fg: #8a4a22;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v3) {
+    --fs-agent-bg: #b9c7f0;
+    --fs-agent-fg: #33478f;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v4) {
+    --fs-agent-bg: #f2b9c4;
+    --fs-agent-fg: #8d3149;
+  }
+
+  .chapter__crew :global(.fs-agent-identity--v5) {
+    --fs-agent-bg: #cde3a6;
+    --fs-agent-fg: #4c6b23;
+  }
+
+  @media (max-width: 900px) {
+    .chapter__crew-list {
+      justify-content: flex-start;
+    }
   }
 
   .chapter__provenance {

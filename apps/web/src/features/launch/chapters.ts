@@ -55,6 +55,14 @@ export interface LaunchChapter {
   readonly aspect: number;
   readonly provenance: ChapterProvenance;
   readonly accent: ChapterAccent;
+  /**
+   * The agents this chapter is about, by their id in the bundled session.
+   *
+   * Faces are drawn from these ids, so they are as factual as everything else
+   * on the card: a chapter that does not concern a specific set of agents
+   * carries none rather than a decorative crowd.
+   */
+  readonly agents?: readonly string[];
   /** Present only when a canonical event backs the chapter's claim. */
   readonly eventRef?: ChapterEventRef;
 }
@@ -86,6 +94,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     route: '/viewer',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
+    agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'bundled',
     accent: 'cyan',
   },
@@ -114,6 +123,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     route: '/viewer',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
+    agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'bundled',
     accent: 'violet',
   },
@@ -141,6 +151,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     route: '/cockpit/CASE-1042',
     src: '/product/cockpit.png',
     aspect: CARD_ASPECT,
+    agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'recorded',
     accent: 'orange',
     eventRef: { runId: 'CASE-1042', sequence: 1 },
@@ -182,6 +193,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     route: '/audit/CASE-1042',
     src: '/product/audit.png',
     aspect: CARD_ASPECT,
+    agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'recorded',
     accent: 'violet',
     eventRef: { runId: 'CASE-1042', sequence: 60 },

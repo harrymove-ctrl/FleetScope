@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   LAUNCH_CHAPTERS,
@@ -142,5 +143,36 @@ describe('provenanceLabel', () => {
     expect(provenanceLabel('bundled')).toBe('Bundled');
     expect(provenanceLabel('recorded')).toBe('Recorded');
     expect(provenanceLabel('live')).toBe('Live');
+  });
+});
+
+describe('chapter crews', () => {
+  /*
+   * The faces on a card name real agents or they name nobody.
+   *
+   * `agents` is drawn on the landing page as a row of identities, which reads
+   * as a claim about who ran. This pins that claim to the bundled session on
+   * disk, so an id invented for visual balance fails here rather than shipping.
+   */
+  const session = readFileSync(
+    new URL(
+      '../../../crates/fleetscope-cli/tests/fixtures/gemini-multi-agent/session.jsonl',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+
+  it('names only agents that appear in the bundled session', () => {
+    const claimed = [...new Set(LAUNCH_CHAPTERS.flatMap((card) => card.agents ?? []))];
+    expect(claimed.length).toBeGreaterThan(0);
+    for (const id of claimed) {
+      expect(session).toContain(`"${id}"`);
+    }
+  });
+
+  it('only claims a crew on cards whose evidence is on this machine', () => {
+    for (const card of LAUNCH_CHAPTERS) {
+      if (card.agents?.length) expect(card.provenance).not.toBe('live');
+    }
   });
 });
