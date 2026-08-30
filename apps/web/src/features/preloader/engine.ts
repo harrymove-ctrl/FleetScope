@@ -79,6 +79,7 @@ import {
   WORD_H,
   ZOOM,
   ZOOM_BLUR,
+  BLUR_CUTOFF_ALPHA,
   ZOOM_E,
   ZOOM_FADE_IN,
   ZOOM_FADE_OUT,
@@ -189,6 +190,12 @@ export interface RealitySplitOptions {
   speed?: number;
   seed?: number;
   variants?: Variant[];
+  /**
+   * DEVIATION: device-pixel ceiling, default 2 as the reference hardcodes.
+   * A card is ~1344x620; a full-viewport overlay is several times that, and
+   * every frame repaints all of it.
+   */
+  dprCap?: number;
 }
 
 export class RealitySplit {
@@ -266,7 +273,7 @@ export class RealitySplit {
   resize(): void {
     const r = this.canvas.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return;
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, this.opts.dprCap ?? 2);
     this.W = r.width;
     this.H = r.height;
     this.canvas.width = Math.round(r.width * this.dpr);
@@ -564,7 +571,11 @@ export class RealitySplit {
         const f = smooth((k - ZOOM_FADE_IN) / (ZOOM_FADE_OUT - ZOOM_FADE_IN));
         a = 1 - f;
         if (a <= 0.002) return null;
-        blur = f * ZOOM_BLUR * S;
+        // DEVIATION: no blur once the piece is nearly gone. A canvas filter is
+        // the most expensive thing drawn here — measured, it turned a 92ms
+        // worst frame into 275ms — and below this alpha it buys nothing that
+        // the fade is not already doing.
+        blur = a < BLUR_CUTOFF_ALPHA ? 0 : f * ZOOM_BLUR * S;
       }
       return {
         x: cx - zw / 2,

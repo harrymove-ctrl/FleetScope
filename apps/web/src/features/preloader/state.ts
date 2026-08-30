@@ -10,10 +10,16 @@
  */
 
 /** One pass, then out. Long enough to read, short enough not to be a toll. */
-export const PRELOADER_SPEED = 2.2;
+/*
+ * The reference plays at 1x. Every multiple above that removes frames from a
+ * whip that already covers half its travel in two to four of them, so past
+ * roughly 2x the fast middle lands in a single frame and reads as a cut rather
+ * than a snap. This is as fast as the piece survives.
+ */
+export const PRELOADER_SPEED = 1.85;
 
 /** Hard ceiling. Past this the overlay leaves whatever else is true. */
-export const PRELOADER_MAX_MS = 3600;
+export const PRELOADER_MAX_MS = 4200;
 
 /** Shown once per tab. A preloader on every navigation is an obstacle. */
 export const PRELOADER_KEY = 'fleetscope:preloaded';

@@ -69,6 +69,9 @@
         // fifth of a second. This is the reference's own default.
         trainAll: false,
         speed: PRELOADER_SPEED,
+        // A full-viewport overlay is several times a card's pixel count and
+        // repaints all of it every frame; 1.5 is invisible for three seconds.
+        dprCap: 1.5,
         // One pass, one world. Cycling variants is for a display card; here a
         // second word would mean the visitor is still waiting.
         variants: [],

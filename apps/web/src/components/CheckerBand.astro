@@ -1,0 +1,98 @@
+---
+/**
+ * The checker conveyor, full bleed.
+ *
+ * Nine rows of checker cells; three times per loop every row slides by exactly
+ * one screen width, and the next scene rides in from the edge, seam and all.
+ * Nothing fades and nothing is masked — what reads as colour sweeping across
+ * the board is the seam passing at peak velocity.
+ *
+ * NOT a page backdrop, deliberately. A checkerboard whipping sideways under
+ * body copy is unreadable, and the carousel above clears its own context
+ * opaque, so nothing placed behind it would show. It is a band of its own
+ * between the hero and the chapters, where it has no text to compete with.
+ *
+ * It runs only while it is on screen, so it never competes for frames with the
+ * preloader or with the fold.
+ */
+---
+
+<div class="checker" data-checker aria-hidden="true">
+  <canvas class="checker__canvas" data-checker-canvas></canvas>
+</div>
+
+<script>
+  import { CheckerConveyor } from '../features/checker/engine';
+
+  const host = document.querySelector<HTMLElement>('[data-checker]');
+  const canvas = host?.querySelector<HTMLCanvasElement>('[data-checker-canvas]');
+
+  if (host && canvas) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let engine: CheckerConveyor | null = null;
+    let onScreen = false;
+    let hidden = document.hidden;
+
+    const sync = (): void => {
+      if (!engine?.ok) return;
+      if (reduced.matches) {
+        engine.stop();
+        engine.renderStill('arcade');
+        return;
+      }
+      if (onScreen && !hidden) engine.start();
+      else engine.stop();
+    };
+
+    // Built on the next frame so the canvas has a laid-out size to measure; at
+    // zero width the cell size and the rectangle's centre are both nonsense.
+    requestAnimationFrame(() => {
+      engine = new CheckerConveyor(canvas, { dprCap: 1.5 });
+      if (!engine.ok) {
+        host.remove();
+        return;
+      }
+      sync();
+    });
+
+    new IntersectionObserver(
+      (entries) => {
+        onScreen = entries[entries.length - 1]?.isIntersecting ?? false;
+        sync();
+      },
+      { threshold: 0.05 },
+    ).observe(host);
+
+    document.addEventListener('visibilitychange', () => {
+      hidden = document.hidden;
+      sync();
+    });
+    reduced.addEventListener('change', sync);
+
+    let resizeTimer = 0;
+    window.addEventListener(
+      'resize',
+      () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => engine?.resize(), 120);
+      },
+      { passive: true },
+    );
+  }
+</script>
+
+<style>
+  .checker {
+    position: relative;
+    /* Nine rows, so the height is a multiple of nine at the cell size the
+       engine derives. Anything else leaves a part row at the bottom. */
+    height: clamp(180px, 26vh, 342px);
+    overflow: clip;
+  }
+
+  .checker__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>

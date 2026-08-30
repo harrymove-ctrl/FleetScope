@@ -5,6 +5,7 @@ import Fold from '../components/Fold.astro';
 import Chapters from '../components/Chapters.astro';
 import PeelFooter from '../components/PeelFooter.astro';
 import Preloader from '../components/Preloader.astro';
+import CheckerBand from '../components/CheckerBand.astro';
 
 /**
  * The public shell.
@@ -60,6 +61,8 @@ const first = cards[0];
         this list scrolls with the page, which is the shape almost every
         visitor gets. See apps/web/src/components/Bend.astro.
       -->
+      <CheckerBand />
+
       <Fold>
         <Chapters cards={cards} />
         <Chapters slot="copy-top" cards={cards} decorative />

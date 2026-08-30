@@ -131,6 +131,14 @@ export const ZOOM_FADE_IN = 0.05;
 export const ZOOM_FADE_OUT = 0.34;
 export const ZOOM_BLUR = 15 / 700;
 
+/*
+ * TUNABLE. Below this alpha the defocus is dropped. A canvas filter is by far
+ * the most expensive operation in the piece; measured on a full-viewport
+ * overlay, blurring the nearly-gone pieces took the worst frame from 92ms to
+ * 275ms, and at this opacity the fade has already done the work.
+ */
+export const BLUR_CUTOFF_ALPHA = 0.35;
+
 export const TRAIN = ['a', 'R', 'e', 't'] as const;
 export const ARRIVE = [3.44, 4.12, 4.72];
 export const ARRIVE_DUR = [0.28, 0.18, 0.18];
