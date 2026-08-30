@@ -12,6 +12,7 @@ import type { AgentNode } from '../lib/agent-tree';
 import StatusBadge from './StatusBadge.astro';
 import EmptyState from './EmptyState.astro';
 import UnknownOr from './UnknownOr.astro';
+import AgentIdentity from './AgentIdentity.astro';
 
 interface Props {
   nodes: readonly AgentNode[];
@@ -41,21 +42,24 @@ const { nodes } = Astro.props;
             data-case-sequence={node.lastActionCaseSequence ?? ''}
             aria-current="false"
           >
-            <span class="fs-tree__name">{node.label}</span>
-            <StatusBadge kind="agent" value={node.state} size="sm" />
-            <span class="fs-tree__meta">
-              {node.agentVersionRef} · {node.sessionId}
-            </span>
-            <span class="fs-tree__meta">
-              {node.toolCallCount} tool call{node.toolCallCount === 1 ? '' : 's'}
-              {node.failureCount > 0 && (
-                <> · <strong style="color:var(--fs-deny)">{node.failureCount} failed</strong></>
-              )}
-              {' · '}
-              <UnknownOr value={node.outputTokens} suffix=" output tokens" zeroMeans="unknown" />
-            </span>
-            <span class="fs-tree__meta">
-              Last action: {node.lastAction ?? 'Not recorded'}
+            <AgentIdentity agentId={node.agentInstanceId} label={node.label} state={node.state} size="sm" />
+            <span class="fs-tree__details">
+              <span class="fs-tree__heading">
+                <span class="fs-tree__name">{node.label}</span>
+                <StatusBadge kind="agent" value={node.state} size="sm" />
+              </span>
+              <span class="fs-tree__meta">
+                {node.agentVersionRef} · {node.sessionId}
+              </span>
+              <span class="fs-tree__meta">
+                {node.toolCallCount} tool call{node.toolCallCount === 1 ? '' : 's'}
+                {node.failureCount > 0 && (
+                  <> · <strong style="color:var(--fs-deny)">{node.failureCount} failed</strong></>
+                )}
+                {' · '}
+                <UnknownOr value={node.outputTokens} suffix=" output tokens" zeroMeans="unknown" />
+              </span>
+              <span class="fs-tree__meta">Last action: {node.lastAction ?? 'Not recorded'}</span>
             </span>
           </button>
         </li>

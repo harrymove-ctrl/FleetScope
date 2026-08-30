@@ -42,7 +42,12 @@ const STATE_LABEL: Record<string, string> = {
 };
 ---
 
-<section class="fs-card story" aria-labelledby="story-title" data-story data-mode="story">
+<section class="fs-card story fs-workstation" aria-labelledby="story-title" data-story data-mode="story">
+  <div class="story__window-bar" aria-hidden="true">
+    <span class="story__window-dots"><i></i><i></i><i></i></span>
+    <span class="story__window-title">fleetscope / story / {caseId}</span>
+    <span class="story__window-command">case evidence</span>
+  </div>
   {/* A screenshot of this page must not be mistakable for a live system, so the
       label says both what it is and what it is not, above everything else. */}
   <p class="story__recorded" data-recorded-label>

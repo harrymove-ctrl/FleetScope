@@ -1,0 +1,611 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import TerminalWindow from '../components/TerminalWindow.astro';
+import { DASHBOARD_STATES, INITIAL_STATE, SETUP_CHECKS } from '../features/dashboard/state';
+
+/**
+ * The Dashboard renders a STATE, it does not decide one.
+ *
+ * Every status on this page is either derived by `deriveDashboardState` from a
+ * probe that actually ran, or explicitly marked as something a browser tab
+ * cannot check. Nothing here is a picture of a healthy setup.
+ */
+const initial = DASHBOARD_STATES[INITIAL_STATE];
+const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
+---
+
+<BaseLayout title="Dashboard" surface="glass">
+  <PageHeader
+    title="Dashboard"
+    lede="Connect a local Gemini or Antigravity session, then open Agent Viewer to follow, replay, and inspect every agent."
+  >
+    <a slot="actions" class="fs-button" data-variant="primary" data-control="open-viewer" href="/viewer">Open Agent Viewer</a>
+    <button slot="actions" class="fs-button" type="button" data-control="command-menu" data-command-menu>⌘K Command menu</button>
+  </PageHeader>
+
+  <section
+    class="fs-card fs-dashboard__welcome"
+    aria-labelledby="welcome-title"
+    data-state-panel
+    data-state={INITIAL_STATE}
+  >
+    <div>
+      <p class="fs-dashboard__eyebrow" data-state-eyebrow>Local only</p>
+      <h2 id="welcome-title" class="fs-dashboard__title" data-state-title>{initial.title}</h2>
+      <p class="fs-muted" data-state-message>{initial.message}</p>
+      <p class="fs-row fs-dashboard__state-actions">
+        <a class="fs-button" data-variant="primary" data-state-primary href="/viewer">
+          {initial.primary.label}
+        </a>
+        <a class="fs-button fs-button--sm" data-state-secondary href="/viewer" hidden></a>
+        <span class="fs-note" data-state-recovery hidden></span>
+      </p>
+      <!--
+        What was actually checked, in the words of the check. A timeout has to
+        be able to say "the browser did not receive a result in 5 seconds"
+        rather than implying that the CLI is missing, which is a fact this page
+        cannot observe.
+      -->
+      <p class="fs-mono fs-faint fs-dashboard__diagnostics" data-diagnostics hidden></p>
+      <p class="fs-row fs-dashboard__state-actions" data-timeout-actions hidden>
+        <button class="fs-button fs-button--sm" type="button" data-retry-runtime>Retry check</button>
+        <a class="fs-button fs-button--sm" href="/viewer">Choose transcript</a>
+        <a class="fs-button fs-button--sm" href="/cockpit/CASE-1042">Use recorded example</a>
+      </p>
+      <TerminalWindow title="fleetscope / command" class="fs-dashboard__terminal">
+        <span slot="actions">
+          <button
+            type="button"
+            class="fs-button fs-button--sm fs-terminal-window__copy"
+            data-copy-command="fleetscope ~/sessions/my-run --follow"
+          >
+            Copy
+          </button>
+        </span>
+        <code class="fs-dashboard__command">fleetscope ~/sessions/my-run --follow</code>
+      </TerminalWindow>
+    </div>
+    <div class="fs-device-preview" aria-label="FleetScope terminal preview" role="img">
+      <div class="fs-device-preview__screen">
+        <span>$ fleetscope inspect</span>
+        <strong>LOCAL SESSION</strong>
+        <span>● adapter ready</span>
+      </div>
+      <div class="fs-device-preview__slot" aria-hidden="true"></div>
+      <div class="fs-device-preview__base" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <section class="fs-dashboard__section" aria-labelledby="setup-title">
+    <div class="fs-section-head">
+      <h2 id="setup-title">Onboarding checklist</h2>
+      <!--
+        Counts only what this page actually verified. The two manual checks are
+        reported separately rather than folded into a score, because a browser
+        tab cannot decide them and a number that pretends otherwise is the bug
+        this replaced.
+      -->
+      <span class="fs-section-head__aside" data-setup-summary>
+        0 of {verifiable.length} verified · {SETUP_CHECKS.length - verifiable.length} manual
+      </span>
+    </div>
+    <div class="fs-grid fs-grid--2">
+      {
+        SETUP_CHECKS.map((check) => (
+          <article class="fs-card fs-dashboard__setup-card" data-check={check.id}>
+            <div class="fs-row fs-row--between">
+              <h3>{check.title}</h3>
+              {check.verifiable ? (
+                <span class="fs-status" data-tone="info" data-check-status>
+                  <span class="fs-status__glyph">·</span> Not checked
+                </span>
+              ) : (
+                <span class="fs-status" data-tone="info" data-check-status>
+                  <span class="fs-status__glyph">i</span> Manual
+                </span>
+              )}
+            </div>
+            <p class="fs-muted">{check.description}</p>
+            {check.detail && <code class="fs-dashboard__code">{check.detail}</code>}
+            <span class="fs-mono fs-faint" data-check-detail hidden />
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="fs-grid fs-grid--2">
+    <section class="fs-card" aria-labelledby="sessions-title">
+      <div class="fs-section-head">
+        <h2 id="sessions-title">Sessions</h2>
+        <a class="fs-section-head__aside" href="/viewer">Open a local session</a>
+      </div>
+      <!--
+        Only the bundled recording can be listed. A browser tab cannot
+        enumerate the filesystem, so "recent sessions" would be an invention;
+        local sessions appear when the developer picks them, in the viewer.
+      -->
+      <div class="fs-dashboard__session">
+        <div>
+          <h3 class="fs-title">Gemini multi-agent demo</h3>
+          <p class="fs-muted">
+            <span data-demo-shape>Bundled recording</span> · compiled into this build · no network
+          </p>
+        </div>
+        <a class="fs-button fs-button--sm" href="/viewer">Replay</a>
+      </div>
+      <p class="fs-note">
+        FleetScope lists no other session because it cannot see your disk from here. Sessions stay on
+        this machine, and replay needs no API key.
+      </p>
+    </section>
+
+    <section class="fs-card" aria-labelledby="live-proof-title">
+      <div class="fs-section-head">
+        <h2 id="live-proof-title">Live proof</h2>
+        <span class="fs-section-head__aside" data-live-proof-state>Recorded path</span>
+      </div>
+      <p class="fs-muted" data-live-proof-detail>
+        This build ships no capability endpoint, so no live run can be offered here. The recorded
+        recovery and the canonical events behind it are bundled and need no network.
+      </p>
+      <p class="fs-row">
+        <a class="fs-button fs-button--sm" href="/cockpit/CASE-1042">See recorded recovery</a>
+      </p>
+    </section>
+
+    <section class="fs-card" aria-labelledby="controls-title">
+      <div class="fs-section-head">
+        <h2 id="controls-title">Antigravity controls</h2>
+        <span class="fs-section-head__aside">Viewer shortcuts</span>
+      </div>
+      <div class="fs-dashboard__controls">
+        <details open>
+          <summary>Observe</summary>
+          <span>Follow live · agent graph · prompt/tool/output detail</span>
+        </details>
+        <details>
+          <summary>Playback</summary>
+          <span>Pause · resume · replay speed · timeline scrubber</span>
+        </details>
+        <details>
+          <summary>Safety</summary>
+          <span>Local-only reads · redacted reasoning · no run controls</span>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <div class="fs-dashboard__command-menu" data-command-panel hidden>
+    <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <div class="fs-row fs-row--between">
+        <h2 id="command-title">Command menu</h2>
+        <button class="fs-button fs-button--sm" type="button" data-command-close>Close</button>
+      </div>
+      <a href="/viewer">Open Agent Viewer</a>
+      <a href="/viewer">Follow latest local session</a>
+      <a href="/viewer">Replay bundled demo</a>
+      <a href="/cases">Open legacy Case workspace</a>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    DASHBOARD_STATES,
+    deriveDashboardState,
+    type Probe,
+  } from '../features/dashboard/state';
+
+  /**
+   * Probe what this page can actually reach, then render the derived state.
+   *
+   * The runtime check is a real load of the same wasm module the viewer uses.
+   * It is the only status on this page that turns green, and it turns green
+   * because it succeeded, not because it was written that way.
+   */
+  // Mutable locals, immutable snapshot. `Probe` is readonly because it is an
+  // input to a pure derivation, so observations are held here and a fresh one
+  // is built each time the state is derived.
+  let runtimeLoaded: boolean | null = null;
+  let formats: string[] = [];
+  let openedSession = false;
+  let lastLoadRejected: Probe['lastLoadRejected'];
+
+  const currentProbe = (): Probe => ({
+    runtimeLoaded,
+    formats,
+    openedSession,
+    lastLoadRejected,
+  });
+
+  const panelEl = document.querySelector('[data-state-panel]') as HTMLElement | null;
+  const titleEl = document.querySelector('[data-state-title]');
+  const messageEl = document.querySelector('[data-state-message]');
+  const eyebrowEl = document.querySelector('[data-state-eyebrow]');
+  const primaryEl = document.querySelector('[data-state-primary]') as HTMLAnchorElement | null;
+  const secondaryEl = document.querySelector('[data-state-secondary]') as HTMLAnchorElement | null;
+  const recoveryEl = document.querySelector('[data-state-recovery]') as HTMLElement | null;
+
+  function applyAction(el: HTMLAnchorElement | null, action?: { label: string; href?: string }) {
+    if (el === null) return;
+    if (action === undefined) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = action.label;
+    // A command has no destination; it is wired below. Keeping href off means
+    // a command can never navigate away by accident.
+    if (action.href === undefined) el.removeAttribute('href');
+    else el.href = action.href;
+  }
+
+  function render() {
+    const state = deriveDashboardState(currentProbe());
+    const contract = DASHBOARD_STATES[state];
+    panelEl?.setAttribute('data-state', state);
+    panelEl?.setAttribute('data-tone', contract.tone);
+    if (eyebrowEl !== null) eyebrowEl.textContent = state.replace(/-/g, ' ');
+    if (titleEl !== null) titleEl.textContent = contract.title;
+    if (messageEl !== null) messageEl.textContent = contract.message;
+    applyAction(primaryEl, contract.primary);
+    applyAction(secondaryEl, contract.secondary);
+    if (recoveryEl !== null) {
+      recoveryEl.hidden = contract.recovery === undefined;
+      recoveryEl.textContent = contract.recovery?.label ?? '';
+    }
+
+    // Controls the state does not list are disabled, not hidden: a developer
+    // should see that an action exists and is unavailable right now.
+    for (const node of document.querySelectorAll('[data-control]')) {
+      const id = node.getAttribute('data-control') ?? '';
+      const on = (contract.enabled as readonly string[]).includes(id);
+      node.toggleAttribute('disabled', !on);
+      node.setAttribute('aria-disabled', String(!on));
+    }
+  }
+
+  function setCheck(id: string, tone: string, glyph: string, label: string, detail?: string) {
+    const card = document.querySelector(`[data-check="${id}"]`);
+    const status = card?.querySelector('[data-check-status]');
+    if (status !== null && status !== undefined) {
+      status.setAttribute('data-tone', tone);
+      status.innerHTML = '';
+      const g = document.createElement('span');
+      g.className = 'fs-status__glyph';
+      g.textContent = glyph;
+      status.append(g, ` ${label}`);
+    }
+    const detailEl = card?.querySelector('[data-check-detail]') as HTMLElement | null;
+    if (detailEl !== null && detailEl !== undefined) {
+      detailEl.hidden = detail === undefined;
+      detailEl.textContent = detail ?? '';
+    }
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const cards = Array.from(document.querySelectorAll('[data-check]'));
+    const checkable = cards.filter(
+      (card) => card.querySelector('[data-check-status]')?.textContent?.includes('Manual') !== true,
+    );
+    const verified = checkable.filter(
+      (card) => card.querySelector('[data-check-status]')?.getAttribute('data-tone') === 'ok',
+    );
+    const summary = document.querySelector('[data-setup-summary]');
+    if (summary !== null) {
+      summary.textContent = `${verified.length} of ${checkable.length} verified · ${
+        cards.length - checkable.length
+      } manual`;
+    }
+  }
+
+  /** Load the runtime the same way the viewer does: from a script the bundler never sees. */
+  function loadRuntime(): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      const scope = globalThis as Record<string, unknown>;
+      const existing = scope['fleetscopeViewer'] as Record<string, unknown> | undefined;
+      if (existing !== undefined) return resolve(existing);
+
+      const done = (event: Event) => {
+        window.removeEventListener('fleetscope:dashboard-glue', done);
+        const detail = (event as CustomEvent).detail as { ok: boolean; message?: string };
+        if (detail.ok) resolve(scope['fleetscopeViewer'] as Record<string, unknown>);
+        else reject(new Error(detail.message ?? 'the runtime did not load'));
+      };
+      window.addEventListener('fleetscope:dashboard-glue', done, { once: true });
+
+      const loader = document.createElement('script');
+      loader.type = 'module';
+      loader.textContent = [
+        "import('/wasm/viewer.js')",
+        '  .then(async (module) => {',
+        '    await module.default();',
+        '    globalThis.fleetscopeViewer = module;',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-glue', { detail: { ok: true } }));",
+        '  })',
+        '  .catch((error) => {',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-glue', {",
+        '      detail: { ok: false, message: String((error && error.message) || error) },',
+        '    }));',
+        '  });',
+      ].join('\n');
+      document.head.append(loader);
+    });
+  }
+
+  /** The bound after which an unanswered probe is reported as a timeout. */
+  const RUNTIME_TIMEOUT_MS = 5_000;
+
+  const diagnosticsEl = document.querySelector('[data-diagnostics]') as HTMLElement | null;
+  const timeoutActionsEl = document.querySelector('[data-timeout-actions]') as HTMLElement | null;
+
+  function setDiagnostics(text: string | null, timedOut = false) {
+    if (diagnosticsEl !== null) {
+      diagnosticsEl.hidden = text === null;
+      diagnosticsEl.textContent = text ?? '';
+    }
+    if (timeoutActionsEl !== null) timeoutActionsEl.hidden = !timedOut;
+  }
+
+  /**
+   * Bound the wait.
+   *
+   * Without this the page can sit on "Checking…" indefinitely, which reads as
+   * progress and is indistinguishable from a hang. A timeout is a result, and
+   * it is reported as one — naming the probe, not blaming the CLI.
+   */
+  function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        window.setTimeout(() => reject(new Error(`no result in ${ms} ms`)), ms);
+      }),
+    ]);
+  }
+
+  async function checkRuntime() {
+    runtimeLoaded = null;
+    setCheck('runtime', 'info', '·', 'Checking…');
+    setCheck('adapters', 'info', '·', 'Checking…');
+    setDiagnostics('probe=wasm · result=pending');
+    render();
+
+    try {
+      const runtime = await withTimeout(loadRuntime(), RUNTIME_TIMEOUT_MS);
+      const reported = JSON.parse(
+        (runtime.agent_viewer_formats as () => string)(),
+      ) as { id: string }[];
+      runtimeLoaded = true;
+      formats = reported.map((format) => format.id);
+      setCheck('runtime', 'ok', '✓', 'Loaded');
+      setCheck('adapters', 'ok', '✓', `${reported.length} formats`, formats.join(' · '));
+
+      // Report the demo's real shape rather than a number typed into the page.
+      const status = JSON.parse((runtime.agent_viewer_load_demo as () => string)()) as {
+        agents: number;
+        events: number;
+      };
+      openedSession = true;
+      setDiagnostics(`probe=wasm · result=loaded · formats=${formats.length}`);
+      const shape = document.querySelector('[data-demo-shape]');
+      if (shape !== null) {
+        shape.textContent = `${status.agents} agents · ${status.events} events · bundled recording`;
+      }
+    } catch (error) {
+      runtimeLoaded = false;
+      const message = error instanceof Error ? error.message : String(error);
+      const timedOut = message.startsWith('no result in');
+      setCheck('runtime', 'bad', '✗', timedOut ? 'Timed out' : 'Did not load', message);
+      setCheck('adapters', 'info', '·', 'Unknown');
+      // The distinction the design insists on: a timeout says the browser got
+      // no answer, not that the runtime is absent. Only one of those is a fact
+      // this page observed.
+      setDiagnostics(
+        timedOut
+          ? `probe=wasm · result=timeout (${RUNTIME_TIMEOUT_MS} ms) · the browser received no result`
+          : `probe=wasm · result=failed · ${message}`,
+        true,
+      );
+    }
+    render();
+  }
+
+  document.querySelector('[data-state-primary]')?.addEventListener('click', (event) => {
+    const contract = DASHBOARD_STATES[deriveDashboardState(currentProbe())];
+    if (contract.primary.href === undefined) {
+      event.preventDefault();
+      void checkRuntime();
+    }
+  });
+
+  const panel = document.querySelector('[data-command-panel]') as HTMLElement | null;
+  const open = () => {
+    if (panel) panel.hidden = false;
+  };
+  const close = () => {
+    if (panel) panel.hidden = true;
+  };
+  document.querySelector('[data-command-menu]')?.addEventListener('click', open);
+  document.querySelector('[data-retry-runtime]')?.addEventListener('click', () => {
+    void checkRuntime();
+  });
+  void checkRuntime();
+  document.querySelector('[data-command-close]')?.addEventListener('click', close);
+  document.querySelector('[data-copy-command]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const value = button.dataset['copyCommand'] ?? '';
+    if (value === '') return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Clipboard permissions are unavailable in some local/browser contexts.
+      // A hidden textarea keeps the affordance useful without a network request.
+      const area = document.createElement('textarea');
+      area.value = value;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.append(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+    }
+    const previous = button.textContent;
+    button.textContent = 'Copied';
+    window.setTimeout(() => {
+      button.textContent = previous;
+    }, 1400);
+  });
+  panel?.addEventListener('click', (event) => {
+    if (event.target === panel) close();
+  });
+  document.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      open();
+    }
+    if (event.key === 'Escape') close();
+  });
+</script>
+
+<style>
+  .fs-dashboard__welcome {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 420px);
+    align-items: center;
+    gap: var(--fs-space-5);
+    border-color: #6b9ce055;
+    margin-bottom: var(--fs-space-5);
+  }
+  .fs-dashboard__terminal {
+    margin-top: var(--fs-space-4);
+    border-color: var(--fs-border);
+    background: var(--fs-surface-sunken);
+  }
+  .fs-dashboard__terminal .fs-terminal-window__body {
+    padding: var(--fs-space-2);
+  }
+  .fs-dashboard__eyebrow {
+    margin: 0 0 var(--fs-space-2);
+    color: var(--fs-info);
+    font: 11px var(--fs-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .fs-dashboard__title {
+    margin: 0 0 var(--fs-space-2);
+    color: var(--fs-text);
+    font-size: 17px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .fs-dashboard__command,
+  .fs-dashboard__code {
+    display: block;
+    padding: var(--fs-space-3);
+    overflow-wrap: anywhere;
+    color: var(--fs-text);
+    background: var(--fs-surface-sunken);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius-sm);
+    font: 12px/1.5 var(--fs-mono);
+  }
+  .fs-dashboard__terminal .fs-dashboard__command {
+    margin: 0;
+    border: 0;
+    padding: var(--fs-space-2);
+    background: transparent;
+  }
+  .fs-dashboard__terminal .fs-terminal-window__copy {
+    margin: -4px -6px -4px auto;
+    padding: 3px 7px;
+    border-color: var(--fs-border);
+    background: transparent;
+    color: var(--fs-text-muted);
+    font-size: 10px;
+  }
+  .fs-dashboard__section {
+    margin-bottom: var(--fs-space-5);
+  }
+  .fs-dashboard__setup-card {
+    display: grid;
+    gap: var(--fs-space-2);
+  }
+  .fs-dashboard__setup-card h3,
+  .fs-dashboard__setup-card p {
+    margin: 0;
+  }
+  .fs-dashboard__session {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fs-space-3);
+    padding-bottom: var(--fs-space-3);
+    border-bottom: 1px solid var(--fs-border);
+  }
+  .fs-dashboard__session h3,
+  .fs-dashboard__session p {
+    margin: 0;
+  }
+  .fs-dashboard__controls {
+    display: grid;
+    gap: var(--fs-space-2);
+  }
+  .fs-dashboard__controls details {
+    padding: var(--fs-space-2) 0;
+    border-bottom: 1px solid var(--fs-border);
+  }
+  .fs-dashboard__controls details:last-child {
+    border-bottom: 0;
+  }
+  .fs-dashboard__controls summary {
+    cursor: pointer;
+    color: var(--fs-text);
+    font-weight: 600;
+  }
+  .fs-dashboard__controls span {
+    display: block;
+    margin-top: var(--fs-space-1);
+    color: var(--fs-text-muted);
+    font-size: 12px;
+  }
+  .fs-dashboard__command-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: start center;
+    padding: 12vh var(--fs-space-5);
+    background: #00000099;
+  }
+  .fs-dashboard__command-menu[hidden] {
+    display: none;
+  }
+  .fs-dashboard__command-menu .fs-card {
+    display: grid;
+    gap: var(--fs-space-2);
+    width: min(460px, 100%);
+    box-shadow: var(--fs-shadow-drawer);
+  }
+  .fs-dashboard__command-menu a {
+    display: block;
+    padding: var(--fs-space-2) var(--fs-space-3);
+    border-radius: var(--fs-radius-sm);
+    text-decoration: none;
+  }
+  .fs-dashboard__command-menu a:hover {
+    background: var(--fs-surface-raised);
+  }
+  @media (max-width: 760px) {
+    .fs-dashboard__welcome {
+      grid-template-columns: 1fr;
+    }
+    .fs-dashboard__session {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>

@@ -1,0 +1,16 @@
+---
+interface Props {
+  title: string;
+  class?: string;
+}
+const { title, class: className = '' } = Astro.props;
+---
+
+<section class={`fs-terminal-window ${className}`}>
+  <header class="fs-terminal-window__bar">
+    <span class="fs-terminal-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="fs-terminal-window__title">{title}</span>
+    <slot name="actions" />
+  </header>
+  <div class="fs-terminal-window__body"><slot /></div>
+</section>

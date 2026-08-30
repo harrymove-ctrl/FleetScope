@@ -145,6 +145,77 @@ const { caseId, manifest, main, subagentsJson, caseSequences, phases } = Astro.p
    * against the ABI afterwards, so a partial load fails by name rather than at
    * the first call site.
    */
+  /**
+   * Wait until the renderer's host element has a measured width.
+   *
+   * WHY THIS EXISTS: ratzilla sizes the terminal grid from
+   * `parent.client_width()` exactly ONCE, at construction
+   * (`ratzilla/src/backend/webgl2.rs`, `init_beamterm`), and nothing
+   * re-derives it afterwards. If the glue loads before layout has settled the
+   * grid is built at zero columns and the canvas stays blank forever, while
+   * every other signal — the status line, the summary, the fingerprint —
+   * looks correct. Waiting for one real measurement is the whole fix.
+   *
+   * Bounded, and it resolves either way: in a tab that never lays out (a
+   * background tab, a headless probe) the renderer should still load and
+   * degrade the way it always did, not hang.
+   */
+  function waitForMeasuredHost(id: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const host = document.getElementById(id);
+      if (host === null) return resolve();
+      const started = performance.now();
+      let timer = 0;
+      const finish = () => {
+        document.removeEventListener('visibilitychange', check);
+        window.clearTimeout(timer);
+        resolve();
+      };
+      const check = (): void => {
+        if ((!document.hidden && host.clientWidth > 0) || performance.now() - started > 5000) {
+          finish();
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      document.addEventListener('visibilitychange', check);
+      timer = window.setTimeout(check, 5100);
+      requestAnimationFrame(check);
+    });
+  }
+
+  /**
+   * Resolve once the Cockpit is in Expert Mode.
+   *
+   * Resolves immediately when the page is already in Expert Mode, or when no
+   * Story Mode is present at all — a route without Story must not wait forever
+   * for a mode signal that will never arrive.
+   */
+  function waitForExpertMode(): Promise<void> {
+    // Gate on the SERVER-RENDERED panel, not on the attribute its script sets.
+    // Both scripts are modules and their order is not guaranteed: when this ran
+    // first the attribute was still absent, this resolved immediately, and the
+    // five-second measured-host wait then expired against a `display: none`
+    // canvas — the exact blank-grid failure the gate exists to prevent.
+    const panel = document.querySelector('[data-story]');
+    if (panel === null) return Promise.resolve();
+    if (panel.getAttribute('data-mode') === 'expert') return Promise.resolve();
+    if (document.documentElement.getAttribute('data-cockpit-mode') === 'expert') {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      const listener = (event: Event): void => {
+        const detail = (event as CustomEvent).detail as { mode?: string };
+        if (detail?.mode === 'expert') {
+          document.removeEventListener('fleetscope:mode', listener);
+          resolve();
+        }
+      };
+      document.addEventListener('fleetscope:mode', listener);
+    });
+  }
+
   function loadRendererGlue(): Promise<void> {
     const scope = globalThis as Record<string, unknown>;
     if (scope['fleetscopeCockpit'] !== undefined) return Promise.resolve();
@@ -183,6 +254,14 @@ const { caseId, manifest, main, subagentsJson, caseSequences, phases } = Astro.p
     let cursor: CaseCursorState = createCaseCursor(toCaseId(scene.caseId), scene.caseSequences);
 
     try {
+      // Story Mode hides this surface. Waiting for the mode to be revealed
+      // BEFORE the measured-host wait is the whole point: `display: none`
+      // reports a zero width, the terminal grid is sized from that width
+      // exactly once, and a grid built at zero columns draws nothing forever.
+      // The measured-host wait alone would simply time out after five seconds
+      // and mount blind.
+      await waitForExpertMode();
+      await waitForMeasuredHost('fleetscope-cockpit-canvas');
       await loadRendererGlue();
     } catch (error) {
       // Say the real reason. Drawing a fake graph here would be exactly the

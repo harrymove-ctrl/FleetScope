@@ -182,6 +182,16 @@ const { records, seekable = false } = Astro.props;
       }
     });
 
+    // Story Mode asks by event id. It has no opener element to click, and
+    // synthesising a click on a hidden element would make focus restoration
+    // land nowhere.
+    document.addEventListener('fleetscope:evidence-open', (event) => {
+      const detail = (event as CustomEvent).detail as { eventId?: string };
+      if (typeof detail?.eventId === 'string' && detail.eventId !== '') {
+        open(detail.eventId, document.activeElement as HTMLElement | null);
+      }
+    });
+
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !drawer.hidden) close();
     });

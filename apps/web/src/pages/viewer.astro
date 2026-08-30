@@ -15,15 +15,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 ---
 
-<BaseLayout title="Agent Viewer" wide>
-  <PageHeader
-    title="Agent Viewer"
-    lede="Open a local Gemini/ADK or coding-agent session. Files are read in your browser and never uploaded."
-  >
-    <button slot="actions" class="fs-button" data-load-demo>Load bundled demo</button>
-    <button slot="actions" class="fs-button" data-pick-file>Open file…</button>
-    <button slot="actions" class="fs-button" data-pick-folder>Open folder…</button>
-  </PageHeader>
+<BaseLayout title="Agent Viewer" wide surface="glass">
+  <div class="viewer-page">
+    <PageHeader
+      title="Agent Viewer"
+      lede="A Gemini / Antigravity flight deck for local agent sessions. Files stay in your browser and are never uploaded."
+    >
+      <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> GEMINI SIGNAL</span>
+      <button slot="actions" class="fs-button viewer-action viewer-action--primary" data-load-demo>Load bundled demo</button>
+      <button slot="actions" class="fs-button viewer-action" data-pick-file>Open file…</button>
+      <button slot="actions" class="fs-button viewer-action" data-pick-folder>Open folder…</button>
+    </PageHeader>
 
   <input type="file" data-file-input hidden accept=".jsonl,.json" />
   <!-- `webkitdirectory` is how a browser offers folder selection. A session is
@@ -33,30 +35,125 @@ import PageHeader from '../components/PageHeader.astro';
   <input type="file" data-folder-input hidden multiple />
 
   <div class="fs-stack">
-    <section class="fs-card fs-viewer__drop" data-dropzone>
-      <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
-        Loading the viewer…
+    <!--
+      The shell around the renderer. Rust owns the graph and every fact about
+      the session; this markup owns arrangement. Every value below is written
+      by the script from the WASM ABI, so nothing here is a placeholder that
+      could be right on screen and wrong in fact.
+    -->
+    <!--
+      Story Mode. Answers "what happened, what did FleetScope do, did it
+      recover" before anything technical. Every string is written by the script
+      from facts the Rust side computed; a claim with no evidence behind it is
+      rendered as an absence, never as a claim with a caveat under it.
+    -->
+    <section class="fs-card story" aria-labelledby="story-title" data-story>
+      <p class="story__source" data-story-source>—</p>
+      <h2 id="story-title" class="story__outcome" data-story-outcome>Reading the session…</h2>
+      <p class="story__summary" data-story-summary></p>
+
+      <ul class="story__cards" data-story-cards role="list"></ul>
+      <p class="story__disclosure" data-story-disclosure hidden></p>
+
+      <nav class="story__chapters" aria-label="Session chapters">
+        <ul data-story-chapters role="list"></ul>
+      </nav>
+
+      <div class="story__narrative">
+        <div>
+          <h3>What happened</h3>
+          <p data-story-problem></p>
+        </div>
+        <div>
+          <h3>What FleetScope did</h3>
+          <p data-story-action></p>
+        </div>
+        <div>
+          <h3>Result</h3>
+          <p data-story-result></p>
+        </div>
       </div>
+
+      <button class="fs-button" type="button" data-expert-toggle aria-expanded="false">
+        Open technical evidence
+      </button>
+    </section>
+
+    <section class="fs-card viewer-shell fs-viewer__drop" data-dropzone>
+      <header class="viewer-shell__header">
+        <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
+          Loading the viewer…
+        </div>
+        <div class="viewer-shell__transport">
+          <span class="fs-status" data-tone="info" data-transport-badge>
+            <span class="fs-status__glyph" aria-hidden="true">·</span>
+            <span data-transport-label>Loading</span>
+          </span>
+          <span class="fs-mono fs-faint" data-position>—</span>
+          <span class="viewer-shell__controls">
+            <button class="fs-button fs-button--sm" type="button" data-transport-toggle disabled>
+              Pause
+            </button>
+            <button class="fs-button fs-button--sm" type="button" data-go-live disabled>
+              Latest event
+            </button>
+            <button class="fs-button fs-button--sm" type="button" data-fit-graph disabled>
+              Fit graph
+            </button>
+          </span>
+        </div>
+      </header>
+
       <p class="fs-viewer__hint">
         Drop a session file here, or a folder containing one. Space plays and pauses,
         <kbd>←</kbd>/<kbd>→</kbd> step, <kbd>g</kbd> jumps to the end, <kbd>o</kbd> fits the graph,
         <kbd>?</kbd> shows every key.
       </p>
 
-      <div
-        id="agent-viewer-canvas"
-        class="fs-viewer__canvas"
-        role="img"
-        aria-label="Agent Viewer session graph"
-        aria-describedby="fs-viewer-fallback"
-      >
-        <p class="fs-placeholder" id="fs-viewer-fallback" data-fallback>
-          Loading the Agent Viewer…
-        </p>
+      <div class="viewer-shell__body">
+        <aside class="viewer-shell__rail" aria-labelledby="rail-title">
+          <h2 id="rail-title" class="viewer-shell__panel-title">Agents</h2>
+          <ul class="viewer-rail" data-agent-rail role="list">
+            <li class="fs-muted viewer-rail__empty">—</li>
+          </ul>
+        </aside>
+
+        <!-- The renderer owns this subtree entirely. Nothing else writes into it. -->
+        <div
+          id="agent-viewer-canvas"
+          class="fs-viewer__canvas"
+          role="img"
+          aria-label="Agent Viewer session graph"
+          aria-describedby="fs-viewer-fallback"
+        >
+          <p class="fs-placeholder" id="fs-viewer-fallback" data-fallback>
+            Loading the Agent Viewer…
+          </p>
+        </div>
+
+        <aside class="viewer-shell__inspector" aria-labelledby="inspector-title">
+          <h2 id="inspector-title" class="viewer-shell__panel-title">Inspector</h2>
+          <div class="viewer-inspector" data-inspector aria-live="polite">
+            <p class="fs-muted">Select an event or an agent.</p>
+          </div>
+        </aside>
       </div>
+
+      <footer class="viewer-shell__timeline" aria-labelledby="timeline-title" data-expert hidden>
+        <div class="fs-row fs-row--between">
+          <h2 id="timeline-title" class="viewer-shell__panel-title">Timeline</h2>
+          <span class="fs-mono fs-faint" data-timeline-count>—</span>
+        </div>
+        <ol class="viewer-timeline" data-timeline role="list">
+          <li class="fs-muted viewer-timeline__empty">—</li>
+        </ol>
+        <button class="fs-button fs-button--sm" type="button" data-timeline-more hidden>
+          Load more events
+        </button>
+      </footer>
     </section>
 
-    <section class="fs-card">
+    <section class="fs-card" data-expert hidden>
       <h2>Session summary</h2>
       <p class="fs-muted">
         The same text <code>fleetscope inspect</code> prints, produced by the same code. It reports
@@ -68,6 +165,305 @@ import PageHeader from '../components/PageHeader.astro';
 </BaseLayout>
 
 <style>
+  /*
+   * The viewer frame speaks the shell language.
+   *
+   * This page used to carry its own cream/paper theme — light panels, a dotted
+   * background, a serif headline. It looked considered on its own and looked
+   * like a different product one click away from the launchpad and the
+   * dashboard, which is the problem: a developer arriving from `/` should not
+   * have to re-learn what a panel is.
+   *
+   * So the chrome here is the same liquid glass as the shell, and the seam is
+   * drawn inside: the canvas, the payload dump and the terminal keep the opaque
+   * operational palette, because those are read for their content.
+   */
+  .viewer-page {
+    --viewer-ink: var(--fs-text);
+    --viewer-line: var(--fsg-stroke);
+    --viewer-blue: var(--fsg-cyan);
+    --viewer-violet: var(--fsg-violet);
+    color: var(--viewer-ink);
+    margin: calc(var(--fs-space-5) * -1);
+    padding: clamp(24px, 4vw, 56px);
+    min-height: calc(100vh - var(--fs-nav-height));
+    background: transparent;
+    border-radius: 0;
+  }
+  .viewer-page .fs-page-head { align-items: center; margin: 0 auto var(--fs-space-6); max-width: 1500px; }
+  .viewer-page .fs-page-head h1 {
+    font-size: clamp(30px, 3.4vw, 46px);
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    color: var(--viewer-ink);
+  }
+  .viewer-page .fs-page-head__lede { color: var(--fs-text-muted); max-width: 62ch; font-size: 13px; }
+  .viewer-page .fs-row { align-items: center; gap: 14px; }
+  .viewer-kicker { display: inline-flex; align-items: center; gap: 7px; color: var(--fs-text-faint); font: 600 10px/1 var(--fs-mono); letter-spacing: .12em; }
+  .gemini-orb { width: 10px; height: 10px; border-radius: 50%; background: conic-gradient(#4285f4, #8b5cf6, #ea4335, #fbbc05, #34a853, #4285f4); box-shadow: 0 0 0 4px #4285f42e; }
+  .viewer-page .fs-button {
+    border-color: var(--fsg-stroke-strong);
+    background: var(--fsg-tint-raised);
+    color: var(--fs-text);
+    border-radius: 999px;
+    backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+    -webkit-backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+    box-shadow: var(--fsg-inset);
+  }
+  .viewer-page .fs-button:hover:not(:disabled) { border-color: rgb(255 255 255 / 28%); background: var(--fsg-tint-strong); color: var(--fs-text); transform: translateY(-1px); }
+  .viewer-page .viewer-action--primary { color: #04121a; border-color: transparent; background: linear-gradient(135deg, #8df1ff 0%, #5fe3ff 42%, #7fb6ff 100%); }
+  .viewer-page .viewer-action--primary:hover:not(:disabled) { color: #04121a; filter: brightness(1.06); }
+  .viewer-page .fs-card {
+    background: var(--fsg-tint);
+    border-color: var(--fsg-stroke);
+    border-radius: var(--fsg-radius);
+    box-shadow: var(--fsg-shadow-sm), var(--fsg-inset);
+    backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+    -webkit-backdrop-filter: blur(var(--fsg-blur)) saturate(var(--fsg-saturate));
+  }
+  .viewer-page .fs-card h2 { font-size: 20px; font-weight: 600; color: var(--viewer-ink); }
+  .viewer-page .fs-muted, .viewer-page .fs-viewer__hint { color: var(--fs-text-muted); }
+  .viewer-page .fs-viewer__meta { color: var(--fs-text); }
+  /* The seam. Opaque, deliberately: this is where evidence starts. */
+  .viewer-page .fs-viewer__canvas { background: #0a0d12; border: 1px solid var(--fs-border-strong); border-radius: 12px; box-shadow: inset 0 0 0 1px #ffffff0c, 0 10px 35px #00000059; }
+  .viewer-page .fs-viewer__drop[data-dragging='true'] { outline-color: var(--viewer-blue); }
+  .viewer-page kbd { background: rgb(255 255 255 / 8%); border-color: var(--fsg-stroke); color: var(--fs-text-muted); }
+  .viewer-page .fs-viewer__summary { color: #dbe6ff; background: #0a0d12; border-radius: 10px; padding: 14px; }
+
+  /* ── The shell ─────────────────────────────────────────────────────────
+     Three columns at desktop width: agent rail, the renderer's canvas, the
+     inspector. The canvas keeps a definite box in every arrangement, because
+     the renderer measures it once and a zero-width column would blank it. */
+  .viewer-shell__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fs-space-3);
+  }
+  .viewer-shell__transport {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--fs-space-3);
+  }
+  .viewer-shell__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fs-space-2);
+  }
+  .viewer-shell__body {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(220px, 300px);
+    gap: var(--fs-space-3);
+    align-items: stretch;
+  }
+  .viewer-shell__panel-title {
+    margin: 0 0 var(--fs-space-2);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fs-text-muted);
+  }
+  .viewer-shell__rail,
+  .viewer-shell__inspector {
+    min-width: 0;
+    overflow: auto;
+    max-height: 60vh;
+  }
+  .viewer-rail,
+  .viewer-timeline {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .viewer-rail__row,
+  .viewer-timeline__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--fs-space-2);
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .viewer-rail__row:hover,
+  .viewer-timeline__row:hover {
+    border-color: var(--fs-border);
+  }
+  .viewer-rail__row[aria-current='true'],
+  .viewer-timeline__row[aria-current='true'] {
+    border-color: var(--viewer-blue, #4285f4);
+    background: #4285f414;
+  }
+  .viewer-rail__row:focus-visible,
+  .viewer-timeline__row:focus-visible {
+    outline: 2px solid var(--viewer-blue, #4285f4);
+    outline-offset: 1px;
+  }
+  .viewer-rail__label,
+  .viewer-timeline__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .viewer-rail__meta,
+  .viewer-timeline__meta {
+    flex: 0 0 auto;
+    font-family: var(--fs-mono);
+    font-size: 11px;
+    color: var(--fs-text-muted);
+  }
+  .viewer-shell__timeline {
+    max-height: 30vh;
+    overflow: auto;
+  }
+  .viewer-inspector dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 90px) minmax(0, 1fr);
+    gap: 4px var(--fs-space-2);
+    font-size: 12px;
+  }
+  .viewer-inspector dt {
+    color: var(--fs-text-muted);
+  }
+  .viewer-inspector dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .viewer-inspector [data-tone='bad'] {
+    color: var(--fs-danger, #f05d5e);
+  }
+
+  /* Stack below the three-column width. The canvas keeps a definite height so
+     the renderer still measures a real box. */
+  @media (max-width: 1100px) {
+    .viewer-shell__body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .viewer-shell__rail,
+    .viewer-shell__inspector {
+      max-height: 220px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .viewer-rail__row,
+    .viewer-timeline__row {
+      transition: none;
+    }
+  }
+
+  /* ── Story Mode ────────────────────────────────────────────────────── */
+  .story__source {
+    margin: 0 0 var(--fs-space-2);
+    font: 600 10px/1 var(--fs-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fs-text-muted);
+  }
+  .story__outcome {
+    margin: 0 0 var(--fs-space-2);
+    font-size: clamp(22px, 2.4vw, 32px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+  .story__summary {
+    margin: 0 0 var(--fs-space-4);
+    max-width: 70ch;
+    font-size: 14px;
+  }
+  .story__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--fs-space-3);
+    margin: 0 0 var(--fs-space-4);
+    padding: 0;
+    list-style: none;
+  }
+  .story__card {
+    padding: var(--fs-space-3);
+    border: 1px solid var(--fs-border);
+    border-radius: 12px;
+  }
+  .story__card[data-state='absent'] {
+    /* An absence must not read as a claim: no accent, no weight, and the
+       title names the capability rather than asserting it happened. */
+    border-style: dashed;
+    opacity: 0.72;
+  }
+  .story__card-title {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .story__card[data-state='absent'] .story__card-title {
+    font-weight: 400;
+    color: var(--fs-text-muted);
+  }
+  .story__card-detail {
+    margin: 0;
+    font-size: 12px;
+    color: var(--fs-text-muted);
+  }
+  .story__disclosure {
+    margin: calc(var(--fs-space-3) * -1) 0 var(--fs-space-4);
+    font-size: 12px;
+    color: var(--fs-text-muted);
+  }
+  .story__chapters ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fs-space-2);
+    margin: 0 0 var(--fs-space-4);
+    padding: 0;
+    list-style: none;
+  }
+  .story__chapter {
+    padding: 6px 12px;
+    border: 1px solid var(--fs-border);
+    border-radius: 999px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .story__chapter[aria-current='true'] {
+    border-color: var(--viewer-blue, #4285f4);
+    background: #4285f414;
+  }
+  .story__chapter:focus-visible {
+    outline: 2px solid var(--viewer-blue, #4285f4);
+    outline-offset: 2px;
+  }
+  .story__narrative {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--fs-space-3);
+    margin-bottom: var(--fs-space-4);
+  }
+  .story__narrative h3 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fs-text-muted);
+  }
+  .story__narrative p {
+    margin: 0;
+    font-size: 13px;
+  }
+
   /* Mirrors .fs-cockpit__canvas. The WebGl2 backend sizes its grid from this
      element, and it needs a definite box to measure: with only a min-height the
      canvas came out 0 columns wide and drew nothing. */
@@ -116,6 +512,32 @@ import PageHeader from '../components/PageHeader.astro';
 </style>
 
 <script>
+  import {
+    agentRows,
+    eventsForAgent,
+    foreignEventNote,
+    graphNodeIds as toGraphNodeIds,
+    inspectorFields,
+    positionLabel,
+    transportBadge,
+    NO_EVENT_MESSAGE,
+    type AgentSummary,
+    type EventDetail,
+    type GraphNode,
+    type SelectionAnswer,
+    type EventSummary,
+    type EventWindow,
+    type SelectionSignal,
+    type Snapshot,
+  } from '../features/viewer/shell';
+  import { agentIdentityEye, agentIdentityVariant } from '../lib/agent-identity';
+  import {
+    chaptersFrom,
+    localStory,
+    type Chapter,
+    type StoryFacts,
+  } from '../features/story/story';
+
   const statusEl = document.querySelector('[data-status]') as HTMLElement | null;
   const summaryEl = document.querySelector('[data-summary]') as HTMLElement | null;
   const fallbackEl = document.querySelector('[data-fallback]') as HTMLElement | null;
@@ -131,6 +553,18 @@ import PageHeader from '../components/PageHeader.astro';
     agent_viewer_load_demo: () => string;
     agent_viewer_summary: () => string;
     agent_viewer_fingerprint: () => string;
+    agent_viewer_snapshot: () => string;
+    agent_viewer_events: (offset: number, limit: number) => string;
+    agent_viewer_agents: () => string;
+    agent_viewer_seek_sequence: (sequence: number) => boolean;
+    agent_viewer_event_detail: (sequence: number) => string;
+    agent_viewer_story_facts: () => string;
+    agent_viewer_select_agent: (agentId: string) => string;
+    agent_viewer_clear_selection: () => boolean;
+    agent_viewer_graph_nodes: () => string;
+    agent_viewer_fit_graph: () => void;
+    agent_viewer_go_live: () => void;
+    agent_viewer_toggle_play: () => void;
   };
 
   let api: Api | null = null;
@@ -161,6 +595,7 @@ import PageHeader from '../components/PageHeader.astro';
     if (parsed.flattenNote) bits.push(String(parsed.flattenNote));
     say(bits.join('  ·  '));
     if (summaryEl && api) summaryEl.textContent = api.agent_viewer_summary();
+    reloadShellData();
   }
 
   /** Read one File as text, rejecting nothing: an unreadable file is reported. */
@@ -210,6 +645,45 @@ import PageHeader from '../components/PageHeader.astro';
   }
 
   /**
+   * Wait until the renderer's host element has a measured width.
+   *
+   * WHY THIS EXISTS: ratzilla sizes the terminal grid from
+   * `parent.client_width()` exactly ONCE, at construction
+   * (`ratzilla/src/backend/webgl2.rs`, `init_beamterm`), and nothing
+   * re-derives it afterwards. If the glue loads before layout has settled the
+   * grid is built at zero columns and the canvas stays blank forever, while
+   * every other signal — the status line, the summary, the fingerprint —
+   * looks correct. Waiting for one real measurement is the whole fix.
+   *
+   * Bounded, and it resolves either way: in a tab that never lays out (a
+   * background tab, a headless probe) the renderer should still load and
+   * degrade the way it always did, not hang.
+   */
+  function waitForMeasuredHost(id: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const host = document.getElementById(id);
+      if (host === null) return resolve();
+      const started = performance.now();
+      let timer = 0;
+      const finish = () => {
+        document.removeEventListener('visibilitychange', check);
+        window.clearTimeout(timer);
+        resolve();
+      };
+      const check = (): void => {
+        if ((!document.hidden && host.clientWidth > 0) || performance.now() - started > 5000) {
+          finish();
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      document.addEventListener('visibilitychange', check);
+      timer = window.setTimeout(check, 5100);
+      requestAnimationFrame(check);
+    });
+  }
+
+  /**
    * Load the generated wasm-bindgen glue.
    *
    * It is a build artifact in /public — outside Vite's module graph and outside
@@ -250,6 +724,7 @@ import PageHeader from '../components/PageHeader.astro';
 
   async function boot() {
     try {
+      await waitForMeasuredHost('agent-viewer-canvas');
       await loadGlue();
       const module = (globalThis as { fleetscopeViewer?: Api }).fleetscopeViewer;
       // Assert the ABI by name, so a partial load fails here rather than at the
@@ -269,6 +744,601 @@ import PageHeader from '../components/PageHeader.astro';
       );
     }
   }
+
+  // ── The shell ─────────────────────────────────────────────────────────
+  //
+  // Every value rendered below is read from the ABI. Nothing here derives
+  // agent status, event identity, a renderer index or the offset between the
+  // two: those are decided in Rust and a second answer in TypeScript would
+  // drift from the first.
+
+  /** How many events one page of the timeline asks for. */
+  const PAGE = 100;
+
+  let agents: AgentSummary[] = [];
+  let events: EventSummary[] = [];
+  let hasMore = false;
+  let selectedSequence: number | null = null;
+  let selectedAgentId: string | null = null;
+  /**
+   * The ids the RENDERER has as graph nodes. A rail row is only presented as a
+   * graph-node control when its id appears here, so a control can never claim
+   * to select a node the graph does not have.
+   */
+  let graphNodeIds: ReadonlySet<string> = new Set();
+
+  /**
+   * The rail is populated after the WASM projection, so it cannot use an Astro
+   * component. It still uses the same deterministic identity calculation as
+   * the server-rendered Cockpit rail; the avatar is decoration and the label
+   * and historical status remain the accessible source of truth.
+   */
+  function createAgentIdentity(row: ReturnType<typeof agentRows>[number]): HTMLSpanElement {
+    const identity = document.createElement('span');
+    identity.className = `fs-agent-identity fs-agent-identity--sm fs-agent-identity--v${agentIdentityVariant(row.id)}`;
+    identity.dataset.agentIdentity = row.id;
+    identity.dataset.agentState = row.statusLabel;
+    identity.title = `${row.label} · ${row.statusLabel}`;
+    identity.setAttribute('role', 'img');
+    identity.setAttribute('aria-label', `${row.label}, ${row.statusLabel}`);
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 40 40');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const variant = agentIdentityVariant(row.id);
+    const eye = agentIdentityEye(row.id);
+    const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    body.setAttribute(
+      'd',
+      variant % 2 === 0
+        ? 'M8 20C8 10 14 5 21 5c8 0 13 6 12 16-1 9-6 14-14 14C11 35 8 29 8 20Z'
+        : 'M7 18C8 9 15 5 23 6c8 1 12 7 10 16-2 9-7 13-15 12C10 33 6 28 7 18Z',
+    );
+    body.classList.add('fs-agent-identity__body');
+    const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    leftEye.setAttribute('cx', '16');
+    leftEye.setAttribute('cy', eye === 0 ? '19' : '18');
+    leftEye.setAttribute('r', '2');
+    leftEye.classList.add('fs-agent-identity__eye');
+    const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    rightEye.setAttribute('cx', '26');
+    rightEye.setAttribute('cy', eye === 2 ? '20' : '18');
+    rightEye.setAttribute('r', '2');
+    rightEye.classList.add('fs-agent-identity__eye');
+    const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    mouth.setAttribute('d', 'M16 26c3 2 6 2 9 0');
+    mouth.classList.add('fs-agent-identity__mouth');
+    svg.append(body, leftEye, rightEye, mouth);
+    identity.append(svg);
+    return identity;
+  }
+
+  const railEl = document.querySelector('[data-agent-rail]');
+  const timelineEl = document.querySelector('[data-timeline]');
+  const timelineCountEl = document.querySelector('[data-timeline-count]');
+  const moreEl = document.querySelector('[data-timeline-more]') as HTMLButtonElement | null;
+  const inspectorEl = document.querySelector('[data-inspector]');
+  const badgeEl = document.querySelector('[data-transport-badge]');
+  const badgeLabelEl = document.querySelector('[data-transport-label]');
+  const positionEl = document.querySelector('[data-position]');
+  const toggleEl = document.querySelector('[data-transport-toggle]') as HTMLButtonElement | null;
+  const goLiveEl = document.querySelector('[data-go-live]') as HTMLButtonElement | null;
+  const fitEl = document.querySelector('[data-fit-graph]') as HTMLButtonElement | null;
+
+  const snapshot = (): Snapshot | null => {
+    if (api === null) return null;
+    try {
+      return JSON.parse(api.agent_viewer_snapshot()) as Snapshot;
+    } catch {
+      return null;
+    }
+  };
+
+  function renderHeader(snap: Snapshot) {
+    const badge = transportBadge(snap);
+    badgeEl?.setAttribute('data-tone', badge.tone);
+    if (badgeLabelEl !== null) badgeLabelEl.textContent = badge.label;
+    const glyph = badgeEl?.querySelector('.fs-status__glyph');
+    if (glyph !== null && glyph !== undefined) glyph.textContent = badge.glyph;
+    if (positionEl !== null) positionEl.textContent = positionLabel(snap);
+    // The renderer reports whether it is playing; the button says what pressing
+    // it will do, which is the opposite.
+    if (toggleEl !== null) toggleEl.textContent = snap.transport === 'playing' ? 'Pause' : 'Play';
+    for (const control of [toggleEl, goLiveEl, fitEl]) control?.removeAttribute('disabled');
+  }
+
+  /**
+   * Update only the state of rail controls that already exist.
+   *
+   * Returns false when the row set itself changed and a rebuild is needed.
+   *
+   * # Why this exists
+   *
+   * The shell refreshes once a second. Rebuilding the rail every time destroys
+   * whichever control the keyboard user was on, so focus fell back to `<body>`
+   * within a second of arriving and Enter did nothing. That is invisible to a
+   * mouse and fatal to a keyboard, and it made the browser check fail
+   * intermittently at one viewport before it was understood.
+   */
+  function updateRailState(): boolean {
+    if (railEl === null) return false;
+    const buttons = Array.from(
+      railEl.querySelectorAll<HTMLButtonElement>('button[data-agent-id]'),
+    );
+    const rows = agentRows(agents);
+    if (buttons.length !== rows.length) return false;
+    if (buttons.some((button, i) => button.dataset.agentId !== rows[i]?.id)) return false;
+
+    for (const button of buttons) {
+      const isSelected = button.dataset.agentId === selectedAgentId;
+      button.setAttribute('aria-pressed', String(isSelected));
+      button.setAttribute('aria-current', String(isSelected));
+    }
+    return true;
+  }
+
+  function renderRail() {
+    if (railEl === null) return;
+    if (updateRailState()) return;
+    railEl.replaceChildren();
+    if (agents.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'fs-muted viewer-rail__empty';
+      empty.textContent = 'No agents in this session.';
+      railEl.append(empty);
+      return;
+    }
+    for (const row of agentRows(agents)) {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'viewer-rail__row';
+      button.dataset.agentId = row.id;
+      button.style.paddingLeft = `${8 + row.depth * 14}px`;
+      const isNode = graphNodeIds.has(row.id);
+      const isSelected = row.id === selectedAgentId;
+      // `aria-pressed` because activating the control again releases it: this
+      // is a toggle, and `aria-current` alone would not say that.
+      button.setAttribute('aria-pressed', String(isSelected));
+      button.setAttribute('aria-current', String(isSelected));
+      if (isNode) {
+        // The hook a test uses to reach a NAMED graph node rather than a pixel.
+        button.dataset.graphNode = row.id;
+      } else {
+        // Honest: the renderer has no node for this agent, so this control
+        // cannot select one. Say so instead of failing silently on activation.
+        button.disabled = true;
+        button.title = 'This agent has no graph node in the current fold.';
+      }
+
+      const identity = createAgentIdentity(row);
+
+      const label = document.createElement('span');
+      label.className = 'viewer-rail__label';
+      label.textContent = row.label;
+
+      const status = document.createElement('span');
+      status.className = 'fs-status';
+      status.setAttribute('data-tone', row.statusTone);
+      // A word, not only a colour.
+      status.textContent = row.statusLabel;
+
+      const meta = document.createElement('span');
+      meta.className = 'viewer-rail__meta';
+      meta.textContent =
+        row.errorCount > 0 ? `${row.eventCount} ev · ${row.errorCount} err` : `${row.eventCount} ev`;
+
+      button.append(identity, label, status, meta);
+      // The accessible-name algorithm drops whitespace-only text nodes between
+      // spans, so the computed name would run the label into the status word.
+      button.setAttribute(
+        'aria-label',
+        `${row.label} — ${row.statusLabel}, ${row.eventCount} events`,
+      );
+      button.addEventListener('click', () => selectAgent(row.id));
+      li.append(button);
+      railEl.append(li);
+    }
+  }
+
+  /** The timeline's equivalent of `updateRailState`, for the same reason. */
+  function updateTimelineState(shown: readonly EventSummary[]): boolean {
+    if (timelineEl === null) return false;
+    const buttons = Array.from(
+      timelineEl.querySelectorAll<HTMLButtonElement>('button[data-sequence]'),
+    );
+    if (buttons.length !== shown.length) return false;
+    if (buttons.some((button, i) => button.dataset.sequence !== String(shown[i]?.sequence)))
+      return false;
+
+    for (const button of buttons) {
+      button.setAttribute(
+        'aria-current',
+        String(Number(button.dataset.sequence) === selectedSequence),
+      );
+    }
+    return true;
+  }
+
+  function renderTimeline() {
+    if (timelineEl === null) return;
+    const shownRows = eventsForAgent(events, selectedAgentId);
+    if (updateTimelineState(shownRows)) {
+      if (timelineCountEl !== null) {
+        timelineCountEl.textContent =
+          selectedAgentId === null
+            ? `${events.length} loaded`
+            : `${shownRows.length} of ${events.length} loaded`;
+      }
+      if (moreEl !== null) moreEl.hidden = !hasMore;
+      return;
+    }
+    timelineEl.replaceChildren();
+    const shown = eventsForAgent(events, selectedAgentId);
+    if (shown.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'fs-muted viewer-timeline__empty';
+      empty.textContent = 'No events to show.';
+      timelineEl.append(empty);
+    }
+    for (const event of shown) {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'viewer-timeline__row';
+      // The canonical key, and the only thing a click sends back to Rust.
+      button.dataset.sequence = String(event.sequence);
+      button.setAttribute('aria-current', String(event.sequence === selectedSequence));
+
+      const seq = document.createElement('span');
+      seq.className = 'viewer-timeline__meta';
+      seq.textContent = String(event.sequence);
+
+      const label = document.createElement('span');
+      label.className = 'viewer-timeline__label';
+      label.textContent = event.label === '' ? event.kind : event.label;
+
+      const meta = document.createElement('span');
+      meta.className = 'viewer-timeline__meta';
+      meta.textContent = event.isError ? `${event.kind} · error` : event.kind;
+      if (event.isError) meta.setAttribute('data-tone', 'bad');
+
+      button.append(seq, label, meta);
+      button.addEventListener('click', () => selectEvent(event.sequence));
+      li.append(button);
+      timelineEl.append(li);
+    }
+    if (timelineCountEl !== null) {
+      timelineCountEl.textContent =
+        selectedAgentId === null
+          ? `${events.length} loaded`
+          : `${shown.length} of ${events.length} loaded`;
+    }
+    if (moreEl !== null) moreEl.hidden = !hasMore;
+  }
+
+  /** Set when the renderer points at an item that came from no viewer event. */
+  let selectionHasNoEvent = false;
+
+  function renderInspector() {
+    if (inspectorEl === null) return;
+    inspectorEl.replaceChildren();
+
+    const note = (text: string) => {
+      const p = document.createElement('p');
+      p.className = 'fs-muted';
+      p.textContent = text;
+      inspectorEl.append(p);
+    };
+
+    if (selectionHasNoEvent) {
+      // A sidecar. Say so rather than showing the nearest event's content.
+      note(NO_EVENT_MESSAGE);
+      return;
+    }
+    if (selectedSequence === null || api === null) {
+      note('Select an event or an agent.');
+      return;
+    }
+
+    let detail: EventDetail | null = null;
+    try {
+      // Bounded: one event in, one event out, whatever the session's size.
+      detail = JSON.parse(api.agent_viewer_event_detail(selectedSequence)) as EventDetail | null;
+    } catch {
+      detail = null;
+    }
+    if (detail === null) {
+      note(`No event ${selectedSequence} in this session.`);
+      return;
+    }
+
+    // Selecting an agent does not move the playhead, so the inspector can still
+    // be holding another agent's event. Saying whose it is beats showing it
+    // under the selected agent's heading.
+    const foreign = foreignEventNote(selectedAgentId, detail.agentId, detail.agentLabel);
+    if (foreign !== null) {
+      note(foreign);
+      return;
+    }
+
+    const dl = document.createElement('dl');
+    for (const field of inspectorFields(detail)) {
+      const dt = document.createElement('dt');
+      dt.textContent = field.label;
+      const dd = document.createElement('dd');
+      dd.textContent = field.value;
+      if (field.tone !== undefined) dd.setAttribute('data-tone', field.tone);
+      dl.append(dt, dd);
+    }
+    inspectorEl.append(dl);
+  }
+
+  /** Ask Rust to move, then re-read. The shell never predicts the answer. */
+  function selectEvent(sequence: number) {
+    if (api === null) return;
+    const moved = api.agent_viewer_seek_sequence(sequence);
+    selectedSequence = sequence;
+    selectionHasNoEvent = false;
+    if (!moved) {
+      // A legitimate answer: that event rendered nothing. Say so rather than
+      // leaving the graph somewhere unrelated and implying it followed.
+      say(`Event ${sequence} produced no renderer entry, so the graph did not move.`);
+    }
+    refreshShell();
+  }
+
+  /**
+   * Ask Rust to select, then render Rust's answer.
+   *
+   * The shell used to decide the new selection itself and then tell the
+   * renderer to centre on it, which meant the rail could show a selection the
+   * graph never had. Now the renderer decides, including refusing an id it has
+   * no node for, and the shell shows what it reported.
+   */
+  function selectAgent(agentId: string) {
+    if (api === null) return;
+    let answer: SelectionAnswer;
+    try {
+      answer = JSON.parse(api.agent_viewer_select_agent(agentId)) as SelectionAnswer;
+    } catch {
+      return;
+    }
+    if (answer.outcome === 'unknown') {
+      say(`The graph has no node for ${agentId}, so nothing was selected.`);
+      return;
+    }
+    selectedAgentId = answer.selectedAgentId;
+    selectionHasNoEvent = false;
+    refreshShell();
+  }
+
+  /** Clear the graph selection through the renderer. */
+  function clearSelection() {
+    if (api === null) return;
+    if (!api.agent_viewer_clear_selection()) return;
+    selectedAgentId = null;
+    selectionHasNoEvent = false;
+    refreshShell();
+  }
+
+  function loadEvents(offset: number) {
+    if (api === null) return;
+    try {
+      const window_ = JSON.parse(api.agent_viewer_events(offset, PAGE)) as EventWindow;
+      events = offset === 0 ? [...window_.items] : [...events, ...window_.items];
+      hasMore = window_.hasMore;
+    } catch {
+      events = [];
+      hasMore = false;
+    }
+  }
+
+  function refreshShell() {
+    if (api === null) return;
+    const snap = snapshot();
+    if (snap === null) return;
+    // The playhead's own event, reported by Rust through the manifest. `null`
+    // means it rests on a renderer item that came from no event.
+    if (snap.sequence !== null && selectedSequence === null) selectedSequence = snap.sequence;
+    // The renderer's own selection wins over anything the shell was holding.
+    // A click inside the canvas, Follow re-tracking, or a reload can all move
+    // it without the shell asking, and the rail must not out-vote the graph.
+    selectedAgentId = snap.selectedAgentId;
+    renderHeader(snap);
+    renderRail();
+    renderTimeline();
+    renderInspector();
+    renderStory();
+  }
+
+  function reloadShellData() {
+    if (api === null) return;
+    try {
+      agents = JSON.parse(api.agent_viewer_agents()) as AgentSummary[];
+    } catch {
+      agents = [];
+    }
+    try {
+      graphNodeIds = toGraphNodeIds(JSON.parse(api.agent_viewer_graph_nodes()) as GraphNode[]);
+    } catch {
+      graphNodeIds = new Set();
+    }
+    selectedSequence = null;
+    selectedAgentId = null;
+    loadEvents(0);
+    refreshShell();
+  }
+
+  // ── Story Mode ────────────────────────────────────────────────────────
+  //
+  // Reads the facts the Rust side computed. It has no way to assert a capability
+  // the session cannot evidence, because the capability manifest comes from the
+  // same place the numbers do.
+
+  let chapters: Chapter[] = [];
+
+  function renderStory() {
+    if (api === null) return;
+    let facts: StoryFacts | null = null;
+    try {
+      facts = JSON.parse(api.agent_viewer_story_facts()) as StoryFacts | null;
+    } catch {
+      facts = null;
+    }
+    if (facts === null) return;
+
+    chapters = chaptersFrom(events, agents);
+    const story = localStory(facts, chapters);
+
+    const set = (selector: string, value: string) => {
+      const node = document.querySelector(selector);
+      if (node !== null) node.textContent = value;
+    };
+    set('[data-story-source]', story.sourceLabel);
+    set('[data-story-outcome]', story.outcome);
+    set('[data-story-summary]', story.summary);
+    set('[data-story-problem]', story.narrative.problem);
+    set('[data-story-action]', story.narrative.action);
+    set('[data-story-result]', story.narrative.result);
+
+    const disclosureEl = document.querySelector('[data-story-disclosure]') as HTMLElement | null;
+    if (disclosureEl !== null) {
+      disclosureEl.hidden = story.disclosure === null;
+      disclosureEl.textContent = story.disclosure ?? '';
+    }
+
+    const cardsEl = document.querySelector('[data-story-cards]');
+    if (cardsEl !== null) {
+      cardsEl.replaceChildren();
+      for (const card of story.cards) {
+        const li = document.createElement('li');
+        li.className = 'story__card';
+        li.dataset.state = card.state;
+        li.dataset.tone = card.tone;
+        li.dataset.cardId = card.id;
+
+        const title = document.createElement('p');
+        title.className = 'story__card-title';
+        title.textContent = card.title;
+
+        const detail = document.createElement('p');
+        detail.className = 'story__card-detail';
+        detail.textContent = card.detail;
+
+        li.append(title, detail);
+        cardsEl.append(li);
+      }
+    }
+
+    const chaptersEl = document.querySelector('[data-story-chapters]');
+    if (chaptersEl !== null) {
+      chaptersEl.replaceChildren();
+      for (const chapter of story.chapters) {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'story__chapter';
+        button.textContent = chapter.title;
+        button.setAttribute('aria-current', String(chapter.sequence === selectedSequence));
+        if (chapter.sequence === null) {
+          button.disabled = true;
+        } else {
+          const sequence = chapter.sequence;
+          // A chapter seeks the same way a timeline row does: by canonical
+          // sequence, through the manifest.
+          button.addEventListener('click', () => selectEvent(sequence));
+        }
+        li.append(button);
+        chaptersEl.append(li);
+      }
+    }
+  }
+
+  document.querySelector('[data-expert-toggle]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const open = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!open));
+    button.textContent = open ? 'Open technical evidence' : 'Hide technical evidence';
+    for (const panel of document.querySelectorAll('[data-expert]')) {
+      (panel as HTMLElement).hidden = open;
+    }
+  });
+
+  /**
+   * The renderer pushes its selection after an input it handled itself.
+   *
+   * A click lands inside the canvas, which the Astro side never sees, so this
+   * is the only way the shell learns that the graph moved. Nothing is polled
+   * and nothing is inferred: the payload carries the agent, the renderer index
+   * and the sequence the MANIFEST resolved, including `null` when that item
+   * came from no event.
+   */
+  window.addEventListener('fleetscope:viewer-selection', (event) => {
+    const raw = (event as CustomEvent<string>).detail;
+    let signal: SelectionSignal;
+    try {
+      signal = JSON.parse(raw) as SelectionSignal;
+    } catch {
+      return;
+    }
+
+    selectedAgentId = signal.selectedAgentId;
+    if (signal.sequence === null) {
+      // A sidecar: real renderer state, no viewer event behind it.
+      selectionHasNoEvent = true;
+      selectedSequence = null;
+    } else {
+      selectionHasNoEvent = false;
+      selectedSequence = signal.sequence;
+    }
+    refreshShell();
+  });
+
+  /**
+   * Escape clears the graph selection.
+   *
+   * The renderer handles Escape for itself when the canvas has focus, but a
+   * keyboard user working the rail is focused on a DOM button and the canvas
+   * never sees the key. This routes it to the same renderer call, so both
+   * paths clear the same selection rather than two.
+   *
+   * Scoped out of text fields so it cannot swallow a native Escape.
+   */
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    const target = event.target as HTMLElement | null;
+    if (target !== null && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) {
+      return;
+    }
+    clearSelection();
+  });
+
+  toggleEl?.addEventListener('click', () => {
+    api?.agent_viewer_toggle_play();
+    refreshShell();
+  });
+  goLiveEl?.addEventListener('click', () => {
+    api?.agent_viewer_go_live();
+    selectedSequence = null;
+    selectionHasNoEvent = false;
+    refreshShell();
+  });
+  fitEl?.addEventListener('click', () => {
+    api?.agent_viewer_fit_graph();
+  });
+  moreEl?.addEventListener('click', () => {
+    loadEvents(events.length);
+    renderTimeline();
+  });
+
+  // The renderer advances its own playhead while replaying, so the header has
+  // to re-read rather than assume. One second is well under the granularity a
+  // person notices and costs nothing.
+  window.setInterval(() => {
+    if (api !== null) refreshShell();
+  }, 1000);
 
   dropzone?.addEventListener('dragover', (event) => {
     event.preventDefault();
