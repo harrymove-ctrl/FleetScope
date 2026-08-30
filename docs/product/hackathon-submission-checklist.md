@@ -1,6 +1,6 @@
 # All Things Agentic Hackathon submission checklist
 
-**Status:** local implementation in review; authenticated/cloud/video proof pending
+**Status:** cloud and runtime proof captured 2026-08-31; video and Devpost fields pending
 
 **Last updated:** 2026-08-30
 
@@ -15,12 +15,15 @@
 
 ## Required Google stack
 
-- [ ] **Gemini 3.5+:** one real Vertex session records provider
-  `modelVersion`; recommended configured model is `gemini-3.7-flash`, subject
-  to live region/account availability.
+- [x] **Gemini 3.5+:** run `e-04e1149b-7b8b-4529-951d-9029e6c7bfdb` on
+  2026-08-31 records provider `modelVersion` `gemini-3.7-flash` across six
+  model calls. Observed from the provider, not read back from configuration.
 - [x] **Google agent framework in code:** `google-adk==2.8.0` constructs the
   fixed `SequentialAgent` and four direct child agents.
-- [ ] **Google agent framework at runtime:** capture the real ADK session/events.
+- [x] **Google agent framework at runtime:** the same session records
+  `producer google-adk 2.8.0`, five agents -- `launch_readiness` over
+  `budget_guard`, `cloud_run_probe`, `launch_reviewer`, `storage_probe` -- and
+  fifteen events.
 - [x] **Google Cloud service:** Cloud Run serves the viewer at
   `https://fleetscope-web-6tes2q7oqa-uc.a.run.app`, revision
   `fleetscope-web-00001-g4s`, region `us-central1`, project
@@ -33,7 +36,8 @@
   run is explicitly opted into.
 - [ ] **Cloud artifact:** optionally show the matching redacted JSONL/proof
   object and generation in Cloud Storage.
-- [ ] All runtime/framework/cloud evidence uses the same session ID.
+- [x] All runtime/framework/cloud evidence uses the same session ID,
+  `e-04e1149b-7b8b-4529-951d-9029e6c7bfdb`, projection `ef62b782198ed6b3`.
 
 ## Workflow proof
 
@@ -48,7 +52,9 @@
 - [x] JSONL is flushed event-by-event for live follow.
 - [x] Thought parts and secret-shaped keys are removed before persistence.
 - [x] Configured and provider-observed model versions are separate.
-- [ ] Real workflow run captured.
+- [x] Real workflow run captured: decision `READY`, six model calls
+  (cloud_run_probe 2, storage_probe 2, budget_guard 1, launch_reviewer 1),
+  both tool calls answered, zero failed events.
 
 ## Product demo proof
 
@@ -115,7 +121,7 @@
 | Rust five-node adapter graph | Verified locally |
 | Full workspace gates | Verified locally on 2026-08-30 |
 | Launchpad browser QA | Verified across 375, 768, 1024, 1440, and 2560px viewports |
-| Real Vertex model event | Missing |
+| Real Vertex model event | gemini-3.7-flash observed, 2026-08-31 |
 | Cloud Run URL/revision | fleetscope-web-00001-g4s, verified 2026-08-31 |
 | Cloud Storage generation | Missing/optional |
 | Deep viewer interaction QA | Unverified: Playwright opened IPC but hung for 90s and was stopped |
