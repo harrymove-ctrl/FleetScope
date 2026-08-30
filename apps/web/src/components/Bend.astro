@@ -1,0 +1,130 @@
+---
+/**
+ * Bend — a scrolling face folded over a cube edge.
+ *
+ * Renders the three elements the engine needs and wires them up in the
+ * browser. No framework: `createBend` was always plain DOM, so unwrapping it
+ * from React also removed the `@astrojs/react` integration that breaks every
+ * stylesheet in this workspace.
+ *
+ * The effect needs `CanvasRenderingContext2D.drawElementImage`, which today
+ * ships only behind `chrome://flags/#enable-experimental-web-platform-features`.
+ * Two shapes result, and both are intended:
+ *
+ *   supported     the slotted content moves inside the `layoutsubtree` canvas,
+ *                 the host becomes a full-height scroller, and the output
+ *                 canvas draws the fold over it.
+ *   unsupported   nothing moves, the host stays `height: auto`, and the page
+ *                 scrolls exactly as it does without this component.
+ *
+ * The second is the common case. It is a plain page, not a broken one.
+ */
+import type { BendOptions } from '../features/bend/engine';
+
+interface Props extends BendOptions {
+  class?: string;
+  /** Host height once the effect is live. Ignored in the unsupported shape. */
+  height?: string;
+}
+
+const { class: className, height = '100vh', ...options } = Astro.props;
+---
+
+<div
+  class:list={['bend', className]}
+  data-bend-host
+  data-bend-options={JSON.stringify(options)}
+  style={`--bend-height: ${height};`}
+>
+  <canvas class="bend__source" data-bend-source aria-hidden="true"></canvas>
+  <div class="bend__content" data-bend-content><slot /></div>
+  <canvas class="bend__output" data-bend-output aria-hidden="true"></canvas>
+</div>
+
+<style>
+  .bend {
+    position: relative;
+  }
+
+  /* The unsupported shape: the host is a passthrough. */
+  .bend__source,
+  .bend__output {
+    display: none;
+  }
+
+  .bend[data-bend-native] {
+    height: var(--bend-height);
+  }
+
+  .bend[data-bend-native] .bend__source,
+  .bend[data-bend-native] .bend__output {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .bend[data-bend-native] .bend__output {
+    pointer-events: none;
+  }
+
+  .bend[data-bend-native] .bend__content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+
+    /*
+     * No scrollbar, for two reasons. It would be captured and folded along
+     * with the page, and — less obviously — it narrows `clientWidth` below the
+     * canvas width, which moves the shader's `uMaxX` and with it the centre
+     * the perspective pinches toward. The fold then leans left and clips its
+     * own left edge.
+     */
+    scrollbar-width: none;
+  }
+
+  .bend[data-bend-native] .bend__content::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  import { createBend, supportsHtmlInCanvas, type BendOptions } from '../features/bend/engine';
+
+  for (const host of document.querySelectorAll<HTMLElement>('[data-bend-host]')) {
+    const source = host.querySelector<HTMLCanvasElement>('[data-bend-source]');
+    const content = host.querySelector<HTMLElement>('[data-bend-content]');
+    const output = host.querySelector<HTMLCanvasElement>('[data-bend-output]');
+    if (!source || !content || !output) continue;
+
+    // Ask before restructuring. Moving the content into a `layoutsubtree`
+    // canvas is only safe where that attribute means something; everywhere
+    // else it would hide the page inside canvas fallback content.
+    if (!supportsHtmlInCanvas()) continue;
+
+    let options: BendOptions = {};
+    try {
+      options = JSON.parse(host.dataset['bendOptions'] ?? '{}') as BendOptions;
+    } catch {
+      options = {};
+    }
+
+    host.setAttribute('data-bend-native', '');
+    // `layoutsubtree` is what makes a canvas lay out its fallback content
+    // instead of hiding it. It is set here rather than in the markup because
+    // it has no typed attribute and, more importantly, because a served page
+    // that never reaches this line must keep its content in the DOM.
+    source.setAttribute('layoutsubtree', 'true');
+    source.append(content);
+
+    const instance = createBend({ source, content, output }, options);
+    if (!instance) {
+      // WebGL2 refused. Put the page back exactly as it was served.
+      host.removeAttribute('data-bend-native');
+      source.removeAttribute('layoutsubtree');
+      source.before(content);
+    }
+  }
+</script>
