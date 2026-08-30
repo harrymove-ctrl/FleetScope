@@ -331,7 +331,10 @@ const first = cards[0];
   .chrome__corner {
     bottom: 2vh;
     font-size: var(--ap-caption);
-    color: #fff;
+    /* Was #fff, which survived the exclusion blend and does not survive its
+       removal: measured 4.09 against the field, and inconsistent with the
+       wordmark beside it. */
+    color: var(--carousel-ink-fg);
   }
   .chrome__corner--left {
     left: 4vw;
@@ -429,6 +432,38 @@ const first = cards[0];
    * Unlike those, this is not driven by scroll — opening a card is a discrete
    * event, so a transition is the right thing and the two sides are staggered.
    */
+  /*
+   * A scrim, not a darker ink.
+   *
+   * The field's luminance runs from about 0.21 to 0.55 depending on where you
+   * are on it, so no single ink passes AA everywhere: measured, the note sat
+   * at 2.01 and the provenance at 2.23 against a 4.5 requirement. Darkening
+   * the ink far enough to survive the bright end would also flatten the
+   * hierarchy — muted text would stop being muted.
+   *
+   * A soft light wash behind each block fixes the ground instead of the
+   * figure. It is feathered to nothing at the edges, so it reads as haze on
+   * the sky rather than as a panel.
+   */
+  .caption__corner {
+    padding: 28px 32px;
+    border-radius: var(--glass-radius-lg, 26px);
+    background: radial-gradient(
+      120% 120% at var(--scrim-x, 50%) 50%,
+      rgb(255 255 255 / 78%),
+      rgb(255 255 255 / 52%) 55%,
+      rgb(255 255 255 / 0%) 100%
+    );
+  }
+
+  .caption__corner--head {
+    --scrim-x: 30%;
+  }
+
+  .caption__corner--tail {
+    --scrim-x: 70%;
+  }
+
   .caption__corner {
     mask-image: var(--caption-cloud), linear-gradient(100deg, #000 0 42%, transparent 78%);
     mask-size:
@@ -493,7 +528,16 @@ const first = cards[0];
 
   .caption__link {
     pointer-events: auto;
-    color: var(--ap-action);
+    /*
+     * Not `--ap-action`. That is the theme's blue, and against the Blue sky
+     * field it measured a contrast ratio of 1.25 — blue on blue, effectively
+     * invisible. A link still has to read as a link, so it keeps a hue and
+     * gains an underline rather than relying on colour alone.
+     */
+    color: var(--carousel-link);
+    text-decoration-line: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
     font-size: var(--ap-body);
     text-decoration: none;
   }

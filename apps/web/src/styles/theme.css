@@ -135,8 +135,18 @@
    * between failing and passing AA. Deliberately not scoped: the plate does
    * not follow the page theme.
    */
-  --carousel-ink-fg: #10203a;
-  --carousel-ink-fg-muted: #3c5170;
+  /* #10203a left the bottom corners at 4.28 against the darkest part of the
+     field. This clears 4.5 there, which is the one place with no scrim. */
+  --carousel-ink-fg: #0b1729;
+  --carousel-ink-fg-muted: #35496a;
+
+  /*
+   * Link ink for the carousel plate. The theme action blue measured 1.25
+   * against this field — blue on blue. This is dark enough to read and still
+   * blue enough to say "link", and it is underlined so hue is not doing the
+   * work alone.
+   */
+  --carousel-link: #14407a;
 
   --theme-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
