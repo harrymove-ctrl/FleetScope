@@ -1149,6 +1149,10 @@ async function main(): Promise<void> {
       (await page.locator('[data-copy-command]').count()) === 1,
       await page.locator('[data-copy-command]').innerText(),
     );
+    // CLI help is progressive disclosure on the onboarding-first dashboard.
+    // Open the task before testing its copy affordance; a hidden control is not
+    // an interactive path and forcing the click would hide a layout regression.
+    await page.locator('[data-cli-guide] summary').click();
     await page.locator('[data-copy-command]').click();
     await page.waitForTimeout(50);
     check(
@@ -1175,7 +1179,7 @@ async function main(): Promise<void> {
     );
     check(
       'viewer: demo fingerprint is stable',
-      (await page.locator('[data-status]').innerText()).includes('e2728f4f985c7f33'),
+      (await page.locator('[data-status]').innerText()).includes('2850b12b0760257f'),
     );
 
     // ── Story Mode ───────────────────────────────────────────────────────

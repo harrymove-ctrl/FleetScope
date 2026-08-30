@@ -13,12 +13,14 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import ViewerLoader from '../components/ViewerLoader.astro';
 import FormatMarks from '../components/FormatMarks.astro';
 import SessionGraphs from '../components/SessionGraphs.astro';
 import '../styles/feature-viewer.css';
 ---
 
 <BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
+  <ViewerLoader />
   <div class="viewer-page" data-view-style="terminal">
     <PageHeader
       title="Agent Viewer"
@@ -41,7 +43,7 @@ import '../styles/feature-viewer.css';
         </p>
       </div>
       <div class="viewer-cli-card__command" data-cli-command-wrap>
-        <code data-cli-command>cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow</code>
+        <code data-cli-command>pnpm demo:cmux</code>
         <span class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></span>
       </div>
       <dl class="viewer-cli-card__facts">
@@ -268,7 +270,8 @@ import '../styles/feature-viewer.css';
   const cliCopyEl = document.querySelector('[data-cli-copy]') as HTMLButtonElement | null;
   const cliCommandEl = document.querySelector('[data-cli-command]') as HTMLElement | null;
   const cliCopyStatusEl = document.querySelector('[data-cli-copy-status]') as HTMLElement | null;
-  const CLI_COMMAND = 'cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow';
+  const CLI_COMMAND = 'pnpm demo:cmux';
+  const DASHBOARD_HANDOFF_KEY = 'fleetscope:dashboard-upload';
 
   /** Files a session can be made of. Anything else in a folder is ignored. */
   const READABLE = /\.(jsonl|json)$/i;
@@ -293,6 +296,39 @@ import '../styles/feature-viewer.css';
   };
 
   let api: Api | null = null;
+
+  type DashboardHandoff = {
+    readonly name: string;
+    readonly main: string;
+    readonly companions: readonly { name: string; text: string }[];
+  };
+
+  /** Read the one-shot, same-tab handoff produced by Dashboard. */
+  function takeDashboardHandoff(): DashboardHandoff | null {
+    try {
+      const encoded = window.sessionStorage.getItem(DASHBOARD_HANDOFF_KEY);
+      if (encoded === null) return null;
+      window.sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY);
+      const value = JSON.parse(encoded) as Partial<DashboardHandoff>;
+      if (
+        typeof value.name !== 'string' ||
+        typeof value.main !== 'string' ||
+        !Array.isArray(value.companions) ||
+        value.companions.some(
+          (item) =>
+            typeof item !== 'object' ||
+            item === null ||
+            typeof item.name !== 'string' ||
+            typeof item.text !== 'string',
+        )
+      ) {
+        return null;
+      }
+      return value as DashboardHandoff;
+    } catch {
+      return null;
+    }
+  }
 
   function say(message: string, bad = false) {
     if (!statusEl) return;
@@ -477,7 +513,28 @@ import '../styles/feature-viewer.css';
       }
       api = module;
       fallbackEl?.remove();
-      report(module.agent_viewer_load_demo());
+      const handoff = takeDashboardHandoff();
+      if (handoff === null) {
+        report(module.agent_viewer_load_demo());
+      } else {
+        try {
+          report(
+            module.agent_viewer_load(
+              handoff.name,
+              handoff.main,
+              JSON.stringify(handoff.companions),
+            ),
+          );
+        } catch (error) {
+          report(module.agent_viewer_load_demo());
+          say(
+            `The selected recording was refused (${
+              error instanceof Error ? error.message : 'unknown error'
+            }). The bundled example is open instead.`,
+            true,
+          );
+        }
+      }
     } catch (error) {
       say(
         `The Agent Viewer renderer could not be loaded (${
@@ -485,6 +542,8 @@ import '../styles/feature-viewer.css';
         }). Run pnpm build:wasm.`,
         true,
       );
+    } finally {
+      window.dispatchEvent(new CustomEvent('fleetscope:viewer-ready'));
     }
   }
 

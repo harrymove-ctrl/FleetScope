@@ -41,7 +41,8 @@
     "qa:live": "tsx scripts/qa-live.ts",
     "shots": "tsx scripts/capture-product-shots.ts",
     "qa:landing": "tsx scripts/qa-landing.ts",
-    "demo:google-session": "bash scripts/run-google-session.sh"
+    "demo:google-session": "bash scripts/run-google-session.sh",
+    "demo:cmux": "bash scripts/demo-cmux.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

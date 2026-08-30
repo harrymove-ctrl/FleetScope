@@ -168,4 +168,64 @@ describe('the run driver decides which credentials live mode needs', () => {
     expect(result.value.runs.driver).toBe('mcp');
     expect(JSON.stringify(result.value.runs)).not.toContain('sk-should-be-unused');
   });
+
+  it('accepts the explicit Vertex ADC configuration for the ADK worker without an API key', () => {
+    const result = live({
+      FLEETSCOPE_RUN_DRIVER: 'worker',
+      FLEETSCOPE_RUN_WORKER_MODE: 'adk',
+      FLEETSCOPE_ALLOW_MODEL_CALLS: 'true',
+      GOOGLE_GENAI_USE_VERTEXAI: 'true',
+      GOOGLE_CLOUD_PROJECT: 'demo-project',
+      GOOGLE_CLOUD_LOCATION: 'us-central1',
+      FLEETSCOPE_ADK_MODEL: 'gemini-3.7-flash',
+    });
+    expect(result.ok, result.ok ? '' : result.error.join('; ')).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.runs.workerMode).toBe('adk');
+    expect(result.value.worker.allowModelCalls).toBe(true);
+    expect(result.value.worker.useVertexAi).toBe(true);
+    expect(result.value.gcp).toEqual({ projectId: 'demo-project', region: 'us-central1' });
+    expect(result.value.gemini.model).toBe('gemini-3.7-flash');
+    expect(result.value.gemini.apiKey).toBeNull();
+  });
+
+  it('refuses ADK mode until every live Vertex gate is explicit', () => {
+    const result = live({ FLEETSCOPE_RUN_WORKER_MODE: 'adk' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toEqual(
+      expect.arrayContaining([
+        'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires FLEETSCOPE_ALLOW_MODEL_CALLS=true',
+        'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_GENAI_USE_VERTEXAI=true',
+        'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_CLOUD_PROJECT',
+        'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_CLOUD_LOCATION',
+        'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires FLEETSCOPE_ADK_MODEL or GEMINI_MODEL',
+      ]),
+    );
+  });
+
+  it('refuses a pre-enabled ADK worker while LIVE_MODE is still off', () => {
+    const result = parseConfig({ FLEETSCOPE_RUN_WORKER_MODE: 'adk' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain(
+      'FLEETSCOPE_RUN_WORKER_MODE=adk requires LIVE_MODE=true; keep the worker mode pure while recorded-only',
+    );
+  });
+
+  it('refuses an ADK model below the hackathon Gemini 3.5 floor', () => {
+    const result = live({
+      FLEETSCOPE_RUN_WORKER_MODE: 'adk',
+      FLEETSCOPE_ALLOW_MODEL_CALLS: 'true',
+      GOOGLE_GENAI_USE_VERTEXAI: 'true',
+      GOOGLE_CLOUD_PROJECT: 'demo-project',
+      GOOGLE_CLOUD_LOCATION: 'us-central1',
+      FLEETSCOPE_ADK_MODEL: 'gemini-2.5-flash',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain(
+      'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires a Gemini 3.5+ model id',
+    );
+  });
 });

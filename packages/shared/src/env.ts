@@ -72,6 +72,14 @@ export interface FleetScopeConfig {
      */
     readonly maxModelCallsPerRun: number;
     /**
+     * How the API's own worker executes an admitted run.
+     *
+     * `pure` is the safe default and never imports or invokes Google ADK.
+     * `adk` is an explicit, metered Vertex/Google ADK path and is refused at
+     * boot unless every live prerequisite is present.
+     */
+    readonly workerMode: 'pure' | 'adk';
+    /**
      * Who executes an admitted run.
      *
      * `worker` spawns FleetScope's own Python process. `mcp` waits for the
@@ -103,6 +111,10 @@ export interface FleetScopeConfig {
      * labelled `recorded`, so it cannot make a live claim cheaper.
      */
     readonly offline: boolean;
+    /** Explicit spend authorization for the API-owned ADK worker. */
+    readonly allowModelCalls: boolean;
+    /** Whether the ADK worker should use Vertex AI with ambient ADC. */
+    readonly useVertexAi: boolean;
     /** Where the worker records tool attempts, for idempotency across a restart. */
     readonly attemptLedger: string;
   };
@@ -151,6 +163,27 @@ function parseFloat_(
 const nullable = (raw: string | undefined): string | null =>
   raw === undefined || raw === '' ? null : raw;
 
+const firstNonEmpty = (...values: readonly (string | undefined)[]): string | undefined =>
+  values.find((value) => value !== undefined && value !== '') ?? undefined;
+
+const parseWorkerMode = (raw: string | undefined, problems: string[]): 'pure' | 'adk' => {
+  const value = raw ?? 'pure';
+  if (value !== 'pure' && value !== 'adk') {
+    problems.push(
+      `FLEETSCOPE_RUN_WORKER_MODE must be one of pure | adk, got ${JSON.stringify(value)}`,
+    );
+    return 'pure';
+  }
+  return value;
+};
+
+const isGemini35OrNewer = (model: string): boolean => {
+  const match = /^gemini-(\d+)\.(\d+)-[a-z0-9][a-z0-9.-]*$/.exec(model);
+  return (
+    match !== null && (Number(match[1]) > 3 || (Number(match[1]) === 3 && Number(match[2]) >= 5))
+  );
+};
+
 export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[]> {
   const problems: string[] = [];
 
@@ -176,11 +209,13 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
     port: parseInt_(source['PORT'], 8080, 'PORT', problems),
     logLevel: source['API_LOG_LEVEL'] === 'silent' ? 'silent' : 'info',
     gcp: {
-      projectId: nullable(source['GCP_PROJECT_ID']),
-      region: nullable(source['GCP_REGION']),
+      // Google client libraries use GOOGLE_CLOUD_*; retain the GCP_* aliases
+      // for the existing bounded API path and local tests.
+      projectId: nullable(firstNonEmpty(source['GOOGLE_CLOUD_PROJECT'], source['GCP_PROJECT_ID'])),
+      region: nullable(firstNonEmpty(source['GOOGLE_CLOUD_LOCATION'], source['GCP_REGION'])),
     },
     gemini: {
-      model: nullable(source['GEMINI_MODEL']),
+      model: nullable(firstNonEmpty(source['FLEETSCOPE_ADK_MODEL'], source['GEMINI_MODEL'])),
       apiKey: nullable(source['GEMINI_API_KEY']),
       maxInputTokens: parseInt_(
         source['GEMINI_MAX_INPUT_TOKENS'],
@@ -217,6 +252,7 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
         'FLEETSCOPE_RUN_MAX_MODEL_CALLS',
         problems,
       ),
+      workerMode: parseWorkerMode(source['FLEETSCOPE_RUN_WORKER_MODE'], problems),
       driver: source['FLEETSCOPE_RUN_DRIVER'] === 'mcp' ? 'mcp' : 'worker',
     },
     worker: {
@@ -230,6 +266,8 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
         problems,
       ),
       offline: source['FLEETSCOPE_WORKER_OFFLINE'] === 'true',
+      allowModelCalls: source['FLEETSCOPE_ALLOW_MODEL_CALLS'] === 'true',
+      useVertexAi: source['GOOGLE_GENAI_USE_VERTEXAI'] === 'true',
       attemptLedger: source['FLEETSCOPE_ATTEMPT_LEDGER']?.trim() ?? '',
     },
   };
@@ -239,8 +277,9 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
   //
   // WHICH prerequisites depends on who issues the model call:
   //
-  //   worker  FleetScope runs the agent itself and pays for it, so it must hold
-  //           its own model credential before live mode is allowed at all.
+  //   worker  FleetScope runs the agent itself and pays for it. The ADK worker
+  //           uses Vertex ADC; the legacy direct-decision path still uses its
+  //           API key when called.
   //   mcp     the developer's own Gemini or Antigravity CLI supplies the model
   //           on that CLI's auth. FleetScope never issues a model call on this
   //           path, so demanding a key it will not use would only force an
@@ -249,15 +288,55 @@ export function parseConfig(source: EnvSource): Result<FleetScopeConfig, string[
   //
   // Live mode still gates admission in BOTH drivers: it is what separates a
   // deployment that may start runs from one that may only replay them.
+  if (!config.liveMode && config.runs.workerMode === 'adk') {
+    problems.push(
+      'FLEETSCOPE_RUN_WORKER_MODE=adk requires LIVE_MODE=true; keep the worker mode pure while recorded-only',
+    );
+  }
   if (config.liveMode) {
+    if (config.runs.workerMode === 'adk' && config.runs.driver !== 'worker') {
+      problems.push('FLEETSCOPE_RUN_WORKER_MODE=adk requires FLEETSCOPE_RUN_DRIVER=worker');
+    }
     if (config.runs.driver === 'worker') {
-      if (config.gemini.model === null) {
-        problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_MODEL');
-      }
-      // The message names the VARIABLE, never a value: a config error must not
-      // be the thing that prints a credential into a log.
-      if (config.gemini.apiKey === null) {
-        problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_API_KEY');
+      if (config.runs.workerMode === 'adk') {
+        if (!config.worker.allowModelCalls) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires FLEETSCOPE_ALLOW_MODEL_CALLS=true',
+          );
+        }
+        if (!config.worker.useVertexAi) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_GENAI_USE_VERTEXAI=true',
+          );
+        }
+        if (config.gcp.projectId === null) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_CLOUD_PROJECT',
+          );
+        }
+        if (config.gcp.region === null) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires GOOGLE_CLOUD_LOCATION',
+          );
+        }
+        if (config.gemini.model === null) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires FLEETSCOPE_ADK_MODEL or GEMINI_MODEL',
+          );
+        } else if (!isGemini35OrNewer(config.gemini.model)) {
+          problems.push(
+            'LIVE_MODE=true with FLEETSCOPE_RUN_WORKER_MODE=adk requires a Gemini 3.5+ model id',
+          );
+        }
+      } else {
+        if (config.gemini.model === null) {
+          problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_MODEL');
+        }
+        // The message names the VARIABLE, never a value: a config error must not
+        // be the thing that prints a credential into a log.
+        if (config.gemini.apiKey === null) {
+          problems.push('LIVE_MODE=true with FLEETSCOPE_RUN_DRIVER=worker requires GEMINI_API_KEY');
+        }
       }
     }
     // Independent of the driver: this bounds the separate `/live/decision`

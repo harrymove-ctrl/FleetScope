@@ -31,6 +31,7 @@ needs to answer:
 | Feature | Surface | Status |
 |---|---|---|
 | Open JSONL/JSON file or session folder | CLI and `/viewer` | Implemented |
+| CLI-first example folder and copyable watch command | CLI and `/viewer` | Implemented |
 | Detect Google ADK JSONL | adapter, `--formats` | Implemented |
 | Parent/child agent graph and rail | CLI/browser viewer | Implemented; visual depth is one level |
 | Message, tool, result, error, status inspector | viewer + `inspect` | Implemented |
@@ -58,6 +59,13 @@ launch_readiness
 The default is Vertex AI `gemini-3.7-flash`, satisfying the Gemini 3.5+
 rubric when the provider actually emits that model version. Google ADK is pinned
 at `2.8.0`.
+
+The model is configured by the producer, not selected by the observer UI:
+`--model <id>` or `FLEETSCOPE_ADK_MODEL` controls the ADK run, while `/viewer`
+shows the configured model as provenance and reads the resulting local
+`session.jsonl`. This keeps the web interaction honest: users can copy the CLI
+command, open a file/folder, inspect lanes, and replay; they cannot accidentally
+start a metered model call from the viewer.
 
 The expected call budget is exact: two model turns for each tool-using probe,
 one for `budget_guard`, and one for `launch_reviewer`. The same 2/2/1/1

@@ -7,6 +7,10 @@ fn fixture_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/gemini-multi-agent")
 }
 
+fn example_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/gemini-session")
+}
+
 fn binary() -> PathBuf {
     // `CARGO_BIN_EXE_<name>` is set by cargo for integration tests.
     PathBuf::from(env!("CARGO_BIN_EXE_fleetscope"))
@@ -31,6 +35,14 @@ fn a_directory_resolves_to_the_session_inside_it() {
     let (ok, stdout, stderr) = run(&["inspect", fixture_dir().to_str().unwrap()]);
     assert!(ok, "inspect on a directory failed: {stderr}");
     assert!(stdout.contains("adapter   google-adk@1"), "got: {stdout}");
+}
+
+#[test]
+fn the_checked_in_example_folder_is_loadable_by_cli() {
+    let (ok, stdout, stderr) = run(&["inspect", example_dir().to_str().unwrap()]);
+    assert!(ok, "inspect on examples/gemini-session failed: {stderr}");
+    assert!(stdout.contains("adapter   google-adk@1"), "got: {stdout}");
+    assert!(stdout.contains("flight_search [completed]"), "got: {stdout}");
 }
 
 #[test]

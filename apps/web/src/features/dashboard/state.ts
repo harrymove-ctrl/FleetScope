@@ -72,9 +72,8 @@ const ALL_CONTROLS: readonly ControlId[] = [
 
 export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateContract>> = {
   'first-run': {
-    title: 'Set up your local Agent Viewer',
-    message:
-      'FleetScope reads agent sessions that are already on this machine. It never starts an agent and never uploads a transcript.',
+    title: 'Start with one session',
+    message: 'Choose local files or open the example. FleetScope only reads what you select.',
     tone: 'info',
     primary: { label: 'Check the runtime', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer', href: '/viewer' },
@@ -82,8 +81,8 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
   },
 
   'checking-runtime': {
-    title: 'Checking the local runtime',
-    message: 'Loading the projection runtime this build ships with. Nothing leaves the browser.',
+    title: 'Preparing the viewer',
+    message: 'Checking the local projection runtime. Nothing leaves this browser.',
     tone: 'info',
     // Deliberately no actions while a probe is in flight: offering a button
     // that races the check is how a UI ends up reporting two answers.
@@ -92,9 +91,8 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
   },
 
   'cli-missing': {
-    title: 'The local runtime did not load',
-    message:
-      'The browser build could not start its projection runtime, so this page cannot open a session. The terminal command is unaffected and is the faster path anyway.',
+    title: 'The viewer needs attention',
+    message: 'The browser runtime did not load. Retry here, or use FleetScope from your terminal.',
     tone: 'bad',
     primary: { label: 'Retry the check', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer anyway', href: '/viewer' },
@@ -103,44 +101,40 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
   },
 
   'workspace-required': {
-    title: 'Choose a session to open',
-    message:
-      'The runtime is ready. Pick a session file, or a folder holding its sub-agent files, and it is read here in the browser.',
+    title: 'What would you like to inspect?',
+    message: 'Open a local session, or preview the bundled run first.',
     tone: 'info',
-    primary: { label: 'Choose local files', href: '/viewer' },
-    secondary: { label: 'Open the bundled demo', command: 'load-demo' },
+    primary: { label: 'Choose local session', href: '/viewer' },
+    secondary: { label: 'Preview the example', href: '/viewer' },
     enabled: ALL_CONTROLS,
   },
 
   'adapter-failed': {
-    title: 'That session was not in a format this build reads',
-    message:
-      'Every adapter declined the file. FleetScope refuses a session it cannot place rather than drawing a confident graph of the wrong thing.',
+    title: "This session isn't supported",
+    message: 'Choose another file or folder. FleetScope will not guess an unknown format.',
     tone: 'bad',
     primary: { label: 'Choose a different session', href: '/viewer' },
-    secondary: { label: 'Open the bundled demo', command: 'load-demo' },
+    secondary: { label: 'Preview the example', href: '/viewer' },
     recovery: { label: 'See the formats this build reads', command: 'open-command-menu' },
     enabled: ALL_CONTROLS,
   },
 
   'no-sessions': {
-    title: 'No session found in that folder',
-    message:
-      'The folder held no .jsonl or .json file any adapter recognised. A session is usually a transcript plus a folder of per-agent files beside it.',
+    title: 'No session found',
+    message: 'Choose a folder containing a .jsonl or .json transcript.',
     tone: 'warn',
     primary: { label: 'Choose a different folder', href: '/viewer' },
-    secondary: { label: 'Open the bundled demo', command: 'load-demo' },
+    secondary: { label: 'Preview the example', href: '/viewer' },
     recovery: { label: 'Run fleetscope inspect on the folder', command: 'open-command-menu' },
     enabled: ALL_CONTROLS,
   },
 
   ready: {
-    title: 'Ready to open a session',
-    message:
-      'The runtime is loaded and its adapters are listed below. Open the viewer to follow, replay and inspect a run.',
+    title: 'What would you like to inspect?',
+    message: 'The local viewer is ready. Choose your session or explore the example.',
     tone: 'ok',
-    primary: { label: 'Open Agent Viewer', href: '/viewer' },
-    secondary: { label: 'Open the bundled demo', command: 'load-demo' },
+    primary: { label: 'Choose local session', href: '/viewer' },
+    secondary: { label: 'Preview the example', href: '/viewer' },
     enabled: ALL_CONTROLS,
   },
 };

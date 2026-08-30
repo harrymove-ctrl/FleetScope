@@ -1,0 +1,42 @@
+---
+interface Props {
+  className?: string;
+  facets?: number;
+  density?: number;
+  sweep?: number;
+  accentColor?: string;
+  edgeColor?: string;
+  backgroundColor?: string;
+}
+
+const {
+  className = '',
+  facets = 6,
+  density = 7,
+  sweep = 0.8,
+  accentColor = '#d946ef',
+  edgeColor = '#f0abfc',
+  backgroundColor = 'transparent',
+} = Astro.props;
+
+const safeFacets = Math.max(1, Math.min(12, Math.round(facets)));
+const safeDensity = Math.max(1, Math.min(12, Math.round(density)));
+const panelCount = safeFacets * safeDensity;
+---
+
+<div
+  class:list={['fs-tech-wall', className]}
+  data-tech-wall
+  aria-hidden="true"
+  style={`--tw-facets:${safeFacets};--tw-density:${safeDensity};--tw-sweep:${Math.max(0.1, Math.min(1, sweep))};--tw-accent:${accentColor};--tw-edge:${edgeColor};--tw-background:${backgroundColor}`}
+>
+  <div class="fs-tech-wall__wash"></div>
+  <div class="fs-tech-wall__grid">
+    {
+      Array.from({ length: panelCount }, (_, index) => (
+        <span class="fs-tech-wall__panel" style={`--tw-index:${index}`} />
+      ))
+    }
+  </div>
+  <div class="fs-tech-wall__veil"></div>
+</div>

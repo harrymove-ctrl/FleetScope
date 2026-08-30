@@ -1,0 +1,91 @@
+<div class="dashboard-loader" data-dashboard-loader aria-hidden="true" hidden>
+  <canvas class="dashboard-loader__canvas" data-dashboard-loader-canvas></canvas>
+</div>
+
+<script>
+  import { DashboardSunsetSlam } from '../features/dashboard/sunset-slam';
+
+  const host = document.querySelector<HTMLElement>('[data-dashboard-loader]');
+  const canvas = host?.querySelector<HTMLCanvasElement>('[data-dashboard-loader-canvas]');
+
+  if (host && canvas && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    host.hidden = false;
+    const engine = new DashboardSunsetSlam(canvas);
+    const startedAt = performance.now();
+    const MIN_VISIBLE_MS = 3200;
+    let ready = false;
+    let readyAt = Number.POSITIVE_INFINITY;
+    let exiting = false;
+
+    const finish = (): void => {
+      if (exiting) return;
+      exiting = true;
+      engine.stop();
+      host.classList.add('is-leaving');
+      window.setTimeout(() => {
+        engine.destroy();
+        host.remove();
+      }, 520);
+    };
+
+    const markReady = (): void => {
+      ready = true;
+      readyAt = performance.now();
+    };
+
+    engine.start();
+    canvas.addEventListener('pointerenter', () => engine.setHover(true));
+    canvas.addEventListener('pointerleave', () => engine.setHover(false));
+    window.addEventListener('resize', () => engine.resizeNow(), { passive: true });
+    window.addEventListener('fleetscope:dashboard-ready', markReady, { once: true });
+
+    // The probe has a five-second timeout. This extra second is only a final
+    // guard in case the dashboard script itself cannot emit its completion event.
+    window.setTimeout(() => {
+      if (!ready) markReady();
+    }, 6200);
+
+    const watch = (): void => {
+      if (
+        ready &&
+        performance.now() - startedAt >= MIN_VISIBLE_MS &&
+        performance.now() - readyAt > 420
+      ) {
+        finish();
+        return;
+      }
+      window.requestAnimationFrame(watch);
+    };
+    window.requestAnimationFrame(watch);
+  } else {
+    host?.remove();
+  }
+</script>
+
+<style>
+  .dashboard-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    pointer-events: none;
+    background: #080b16;
+    opacity: 1;
+    transition: opacity 520ms ease;
+  }
+
+  .dashboard-loader.is-leaving {
+    opacity: 0;
+  }
+
+  .dashboard-loader__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard-loader {
+      display: none;
+    }
+  }
+</style>

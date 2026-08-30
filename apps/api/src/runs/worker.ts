@@ -59,6 +59,34 @@ export interface WorkerLauncher {
 
 const SUMMARY_SCHEMA = 'fleetscope.worker.summary.v1';
 
+/**
+ * Build the worker's allowlisted environment without inheriting the API's
+ * process environment. Vertex ADC is ambient (local gcloud credentials or the
+ * Cloud Run service account), so no API key or credential value crosses this
+ * boundary.
+ */
+export function workerEnvironment(config: FleetScopeConfig): Readonly<Record<string, string>> {
+  const adkEnvironment =
+    config.runs.workerMode === 'adk'
+      ? {
+          FLEETSCOPE_ALLOW_MODEL_CALLS: config.worker.allowModelCalls ? 'true' : 'false',
+          FLEETSCOPE_ADK_MODEL: config.gemini.model ?? '',
+          GOOGLE_GENAI_USE_VERTEXAI: config.worker.useVertexAi ? 'true' : 'false',
+          ...(config.gcp.projectId ? { GOOGLE_CLOUD_PROJECT: config.gcp.projectId } : {}),
+          ...(config.gcp.region ? { GOOGLE_CLOUD_LOCATION: config.gcp.region } : {}),
+        }
+      : {};
+
+  return {
+    PYTHONPATH: config.worker.pythonPath,
+    ...adkEnvironment,
+    ...(config.worker.offline ? { FLEETSCOPE_WORKER_OFFLINE: 'true' } : {}),
+    ...(config.worker.attemptLedger === ''
+      ? {}
+      : { FLEETSCOPE_ATTEMPT_LEDGER: config.worker.attemptLedger }),
+  };
+}
+
 /** Splits a byte stream into whole lines and hands each to the sink. */
 function lineReader(onLine: (line: string) => void): (chunk: string) => void {
   let buffered = '';
@@ -84,13 +112,7 @@ export function productionWorkerLauncher(config: FleetScopeConfig): WorkerLaunch
           // model credential; there is no reason for the worker to see it, and
           // an inherited environment is how a secret reaches a process that
           // never needed one.
-          env: {
-            PYTHONPATH: config.worker.pythonPath,
-            ...(config.worker.offline ? { FLEETSCOPE_WORKER_OFFLINE: 'true' } : {}),
-            ...(config.worker.attemptLedger === ''
-              ? {}
-              : { FLEETSCOPE_ATTEMPT_LEDGER: config.worker.attemptLedger }),
-          },
+          env: workerEnvironment(config),
           stdio: ['pipe', 'pipe', 'pipe'],
         });
 

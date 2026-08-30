@@ -112,6 +112,16 @@ export function runRoutes(config: FleetScopeConfig, deps: RunRoutesDependencies)
       durableLedger: deps.durable,
       workerMode: deps.workerMode,
       runDriver: deps.runDriver,
+      // Configuration is useful for an operator preparing a live take, but it
+      // is not execution proof. The run's observed events remain authoritative
+      // for provider model/version claims.
+      configuredModel: config.liveMode ? config.gemini.model : null,
+      framework: deps.workerMode === 'adk' ? 'google-adk' : null,
+      vertexAi: deps.workerMode === 'adk' && config.worker.useVertexAi,
+      googleCloud:
+        config.liveMode && deps.workerMode === 'adk'
+          ? { project: config.gcp.projectId, region: config.gcp.region }
+          : null,
       scenarios: LIVE_SCENARIOS.map((scenario) => ({
         id: scenario.id,
         description: scenario.description,

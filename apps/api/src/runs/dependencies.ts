@@ -53,9 +53,9 @@ export function productionRunDependencies(config: FleetScopeConfig): RunRoutesDe
       },
     }),
     workerTimeoutMs: config.worker.timeoutMs,
-    // `pure` until a live run is explicitly authorised: it executes the whole
-    // scenario, spends nothing, and labels its evidence `recorded`.
-    workerMode: 'pure',
+    // `pure` is the safe default. `adk` is only reachable when the parsed
+    // configuration explicitly enables the metered Vertex/ADK path.
+    workerMode: config.runs.workerMode,
     runDriver: config.runs.driver,
     now: () => new Date().toISOString(),
     newId: (prefix) => `${prefix}-${randomUUID()}`,

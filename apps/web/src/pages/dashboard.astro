@@ -1,8 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PageHeader from '../components/PageHeader.astro';
+import DashboardLoader from '../components/DashboardLoader.astro';
+import TechWall from '../components/TechWall.astro';
 import TerminalWindow from '../components/TerminalWindow.astro';
-import { DASHBOARD_STATES, INITIAL_STATE, SETUP_CHECKS } from '../features/dashboard/state';
+import { DASHBOARD_STATES, INITIAL_STATE } from '../features/dashboard/state';
 import '../styles/feature-dashboard.css';
 
 /**
@@ -13,184 +14,221 @@ import '../styles/feature-dashboard.css';
  * cannot check. Nothing here is a picture of a healthy setup.
  */
 const initial = DASHBOARD_STATES[INITIAL_STATE];
-const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
 ---
 
 <BaseLayout title="Dashboard" surface="feature" theme="adaptive">
+  <DashboardLoader />
   <div class="dashboard-page">
-  <PageHeader
-    title="Dashboard"
-    lede="Connect a local Gemini or Antigravity session, then open Agent Viewer to follow, replay, and inspect every agent."
-  >
-    <a slot="actions" class="fs-button" data-variant="primary" data-control="open-viewer" href="/viewer">Open Agent Viewer</a>
-    <button slot="actions" class="fs-button" type="button" data-control="command-menu" data-command-menu>⌘K Command menu</button>
-  </PageHeader>
+    <TechWall
+      className="fs-dashboard__wall"
+      facets={6}
+      density={7}
+      sweep={0.8}
+      accentColor="#d946ef"
+      edgeColor="#f0abfc"
+    />
+    <header class="fs-dashboard__bar">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Local session observer</p>
+      </div>
+      <button
+        class="fs-dashboard__command-trigger"
+        type="button"
+        data-control="command-menu"
+        data-command-menu
+        aria-label="Open command menu"
+      >
+        <span>Commands</span>
+        <kbd>⌘K</kbd>
+      </button>
+    </header>
 
-  <section
-    class="fs-dashboard__welcome"
-    aria-labelledby="welcome-title"
-    data-state-panel
-    data-state={INITIAL_STATE}
-  >
-    <div>
-      <p class="fs-dashboard__eyebrow" data-state-eyebrow>Local only</p>
-      <h2 id="welcome-title" class="fs-dashboard__title" data-state-title>{initial.title}</h2>
-      <p class="fs-muted" data-state-message>{initial.message}</p>
-      <p class="fs-row fs-dashboard__state-actions">
-        <a class="fs-button" data-variant="primary" data-state-primary href="/viewer">
-          {initial.primary.label}
-        </a>
-        <a class="fs-button fs-button--sm" data-state-secondary href="/viewer" hidden></a>
-        <span class="fs-note" data-state-recovery hidden></span>
-      </p>
-      <!--
-        What was actually checked, in the words of the check. A timeout has to
-        be able to say "the browser did not receive a result in 5 seconds"
-        rather than implying that the CLI is missing, which is a fact this page
-        cannot observe.
-      -->
-      <p class="fs-mono fs-faint fs-dashboard__diagnostics" data-diagnostics hidden></p>
-      <p class="fs-row fs-dashboard__state-actions" data-timeout-actions hidden>
-        <button class="fs-button fs-button--sm" type="button" data-retry-runtime>Retry check</button>
-        <a class="fs-button fs-button--sm" href="/viewer">Choose transcript</a>
-        <a class="fs-button fs-button--sm" href="/cockpit/CASE-1042">Use recorded example</a>
-      </p>
-      <TerminalWindow title="fleetscope / command" class="fs-dashboard__terminal">
-        <span slot="actions">
-          <button
-            type="button"
-            class="fs-button fs-button--sm fs-terminal-window__copy"
-            data-copy-command="fleetscope ~/sessions/my-run --follow"
+    <section
+      class="fs-dashboard__onboarding"
+      aria-labelledby="welcome-title"
+      data-state-panel
+      data-state={INITIAL_STATE}
+      data-tone={initial.tone}
+    >
+      <div class="fs-dashboard__conversation">
+        <p class="fs-dashboard__state-line">
+          <span class="fs-dashboard__state-dot" aria-hidden="true"></span>
+          <span data-state-eyebrow>Getting started</span>
+        </p>
+        <h2 id="welcome-title" data-state-title>{initial.title}</h2>
+        <p class="fs-dashboard__message" data-state-message>{initial.message}</p>
+
+        <div
+          class="fs-dashboard__prompt"
+          data-upload-dropzone
+          aria-label="Choose a local session file or folder"
+        >
+          <input
+            class="fs-dashboard__file-input"
+            data-session-file-input
+            type="file"
+            accept=".jsonl,.json,application/json"
+            multiple
+            tabindex="-1"
+            aria-label="Choose session files"
+          />
+          <input
+            class="fs-dashboard__file-input"
+            data-session-folder-input
+            type="file"
+            multiple
+            tabindex="-1"
+            aria-label="Choose a session folder"
+          />
+          <span class="fs-dashboard__prompt-mark" aria-hidden="true">+</span>
+          <span class="fs-dashboard__prompt-copy">
+            <strong>Session file or folder</strong>
+            <small data-upload-hint>.jsonl or .json · stays in this browser</small>
+          </span>
+          <a
+            class="fs-dashboard__prompt-submit"
+            data-state-primary
+            data-upload-trigger
+            href="/viewer"
           >
-            Copy
-          </button>
-        </span>
-        <code class="fs-dashboard__command">fleetscope ~/sessions/my-run --follow</code>
-      </TerminalWindow>
-    </div>
-    <div class="fs-device-preview" aria-label="FleetScope terminal preview" role="img">
-      <div class="fs-device-preview__screen">
-        <span>$ fleetscope inspect</span>
-        <strong>LOCAL SESSION</strong>
-        <span>● adapter ready</span>
-      </div>
-      <div class="fs-device-preview__slot" aria-hidden="true"></div>
-      <div class="fs-device-preview__base" aria-hidden="true"></div>
-    </div>
-  </section>
-
-  <section class="fs-dashboard__section" aria-labelledby="setup-title">
-    <div class="fs-section-head">
-      <h2 id="setup-title">Onboarding checklist</h2>
-      <!--
-        Counts only what this page actually verified. The two manual checks are
-        reported separately rather than folded into a score, because a browser
-        tab cannot decide them and a number that pretends otherwise is the bug
-        this replaced.
-      -->
-      <span class="fs-section-head__aside" data-setup-summary>
-        0 of {verifiable.length} verified · {SETUP_CHECKS.length - verifiable.length} manual
-      </span>
-    </div>
-    <div class="fs-dashboard__checks">
-      {
-        SETUP_CHECKS.map((check) => (
-          <article class="fs-dashboard__setup-card" data-check={check.id}>
-            <div class="fs-row fs-row--between">
-              <h3>{check.title}</h3>
-              {check.verifiable ? (
-                <span class="fs-status" data-tone="info" data-check-status>
-                  <span class="fs-status__glyph">·</span> Not checked
-                </span>
-              ) : (
-                <span class="fs-status" data-tone="info" data-check-status>
-                  <span class="fs-status__glyph">i</span> Manual
-                </span>
-              )}
-            </div>
-            <p class="fs-muted">{check.description}</p>
-            {check.detail && <code class="fs-dashboard__code">{check.detail}</code>}
-            <span class="fs-mono fs-faint" data-check-detail hidden />
-          </article>
-        ))
-      }
-    </div>
-  </section>
-
-  <div class="fs-dashboard__details">
-    <section class="fs-dashboard__detail" aria-labelledby="sessions-title">
-      <div class="fs-section-head">
-        <h2 id="sessions-title">Sessions</h2>
-        <a class="fs-section-head__aside" href="/viewer">Open a local session</a>
-      </div>
-      <!--
-        Only the bundled recording can be listed. A browser tab cannot
-        enumerate the filesystem, so "recent sessions" would be an invention;
-        local sessions appear when the developer picks them, in the viewer.
-      -->
-      <div class="fs-dashboard__session">
-        <div>
-          <h3 class="fs-title">Gemini multi-agent demo</h3>
-          <p class="fs-muted">
-            <span data-demo-shape>Bundled recording</span> · compiled into this build · no network
-          </p>
+            {initial.primary.label}
+            <span aria-hidden="true">↗</span>
+          </a>
         </div>
-        <a class="fs-button fs-button--sm" href="/viewer">Replay</a>
+
+        <div class="fs-dashboard__suggestions" aria-label="Other ways to start">
+          <a data-state-secondary href="/viewer" hidden></a>
+          <button type="button" data-cli-reveal>Use the CLI</button>
+          <button type="button" data-formats-reveal>Supported inputs</button>
+          <button type="button" data-upload-folder-trigger>Browse a folder</button>
+        </div>
+        <p class="fs-dashboard__upload-feedback" data-upload-feedback role="status" aria-live="polite">
+          Drop a recording here, or choose one to keep going.
+        </p>
+        <section class="fs-dashboard__upload-list" data-upload-list hidden aria-labelledby="upload-list-title">
+          <div class="fs-dashboard__upload-list-head">
+            <h3 id="upload-list-title">Selected files</h3>
+            <span data-upload-count>0 files</span>
+          </div>
+          <ul data-upload-items></ul>
+        </section>
+        <section class="fs-dashboard__approval" data-approval-card hidden aria-labelledby="approval-title">
+          <div class="fs-dashboard__approval-icon" aria-hidden="true">?</div>
+          <div class="fs-dashboard__approval-body">
+            <div class="fs-dashboard__approval-head">
+              <div>
+                <p class="fs-dashboard__approval-eyebrow">Input required</p>
+                <h3 id="approval-title" data-approval-title>Ready to open this session?</h3>
+              </div>
+              <span class="fs-dashboard__approval-status" data-approval-status>Review</span>
+            </div>
+            <p data-approval-copy>FleetScope will read this recording locally and open the Agent Viewer.</p>
+            <div class="fs-dashboard__approval-actions">
+              <button type="button" data-approval-approve>Review session <span aria-hidden="true">→</span></button>
+              <button type="button" data-approval-reselect>Choose another</button>
+            </div>
+          </div>
+        </section>
+        <p class="fs-dashboard__recovery" data-state-recovery hidden></p>
       </div>
-      <p class="fs-note">
-        FleetScope lists no other session because it cannot see your disk from here. Sessions stay on
-        this machine, and replay needs no API key.
-      </p>
+
+      <details class="fs-dashboard__task" data-readiness>
+        <summary>
+          <span>
+            <strong>Viewer readiness</strong>
+            <small>Runtime and session adapters</small>
+          </span>
+          <span class="fs-dashboard__task-summary" data-setup-summary>Checking</span>
+        </summary>
+        <ol>
+          <li data-check="runtime">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Projection runtime</strong><small data-check-detail hidden></small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">·</span> Not checked</span>
+          </li>
+          <li data-check="adapters">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Session adapters</strong><small data-check-detail hidden></small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">·</span> Not checked</span>
+          </li>
+          <li data-check="workspace">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Your session</strong><small>Choose it when you are ready</small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">i</span> Your choice</span>
+          </li>
+        </ol>
+        <p class="fs-dashboard__diagnostics fs-mono" data-diagnostics hidden></p>
+        <div class="fs-dashboard__timeout-actions" data-timeout-actions hidden>
+          <button type="button" data-retry-runtime>Retry check</button>
+          <a href="/viewer">Open viewer</a>
+        </div>
+      </details>
     </section>
 
-    <section class="fs-dashboard__detail" aria-labelledby="live-proof-title">
-      <div class="fs-section-head">
-        <h2 id="live-proof-title">Live proof</h2>
-        <span class="fs-section-head__aside" data-live-proof-state>Recorded path</span>
-      </div>
-      <p class="fs-muted" data-live-proof-detail>
-        This build ships no capability endpoint, so no live run can be offered here. The recorded
-        recovery and the canonical events behind it are bundled and need no network.
-      </p>
-      <p class="fs-row">
-        <a class="fs-button fs-button--sm" href="/cockpit/CASE-1042">See recorded recovery</a>
-      </p>
+    <section class="fs-dashboard__disclosures" aria-label="Setup details">
+      <details data-cli-guide>
+        <summary>
+          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">⌘</span>
+          <span><strong>Use the CLI</strong><small>Follow a running session from your terminal</small></span>
+          <span aria-hidden="true">›</span>
+        </summary>
+        <div class="fs-dashboard__disclosure-body">
+          <p>Point FleetScope at the session your agent already writes.</p>
+          <TerminalWindow title="fleetscope / command" class="fs-dashboard__terminal">
+            <span slot="actions">
+              <button
+                type="button"
+                class="fs-button fs-button--sm fs-terminal-window__copy"
+                data-copy-command="fleetscope ~/sessions/my-run --follow"
+              >
+                Copy
+              </button>
+            </span>
+            <code class="fs-dashboard__command">fleetscope ~/sessions/my-run --follow</code>
+          </TerminalWindow>
+        </div>
+      </details>
+
+      <details data-formats-guide>
+        <summary>
+          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">{ }</span>
+          <span><strong>Supported inputs</strong><small>Formats reported by this build</small></span>
+          <span aria-hidden="true">›</span>
+        </summary>
+        <div class="fs-dashboard__disclosure-body">
+          <ul class="fs-dashboard__sources">
+            <li><code>.jsonl</code><span>Gemini and Google ADK transcripts</span></li>
+            <li><code>.json</code><span>Session recordings</span></li>
+            <li><code>folder</code><span>Parent and sub-agent files together</span></li>
+          </ul>
+          <p class="fs-mono" data-formats-output>Checking adapters…</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">○</span>
+          <span><strong>Privacy boundary</strong><small>Read-only and local by default</small></span>
+          <span aria-hidden="true">›</span>
+        </summary>
+        <div class="fs-dashboard__disclosure-body">
+          <p>FleetScope reads only the files you choose. It does not start an agent, request a key, or upload a transcript.</p>
+        </div>
+      </details>
     </section>
 
-    <section class="fs-dashboard__detail" aria-labelledby="controls-title">
-      <div class="fs-section-head">
-        <h2 id="controls-title">Antigravity controls</h2>
-        <span class="fs-section-head__aside">Viewer shortcuts</span>
+    <div class="fs-dashboard__command-menu" data-command-panel hidden>
+      <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="command-title">
+        <div class="fs-row fs-row--between">
+          <h2 id="command-title">Go somewhere</h2>
+          <button class="fs-button fs-button--sm" type="button" data-command-close>Close</button>
+        </div>
+        <a href="/viewer">Open a local session</a>
+        <a href="/viewer">Preview the bundled run</a>
+        <button type="button" data-command-cli>Copy the CLI command</button>
       </div>
-      <div class="fs-dashboard__controls">
-        <details open>
-          <summary>Observe</summary>
-          <span>Follow live · agent graph · prompt/tool/output detail</span>
-        </details>
-        <details>
-          <summary>Playback</summary>
-          <span>Pause · resume · replay speed · timeline scrubber</span>
-        </details>
-        <details>
-          <summary>Safety</summary>
-          <span>Local-only reads · redacted reasoning · no run controls</span>
-        </details>
-      </div>
-    </section>
-  </div>
-
-  <div class="fs-dashboard__command-menu" data-command-panel hidden>
-    <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="command-title">
-      <div class="fs-row fs-row--between">
-        <h2 id="command-title">Command menu</h2>
-        <button class="fs-button fs-button--sm" type="button" data-command-close>Close</button>
-      </div>
-      <a href="/viewer">Open Agent Viewer</a>
-      <a href="/viewer">Follow latest local session</a>
-      <a href="/viewer">Replay bundled demo</a>
-      <a href="/cases">Open legacy Case workspace</a>
     </div>
-  </div>
   </div>
 </BaseLayout>
 
@@ -200,6 +238,13 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
     deriveDashboardState,
     type Probe,
   } from '../features/dashboard/state';
+  import {
+    companionName,
+    filePath,
+    isReadableSession,
+    pickMainFile,
+    type DashboardHandoff,
+  } from '../features/dashboard/upload';
 
   /**
    * Probe what this page can actually reach, then render the derived state.
@@ -230,6 +275,45 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
   const primaryEl = document.querySelector('[data-state-primary]') as HTMLAnchorElement | null;
   const secondaryEl = document.querySelector('[data-state-secondary]') as HTMLAnchorElement | null;
   const recoveryEl = document.querySelector('[data-state-recovery]') as HTMLElement | null;
+  const readinessEl = document.querySelector('[data-readiness]') as HTMLDetailsElement | null;
+  const uploadDropzone = document.querySelector('[data-upload-dropzone]') as HTMLElement | null;
+  const uploadInput = document.querySelector('[data-session-file-input]') as HTMLInputElement | null;
+  const folderInput = document.querySelector('[data-session-folder-input]') as HTMLInputElement | null;
+  const uploadListEl = document.querySelector('[data-upload-list]') as HTMLElement | null;
+  const uploadItemsEl = document.querySelector('[data-upload-items]') as HTMLUListElement | null;
+  const uploadCountEl = document.querySelector('[data-upload-count]') as HTMLElement | null;
+  const uploadFeedbackEl = document.querySelector('[data-upload-feedback]') as HTMLElement | null;
+  const uploadHintEl = document.querySelector('[data-upload-hint]') as HTMLElement | null;
+  const approvalEl = document.querySelector('[data-approval-card]') as HTMLElement | null;
+  const approvalTitleEl = document.querySelector('[data-approval-title]') as HTMLElement | null;
+  const approvalStatusEl = document.querySelector('[data-approval-status]') as HTMLElement | null;
+  const approvalCopyEl = document.querySelector('[data-approval-copy]') as HTMLElement | null;
+  const approvalApproveEl = document.querySelector('[data-approval-approve]') as HTMLButtonElement | null;
+  const approvalReselectEl = document.querySelector('[data-approval-reselect]') as HTMLButtonElement | null;
+
+  const DASHBOARD_HANDOFF_KEY = 'fleetscope:dashboard-upload';
+  const MAX_UPLOAD_FILES = 8;
+  const MAX_HANDOFF_BYTES = 8 * 1024 * 1024;
+  type UploadItem = {
+    readonly id: string;
+    readonly file: File;
+    state: 'uploading' | 'complete' | 'failed';
+    text?: string;
+    error?: string;
+  };
+  let uploadItems: UploadItem[] = [];
+  let handoffReady = false;
+  let uploadRun = 0;
+
+  const STATE_LABELS = {
+    'first-run': 'Getting started',
+    'checking-runtime': 'Preparing viewer',
+    'cli-missing': 'Runtime check failed',
+    'workspace-required': 'Viewer ready',
+    'adapter-failed': 'Input refused',
+    'no-sessions': 'No input found',
+    ready: 'Viewer ready',
+  } as const;
 
   function applyAction(el: HTMLAnchorElement | null, action?: { label: string; href?: string }) {
     if (el === null) return;
@@ -250,11 +334,15 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
     const contract = DASHBOARD_STATES[state];
     panelEl?.setAttribute('data-state', state);
     panelEl?.setAttribute('data-tone', contract.tone);
-    if (eyebrowEl !== null) eyebrowEl.textContent = state.replace(/-/g, ' ');
+    if (eyebrowEl !== null) eyebrowEl.textContent = STATE_LABELS[state];
     if (titleEl !== null) titleEl.textContent = contract.title;
     if (messageEl !== null) messageEl.textContent = contract.message;
     applyAction(primaryEl, contract.primary);
     applyAction(secondaryEl, contract.secondary);
+    primaryEl?.setAttribute('aria-disabled', String(state === 'checking-runtime'));
+    if (readinessEl !== null && (contract.tone === 'bad' || contract.tone === 'warn')) {
+      readinessEl.open = true;
+    }
     if (recoveryEl !== null) {
       recoveryEl.hidden = contract.recovery === undefined;
       recoveryEl.textContent = contract.recovery?.label ?? '';
@@ -291,17 +379,26 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
 
   function updateSummary() {
     const cards = Array.from(document.querySelectorAll('[data-check]'));
-    const checkable = cards.filter(
-      (card) => card.querySelector('[data-check-status]')?.textContent?.includes('Manual') !== true,
-    );
+    const checkable = cards.filter((card) => card.getAttribute('data-check') !== 'workspace');
     const verified = checkable.filter(
       (card) => card.querySelector('[data-check-status]')?.getAttribute('data-tone') === 'ok',
     );
+    const failed = checkable.some(
+      (card) => card.querySelector('[data-check-status]')?.getAttribute('data-tone') === 'bad',
+    );
+    const pending = checkable.some((card) =>
+      card.querySelector('[data-check-status]')?.textContent?.includes('Checking'),
+    );
     const summary = document.querySelector('[data-setup-summary]');
     if (summary !== null) {
-      summary.textContent = `${verified.length} of ${checkable.length} verified · ${
-        cards.length - checkable.length
-      } manual`;
+      summary.textContent = failed
+        ? 'Needs attention'
+        : pending
+          ? 'Checking'
+          : verified.length === checkable.length
+            ? 'Ready'
+            : `${verified.length}/${checkable.length} ready`;
+      summary.setAttribute('data-tone', failed ? 'bad' : verified.length === checkable.length ? 'ok' : 'info');
     }
   }
 
@@ -385,18 +482,10 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
       formats = reported.map((format) => format.id);
       setCheck('runtime', 'ok', '✓', 'Loaded');
       setCheck('adapters', 'ok', '✓', `${reported.length} formats`, formats.join(' · '));
+      const formatsOutput = document.querySelector('[data-formats-output]');
+      if (formatsOutput !== null) formatsOutput.textContent = formats.join(' · ');
 
-      // Report the demo's real shape rather than a number typed into the page.
-      const status = JSON.parse((runtime.agent_viewer_load_demo as () => string)()) as {
-        agents: number;
-        events: number;
-      };
-      openedSession = true;
       setDiagnostics(`probe=wasm · result=loaded · formats=${formats.length}`);
-      const shape = document.querySelector('[data-demo-shape]');
-      if (shape !== null) {
-        shape.textContent = `${status.agents} agents · ${status.events} events · bundled recording`;
-      }
     } catch (error) {
       runtimeLoaded = false;
       const message = error instanceof Error ? error.message : String(error);
@@ -414,9 +503,224 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
       );
     }
     render();
+    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-ready'));
   }
 
+  function setUploadFeedback(message: string, tone: 'info' | 'ok' | 'bad' = 'info') {
+    if (uploadFeedbackEl === null) return;
+    uploadFeedbackEl.textContent = message;
+    uploadFeedbackEl.dataset.tone = tone;
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function renderUploadItems() {
+    if (uploadListEl === null || uploadItemsEl === null) return;
+    uploadListEl.hidden = uploadItems.length === 0;
+    if (uploadCountEl !== null) {
+      uploadCountEl.textContent = `${uploadItems.length} file${uploadItems.length === 1 ? '' : 's'}`;
+    }
+    uploadItemsEl.replaceChildren();
+    for (const item of uploadItems) {
+      const row = document.createElement('li');
+      row.className = 'fs-dashboard__upload-row';
+      row.dataset.uploadItem = item.id;
+      row.dataset.uploadState = item.state;
+
+      const icon = document.createElement('span');
+      icon.className = 'fs-dashboard__upload-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = item.file.type.startsWith('image/') ? '▧' : '{ }';
+
+      const copy = document.createElement('span');
+      copy.className = 'fs-dashboard__upload-copy';
+      const name = document.createElement('strong');
+      name.textContent = filePath(item.file);
+      const size = document.createElement('small');
+      size.textContent = formatFileSize(item.file.size);
+      copy.append(name, size);
+
+      const status = document.createElement('span');
+      status.className = 'fs-dashboard__upload-state';
+      status.textContent =
+        item.state === 'uploading'
+          ? 'Reading…'
+          : item.state === 'complete'
+            ? 'Ready'
+            : item.error ?? 'Could not read';
+
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'fs-dashboard__upload-action';
+      action.dataset.uploadAction = item.state === 'failed' ? 'retry' : 'remove';
+      action.dataset.uploadId = item.id;
+      action.setAttribute('aria-label', item.state === 'failed' ? `Retry ${filePath(item.file)}` : `Remove ${filePath(item.file)}`);
+      action.textContent = item.state === 'failed' ? 'Retry' : '×';
+      row.append(icon, copy, status, action);
+      uploadItemsEl.append(row);
+    }
+  }
+
+  function setApproval(status: 'pending' | 'approved' | 'rejected', copy?: string) {
+    if (approvalEl === null) return;
+    approvalEl.hidden = status === 'rejected';
+    approvalEl.dataset.approvalState = status;
+    if (approvalStatusEl !== null) {
+      approvalStatusEl.textContent = status === 'approved' ? 'Approved' : 'Review';
+    }
+    if (approvalTitleEl !== null) {
+      approvalTitleEl.textContent = status === 'approved' ? 'Opening your session…' : 'Ready to open this session?';
+    }
+    if (approvalCopyEl !== null && copy !== undefined) approvalCopyEl.textContent = copy;
+    if (approvalApproveEl !== null) approvalApproveEl.disabled = status === 'approved';
+    if (approvalReselectEl !== null) approvalReselectEl.disabled = status === 'approved';
+  }
+
+  function clearUploadState() {
+    uploadRun += 1;
+    uploadItems = [];
+    handoffReady = false;
+    renderUploadItems();
+    setApproval('rejected');
+    setUploadFeedback('Drop a recording here, or choose one to keep going.');
+    if (uploadHintEl !== null) uploadHintEl.textContent = '.jsonl or .json · stays in this browser';
+    if (uploadInput !== null) uploadInput.value = '';
+    if (folderInput !== null) folderInput.value = '';
+    try {
+      sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY);
+    } catch {
+      /* Storage is optional; the viewer remains available as a direct path. */
+    }
+  }
+
+  function openFilePicker(folder = false) {
+    (folder ? folderInput : uploadInput)?.click();
+  }
+
+  async function addUploadFiles(incoming: File[]) {
+    const files = incoming.slice(0, MAX_UPLOAD_FILES);
+    if (files.length === 0) return;
+    const run = ++uploadRun;
+    handoffReady = false;
+    setApproval('rejected');
+    uploadItems = files.map((file, index) => ({
+      id: `${run}-${index}-${file.name}`,
+      file,
+      state: isReadableSession(file.name) ? 'uploading' : 'failed',
+      error: isReadableSession(file.name) ? undefined : 'Unsupported format',
+    }));
+    renderUploadItems();
+    setUploadFeedback('Checking the files you chose…');
+
+    const readableItems = uploadItems.filter((item) => item.state === 'uploading');
+    await Promise.all(
+      readableItems.map(async (item) => {
+        try {
+          item.text = await item.file.text();
+          item.state = 'complete';
+        } catch {
+          item.state = 'failed';
+          item.error = 'Could not read';
+        }
+      }),
+    );
+    if (run !== uploadRun) return;
+    renderUploadItems();
+
+    const main = pickMainFile(files);
+    const mainItem = main === null ? null : uploadItems.find((item) => item.file === main);
+    if (main === null || mainItem?.state !== 'complete' || mainItem.text === undefined) {
+      setUploadFeedback('Choose a .jsonl or .json recording to continue.', 'bad');
+      return;
+    }
+
+    const companions = uploadItems
+      .filter((item) => item.file !== main && item.state === 'complete' && item.text !== undefined)
+      .map((item) => ({ name: companionName(item.file, main), text: item.text! }));
+    const handoff: DashboardHandoff = {
+      name: main.name,
+      main: mainItem.text,
+      companions,
+      createdAt: Date.now(),
+    };
+    const encoded = JSON.stringify(handoff);
+    if (new Blob([encoded]).size > MAX_HANDOFF_BYTES) {
+      setUploadFeedback('This recording is larger than the browser handoff limit. Open Viewer and choose it there.', 'bad');
+      return;
+    }
+    try {
+      sessionStorage.setItem(DASHBOARD_HANDOFF_KEY, encoded);
+      handoffReady = true;
+      setUploadFeedback(`${uploadItems.filter((item) => item.state === 'complete').length} file${uploadItems.filter((item) => item.state === 'complete').length === 1 ? '' : 's'} ready for review.`, 'ok');
+      if (uploadHintEl !== null) uploadHintEl.textContent = 'Local only · nothing is uploaded';
+      setApproval('pending');
+    } catch {
+      setUploadFeedback('The browser could not hold this recording. Open Viewer and choose it there.', 'bad');
+    }
+  }
+
+  uploadInput?.addEventListener('change', () => {
+    void addUploadFiles(Array.from(uploadInput.files ?? []));
+    uploadInput.value = '';
+  });
+  folderInput?.setAttribute('webkitdirectory', '');
+  folderInput?.setAttribute('directory', '');
+  folderInput?.addEventListener('change', () => {
+    void addUploadFiles(Array.from(folderInput.files ?? []));
+    folderInput.value = '';
+  });
+  uploadDropzone?.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    uploadDropzone.dataset.dragging = 'true';
+  });
+  uploadDropzone?.addEventListener('dragleave', () => {
+    uploadDropzone.dataset.dragging = 'false';
+  });
+  uploadDropzone?.addEventListener('drop', (event) => {
+    event.preventDefault();
+    uploadDropzone.dataset.dragging = 'false';
+    void addUploadFiles(Array.from(event.dataTransfer?.files ?? []));
+  });
+  document.querySelector('[data-upload-trigger]')?.addEventListener('click', (event) => {
+    const state = deriveDashboardState(currentProbe());
+    if (state === 'workspace-required' || state === 'ready') {
+      event.preventDefault();
+      openFilePicker();
+    }
+  });
+  document.querySelector('[data-upload-folder-trigger]')?.addEventListener('click', () => openFilePicker(true));
+  uploadItemsEl?.addEventListener('click', (event) => {
+    const action = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-upload-action]');
+    if (action === null) return;
+    const id = action.dataset.uploadId;
+    const item = uploadItems.find((entry) => entry.id === id);
+    if (item === undefined) return;
+    if (action.dataset.uploadAction === 'retry') {
+      void addUploadFiles([item.file]);
+      return;
+    }
+    const remaining = uploadItems.filter((entry) => entry.id !== id).map((entry) => entry.file);
+    if (remaining.length === 0) clearUploadState();
+    else void addUploadFiles(remaining);
+  });
+  approvalApproveEl?.addEventListener('click', () => {
+    if (!handoffReady) return;
+    setApproval('approved', 'Opening the local recording in Agent Viewer.');
+    window.setTimeout(() => {
+      window.location.assign('/viewer');
+    }, 180);
+  });
+  approvalReselectEl?.addEventListener('click', clearUploadState);
+
   document.querySelector('[data-state-primary]')?.addEventListener('click', (event) => {
+    if (primaryEl?.getAttribute('aria-disabled') === 'true') {
+      event.preventDefault();
+      return;
+    }
     const contract = DASHBOARD_STATES[deriveDashboardState(currentProbe())];
     if (contract.primary.href === undefined) {
       event.preventDefault();
@@ -437,9 +741,7 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
   });
   void checkRuntime();
   document.querySelector('[data-command-close]')?.addEventListener('click', close);
-  document.querySelector('[data-copy-command]')?.addEventListener('click', async (event) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    const value = button.dataset['copyCommand'] ?? '';
+  async function copyCommand(button: HTMLButtonElement, value: string) {
     if (value === '') return;
     try {
       await navigator.clipboard.writeText(value);
@@ -461,7 +763,26 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
     window.setTimeout(() => {
       button.textContent = previous;
     }, 1400);
+  }
+  document.querySelector('[data-copy-command]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    void copyCommand(button, button.dataset['copyCommand'] ?? '');
   });
+  document.querySelector('[data-command-cli]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    void copyCommand(button, 'fleetscope ~/sessions/my-run --follow');
+  });
+
+  function reveal(details: HTMLDetailsElement | null) {
+    if (details === null) return;
+    details.open = true;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    details.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  }
+  const cliGuide = document.querySelector('[data-cli-guide]') as HTMLDetailsElement | null;
+  const formatsGuide = document.querySelector('[data-formats-guide]') as HTMLDetailsElement | null;
+  document.querySelector('[data-cli-reveal]')?.addEventListener('click', () => reveal(cliGuide));
+  document.querySelector('[data-formats-reveal]')?.addEventListener('click', () => reveal(formatsGuide));
   panel?.addEventListener('click', (event) => {
     if (event.target === panel) close();
   });

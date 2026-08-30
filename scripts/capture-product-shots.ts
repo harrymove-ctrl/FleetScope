@@ -65,7 +65,9 @@ const SHOTS: readonly Shot[] = [
     path: '/dashboard',
     prepare: async (page) => {
       await page.waitForFunction(
-        () => document.querySelector('[data-state-panel]')?.getAttribute('data-state') === 'ready',
+        () =>
+          document.querySelector('[data-state-panel]')?.getAttribute('data-state') ===
+          'workspace-required',
         undefined,
         { timeout: 15_000 },
       );

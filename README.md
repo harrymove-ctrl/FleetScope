@@ -17,6 +17,30 @@ cargo run -p fleetscope-cli --bin fleetscope -- \
   crates/fleetscope-cli/tests/fixtures/gemini-multi-agent --follow
 ```
 
+For the copy-paste demo, use the checked-in example folder:
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow
+```
+
+The CLI is the demo entry point. It reads the local `session.jsonl`, renders
+the graph in the terminal, and never starts Gemini. The browser is an optional
+second view of the same file; use `/viewer/` → **Open folder…** when you want
+the graph and Inspector instead of the TUI.
+
+For a cmux three-pane demo (Antigravity plan mode, native TUI, and browser
+Viewer), run:
+
+```bash
+pnpm demo:cmux
+```
+
+The Antigravity pane uses `gemini-3.7-flash-low` by default. The TUI and browser
+panes use the same checked-in recording so the demo is repeatable and free.
+Antigravity's private conversation database is not a supported FleetScope input
+format; the Google ADK JSONL producer remains the path for a real multi-agent
+session.
+
 ```text
 fleetscope <path>                    open/replay a session
 fleetscope <path> --follow           park at the live edge and tail the file
@@ -37,9 +61,10 @@ pnpm build:wasm
 pnpm dev
 ```
 
-Open [http://localhost:4321/viewer/](http://localhost:4321/viewer/). Load the
-bundled demo, drop a JSONL file, or choose a session folder. Local files are
-read in the browser and are not uploaded.
+Open [http://localhost:4321/viewer/](http://localhost:4321/viewer/). Copy the
+CLI command shown at the top, then drop the generated JSONL file or choose its
+session folder. The **Preview example** button is only a no-setup fallback;
+local files are read in the browser and are not uploaded.
 
 ## What is implemented
 
@@ -137,6 +162,26 @@ proposal, not to the Session Observer.
 Local tests and recorded fixtures cost USD 0. Use the available Google Cloud
 credit only for one bounded provider-backed take and deployment validation.
 
+### API container smoke (recorded-only)
+
+The Cloud Run image bundles the Node API, the pinned Python ADK worker, and the
+run ledger. It is safe by default: `LIVE_MODE=false`, `workerMode=pure`, and
+the pure worker uses an offline fixture.
+
+```bash
+docker build -f apps/api/Dockerfile -t fleetscope-api:local .
+docker run --rm -p 8080:8080 fleetscope-api:local
+curl -sS http://127.0.0.1:8080/health
+curl -sS http://127.0.0.1:8080/runs/capability
+```
+
+The image must not be switched to ADK/Vertex mode until the frontend and local
+flow are verified. The live deployment requires all of `LIVE_MODE=true`,
+`FLEETSCOPE_RUN_WORKER_MODE=adk`, `FLEETSCOPE_ALLOW_MODEL_CALLS=true`,
+`GOOGLE_GENAI_USE_VERTEXAI=true`, and valid Google Cloud project/region values;
+ADC comes from the operator's local credential or the Cloud Run service
+account, never from a checked-in key.
+
 ## Verification
 
 Run the full local checks:
@@ -148,10 +193,10 @@ PYTHONPATH=apps/adk-worker/src apps/adk-worker/.venv/bin/python -m pytest apps/a
 git diff --check
 ```
 
-Current local status (2026-08-30): TypeScript/Astro checks, Vitest (503 passed,
-1 skipped), Rust workspace tests, Python worker tests (167 passed), WASM check
-and build, formatting, lint, docs links, and launchpad browser QA (all five
-viewports) pass. Deep viewer Playwright QA still needs a normal desktop run:
+Current local status (2026-08-30): TypeScript/Astro checks, the full Vitest
+suite, Rust workspace tests, Python worker tests, WASM check and build,
+formatting, lint, docs links, and launchpad browser QA (all five viewports)
+pass. Deep viewer Playwright QA still needs a normal desktop run:
 the escalated process opened browser IPC but produced no output for 90 seconds
 and was stopped; do not present that gate as passed.
 

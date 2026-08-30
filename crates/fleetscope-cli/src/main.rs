@@ -72,7 +72,7 @@ enum Command {
 }
 
 /// Where the local viewer is served during development.
-const DEFAULT_DEMO_URL: &str = "http://localhost:4321/viewer";
+const DEFAULT_DEMO_URL: &str = "http://localhost:59541/viewer";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();

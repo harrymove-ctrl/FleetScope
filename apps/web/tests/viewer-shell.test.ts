@@ -14,6 +14,7 @@ import {
   type GraphNode,
   type Snapshot,
 } from '../src/features/viewer/shell';
+import { workflowLanes } from '../src/features/viewer/workflows';
 
 /**
  * The shell renders what the ABI decided. These tests cover the arrangement it
@@ -101,6 +102,57 @@ describe('the agent rail', () => {
         .map((row) => row.id)
         .sort(),
     ).toEqual(['a', 'b']);
+  });
+});
+
+describe('the workflow board', () => {
+  it('keeps parent-first lanes and uses recorded counts', () => {
+    const lanes = workflowLanes(agents, [
+      {
+        sequence: 0,
+        agentId: 'coordinator',
+        timestamp: '2026-08-28T09:00:00.000Z',
+        kind: 'prompt',
+        label: 'Plan the work',
+        isError: false,
+        callId: null,
+      },
+      {
+        sequence: 1,
+        agentId: 'coordinator/hotel_search',
+        timestamp: '2026-08-28T09:00:01.000Z',
+        kind: 'tool_call',
+        label: 'search_hotels',
+        isError: false,
+        callId: 'call-1',
+      },
+      {
+        sequence: 2,
+        agentId: 'coordinator/hotel_search',
+        timestamp: '2026-08-28T09:00:02.000Z',
+        kind: 'tool_result',
+        label: 'search_hotels error',
+        isError: true,
+        callId: 'call-1',
+      },
+    ]);
+
+    expect(lanes.map((lane) => lane.id)).toEqual([
+      'coordinator',
+      'coordinator/hotel_search',
+      'coordinator/quiet',
+    ]);
+    expect(lanes[0]?.role).toBe('orchestrator');
+    expect(lanes[1]?.parentLabel).toBe('coordinator');
+    expect(lanes[1]?.toolCount).toBe(2);
+    expect(lanes[1]?.statusLabel).toBe('failed');
+    expect(lanes[2]?.statusLabel).toBe('no terminal event');
+  });
+
+  it('does not invent activity for an agent without events', () => {
+    const lanes = workflowLanes(agents, []);
+    expect(lanes.find((lane) => lane.id === 'coordinator/quiet')?.activity).toEqual([]);
+    expect(lanes.find((lane) => lane.id === 'coordinator/quiet')?.lastEvent).toBeNull();
   });
 });
 

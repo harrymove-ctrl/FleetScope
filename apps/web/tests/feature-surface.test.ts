@@ -5,7 +5,11 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string): string => readFileSync(join(process.cwd(), path), 'utf8');
 
 const viewer = read('apps/web/src/pages/viewer.astro');
+const viewerLoader = read('apps/web/src/components/ViewerLoader.astro');
+const viewerLoaderParams = read('apps/web/src/features/viewer/wild-type/params.ts');
+const viewerLoaderEngine = read('apps/web/src/features/viewer/wild-type/engine.ts');
 const dashboard = read('apps/web/src/pages/dashboard.astro');
+const techWall = read('apps/web/src/components/TechWall.astro');
 const dashboardLoader = read('apps/web/src/components/DashboardLoader.astro');
 const dashboardLoaderEngine = read('apps/web/src/features/dashboard/sunset-slam.ts');
 const index = read('apps/web/src/pages/index.astro');
@@ -66,12 +70,46 @@ describe('the feature-detail visual surface', () => {
     }
   });
 
-  it('uses hairline data rows instead of nested setup cards', () => {
-    expect(dashboard).toContain('class="fs-dashboard__setup-card"');
-    expect(dashboard).not.toContain('class="fs-card fs-dashboard__setup-card"');
-    expect(dashboardStyles).toContain('.fs-dashboard__checks');
+  it('uses AI-style onboarding primitives with progressive disclosure', () => {
+    expect(dashboard).toContain('class="fs-dashboard__prompt"');
+    expect(dashboard).toContain('class="fs-dashboard__suggestions"');
+    expect(dashboard).toContain('class="fs-dashboard__task"');
+    expect(dashboard).toContain('class="fs-dashboard__disclosures"');
+    expect(dashboard).not.toContain('class="fs-dashboard__setup-card"');
+    expect(dashboardStyles).toContain('.fs-dashboard__prompt');
+    expect(dashboardStyles).toContain('.fs-dashboard__task');
     expect(viewerStyles).toContain('.viewer-inspector dt');
     expect(viewerStyles).toContain('.viewer-inspector dd');
+  });
+
+  it('guides the first session through upload and human review', () => {
+    expect(dashboard).toContain('data-upload-dropzone');
+    expect(dashboard).toContain('data-session-file-input');
+    expect(dashboard).toContain('data-upload-list');
+    expect(dashboard).toContain('data-approval-card');
+    expect(dashboard).toContain('data-approval-approve');
+    expect(dashboard).toContain("sessionStorage.setItem(DASHBOARD_HANDOFF_KEY");
+    expect(viewer).toContain('takeDashboardHandoff');
+    expect(viewer).toContain("window.sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY)");
+  });
+
+  it('uses a bounded native Tech Wall behind the onboarding flow', () => {
+    expect(dashboard).toContain("import TechWall from '../components/TechWall.astro'");
+    expect(dashboard).toContain('className="fs-dashboard__wall"');
+    expect(dashboard).toContain('facets={6}');
+    expect(dashboard).toContain('density={7}');
+    expect(dashboard).toContain('sweep={0.8}');
+    expect(techWall).toContain('data-tech-wall');
+    expect(dashboardStyles).toContain('@keyframes fs-tech-wall-sweep');
+    expect(dashboardStyles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(dashboardStyles).not.toContain('animation-iteration-count: infinite');
+  });
+
+  it('uses the Apple-like single-face display scale on Dashboard', () => {
+    expect(dashboardStyles).toContain("'SF Pro Display'");
+    expect(dashboardStyles).toContain('font-size: clamp(48px, 6vw, 88px)');
+    expect(dashboardStyles).toContain('font-weight: 600');
+    expect(dashboardStyles).not.toContain('font-weight: 700');
   });
 
   it('keeps the workflow board and style switcher on the viewer surface', () => {
@@ -99,8 +137,20 @@ describe('the feature-detail visual surface', () => {
     expect(dashboardLoaderEngine).not.toContain("'sunset'");
   });
 
+  it('mounts the measured wild-type loader only on Agent Viewer', () => {
+    expect(viewer).toContain("import ViewerLoader from '../components/ViewerLoader.astro'");
+    expect(viewer).toContain('<ViewerLoader />');
+    expect(viewer).toContain('fleetscope:viewer-ready');
+    expect(dashboard).not.toContain('<ViewerLoader />');
+    expect(viewerLoader).toContain('MIN_VISIBLE_MS = 3500');
+    expect(viewerLoader).toContain('prefers-reduced-motion: reduce');
+    expect(viewerLoaderEngine).toContain('export class WildType');
+    expect(viewerLoaderParams).toContain('"agents", "tasks", "tools", "proof"');
+  });
+
   it('makes the CLI-first producer and model contract visible on the viewer', () => {
     expect(viewer).toContain('data-cli-copy');
+    expect(viewer).toContain('pnpm demo:cmux');
     expect(viewer).toContain('data-cli-command');
     expect(viewer).toContain('Google ADK 2.8.0');
     expect(viewer).toContain('gemini-3.7-flash');

@@ -24,6 +24,24 @@ pnpm demo:google-session -- \
   --bucket fleetscope-sessions-demo
 ```
 
+## Flow 0 — Run the checked-in example from the CLI
+
+```text
+operator runs the example folder
+  → fleetscope discovers examples/gemini-session/session.jsonl
+  → Google ADK adapter parses the recording
+  → native TUI renders the same graph used by the browser
+```
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow
+cargo run -p fleetscope-cli --bin fleetscope -- inspect examples/gemini-session
+```
+
+This is the recommended first demo: it needs no model, credentials, network,
+or web button. The browser `/viewer/` is an optional visual companion and can
+open the same folder with **Open folder…**.
+
 ## Flow 2 — Watch one real session
 
 ```text
