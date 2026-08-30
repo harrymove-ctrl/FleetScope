@@ -244,8 +244,10 @@ impl ViewerManifest {
 ///
 /// The sequence travels in the line's `uuid`, stamped by the wire emitter. It
 /// is READ BACK here rather than inferred from position, which is what makes
-/// this a recorded mapping instead of an assumption about ordering.
-fn sequence_of(entry: &Entry) -> Option<u64> {
+/// this a recorded mapping instead of an assumption about ordering. Public so
+/// pairing can map a live timeline item after the initial fold (the stored
+/// manifest does not grow with follow appends).
+pub fn sequence_of(entry: &Entry) -> Option<u64> {
     let uuid = match entry {
         Entry::Assistant(assistant) => assistant.envelope.uuid.as_deref(),
         Entry::User(user) => user.envelope.uuid.as_deref(),

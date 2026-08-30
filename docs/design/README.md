@@ -7,6 +7,8 @@ surface owns, and which contracts an implementation must preserve.
 
 - [Session Observer](session-observer.md) — current projection, graph,
   follow/replay, metadata, redaction, and safety design.
+- [Paired Agent Viewer](paired-viewers.md) — TUI + `/viewer` usage,
+  fullscreen, why the TUI felt unusable, and view-state pairing.
 - [Google hackathon runtime](hackathon-runtime.md) — active launch-readiness
   producer architecture and live runbook.
 - [Frontend experience](fleetscope-frontend-experience.md) — canonical public

@@ -93,7 +93,8 @@ Terminal 1:
 ```bash
 export GOOGLE_GENAI_USE_VERTEXAI=true
 export GOOGLE_CLOUD_PROJECT=<project-id>
-export GOOGLE_CLOUD_LOCATION=us-central1
+export GOOGLE_CLOUD_LOCATION=global
+export FLEETSCOPE_CLOUD_RUN_LOCATION=us-central1
 export FLEETSCOPE_CLOUD_RUN_SERVICE=<service-name>
 export FLEETSCOPE_SESSION_BUCKET=<bucket-name>
 export FLEETSCOPE_ALLOW_MODEL_CALLS=true

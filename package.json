@@ -42,6 +42,7 @@
     "shots": "tsx scripts/capture-product-shots.ts",
     "qa:landing": "tsx scripts/qa-landing.ts",
     "demo:google-session": "bash scripts/run-google-session.sh",
+    "demo:antigravity": "bash scripts/demo-antigravity.sh",
     "demo:cmux": "bash scripts/demo-cmux.sh"
   },
   "devDependencies": {

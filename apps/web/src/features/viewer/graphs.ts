@@ -229,12 +229,89 @@ export function specRows(events: readonly SessionEvent[] = BUNDLED_EVENTS): Spec
   );
   const tools = new Set(events.filter((event) => event.tool).map((event) => event.tool));
   const failed = events.filter((event) => !event.ok).length;
+  const elapsed =
+    events === BUNDLED_EVENTS
+      ? BUNDLED_CREW.runSeconds
+      : events.reduce((max, event) => Math.max(max, event.at), 0);
   return [
     { label: 'events', value: String(events.length) },
     { label: 'agents', value: String(agents.size) },
     { label: 'tools', value: String(tools.size) },
-    { label: 'elapsed', value: `${BUNDLED_CREW.runSeconds.toFixed(1)}s` },
+    { label: 'elapsed', value: `${elapsed.toFixed(1)}s` },
     { label: 'unanswered', value: String(unansweredCalls(events)) },
     { label: 'failed events', value: String(failed) },
   ];
+}
+
+/** The one-breath summary used by the deterministic judge poster. */
+export function sessionStatusLine(
+  events: readonly SessionEvent[] = BUNDLED_EVENTS,
+  transfers: readonly string[] = BUNDLED_TRANSFERS,
+): string {
+  const unanswered = unansweredCalls(events);
+  const failed = events.filter((event) => !event.ok).length;
+  const elapsed = specRows(events).find((row) => row.label === 'elapsed')?.value ?? '—';
+  return [
+    `${transfers.length} agents in handoff order`,
+    unanswered === 1 ? '1 call never returned' : `${unanswered} calls never returned`,
+    failed === 1 ? '1 failed event' : `${failed} failed events`,
+    elapsed,
+  ].join(' · ');
+}
+
+/* -------------------------------------------------------- Copy blocks ---- */
+
+const GANTT_COPY_WIDTH = 28;
+
+function glyphBar(count: number, glyph: string): string {
+  return glyph.repeat(Math.max(0, count));
+}
+
+/** Mono blocks that paste into an issue exactly like the reading panels. */
+export function readingCopyBlocks(events: readonly SessionEvent[] = BUNDLED_EVENTS): {
+  handoffs: string;
+  whoHeld: string;
+  agentTree: string;
+  callsAnswered: string;
+  eventHealth: string;
+  session: string;
+  timeline: string;
+} {
+  const chain =
+    events === BUNDLED_EVENTS
+      ? BUNDLED_TRANSFERS
+      : [...new Set(events.filter((event) => event.agent !== 'user').map((event) => event.agent))];
+  const flow = flowSteps(chain);
+  const gantt = ganttRows(GANTT_COPY_WIDTH);
+  const tree = treeRows(events);
+  const check = checkRows(events);
+  const uptime = uptimeCells(events);
+  const spec = specRows(events);
+  const timeline = timelineRows(events);
+  const down = uptime.filter((cell) => cell === 'down').length;
+  return {
+    handoffs: flow.map((step) => (step.last ? step.label : `${step.label} ──▶ `)).join(''),
+    whoHeld: gantt
+      .map(
+        (row) =>
+          `${row.label.padEnd(17)}${glyphBar(row.pad, '·')}${glyphBar(row.fill, row.faulted ? '▚' : '█')}${glyphBar(GANTT_COPY_WIDTH - row.pad - row.fill, '·')}  ${row.held.toFixed(1).padStart(5)}s${row.faulted ? '  timed out' : ''}`,
+      )
+      .join('\n'),
+    agentTree: tree
+      .map(
+        (row) =>
+          `${row.glyph}${row.glyph ? ' ' : ''}${row.label.padEnd(20 - row.glyph.length)}${String(row.events).padStart(2)} events`,
+      )
+      .join('\n'),
+    callsAnswered: check
+      .map((row) => `[${row.done ? 'x' : ' '}] ${row.label.padEnd(16)}${row.note}`)
+      .join('\n'),
+    eventHealth: `${uptime.map((cell) => (cell === 'ok' ? '█' : '▚')).join(' ')}\n${down} of ${uptime.length} events recorded a failure`,
+    session: spec.map((row) => `${row.label.padEnd(15)}${row.value}`).join('\n'),
+    timeline: timeline
+      .map(
+        (row) => `${row.at.padStart(6)}  ${row.ok ? '·' : '×'}  ${row.agent.padEnd(18)}${row.note}`,
+      )
+      .join('\n'),
+  };
 }

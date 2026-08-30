@@ -154,6 +154,24 @@ pub fn select_agent(
     SelectionOutcome::Selected(agent_id.to_owned())
 }
 
+/// Select `agent_id` without toggling and without changing the camera.
+///
+/// Pairing applies selection and camera as separate fields; a toggle here
+/// would deselect an agent the other viewer just focused.
+pub fn reveal_agent(app: &mut App, root_agent_id: Option<&str>, agent_id: &str) -> bool {
+    let Some(node_id) = node_id_for(app, root_agent_id, agent_id) else {
+        return false;
+    };
+    if app.selected_agent_id().as_deref() == Some(node_id.as_str()) {
+        return true;
+    }
+    app.flow.select_node(&node_id);
+    app.detail_scroll = 0;
+    app.detail_follow = true;
+    app.pending_center = Some(node_id);
+    true
+}
+
 /// Clear any selection. Returns whether there was one to clear.
 ///
 /// Also drops a not-yet-consumed centre request: gliding towards a node the

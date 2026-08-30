@@ -206,6 +206,8 @@ def test_proof_keeps_configured_and_provider_observed_models_separate(tmp_path: 
     assert proof["configuredModel"] == "gemini-3.7-flash"
     assert proof["observedModelVersions"] == ["gemini-3.7-flash-001"]
     assert proof["modelEvidence"] == "observed"
+    assert proof["googleCloud"]["modelLocation"] == "global"
+    assert proof["googleCloud"]["cloudRunLocation"] == "us-central1"
     assert proof["jsonl"]["uploadedObject"] is None
     assert proof["workflow"]["agents"] == [ROOT_AGENT, *SPECIALIST_AGENTS]
 
@@ -253,15 +255,16 @@ def test_run_and_upload_require_explicit_independent_gates(
 
     args = argparse.Namespace(run=True, upload=False)
     monkeypatch.delenv("FLEETSCOPE_ALLOW_MODEL_CALLS", raising=False)
+    monkeypatch.delenv("GOOGLE_GENAI_USE_ENTERPRISE", raising=False)
     monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
     with pytest.raises(LiveRunRefused, match="can spend Google Cloud credit"):
         _require_live_opt_in(args)
 
     monkeypatch.setenv("FLEETSCOPE_ALLOW_MODEL_CALLS", "true")
-    with pytest.raises(LiveRunRefused, match="requires Vertex AI"):
+    with pytest.raises(LiveRunRefused, match="requires Agent Platform"):
         _require_live_opt_in(args)
 
-    monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    monkeypatch.setenv("GOOGLE_GENAI_USE_ENTERPRISE", "true")
     _require_live_opt_in(args)
 
 

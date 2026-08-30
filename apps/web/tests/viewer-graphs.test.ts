@@ -6,12 +6,14 @@ import {
   checkRows,
   flowSteps,
   ganttRows,
+  readingCopyBlocks,
   specRows,
   timelineRows,
   treeRows,
   unansweredCalls,
   uptimeCells,
 } from '../src/features/viewer/graphs';
+import { readingsFromProjection } from '../src/features/viewer/readings-from-projection';
 
 /**
  * The literals in `graphs.ts` were generated from the fixture. This recomputes
@@ -124,5 +126,36 @@ describe('glyph geometry', () => {
     expect(spec.get('events')).toBe(String(BUNDLED_EVENTS.length));
     expect(spec.get('unanswered')).toBe(String(unansweredCalls()));
     expect(spec.get('agents')).toBe(String(treeRows().length));
+  });
+
+  it('keeps copy blocks aligned with the visible reading vocabulary', () => {
+    const copy = readingCopyBlocks();
+    expect(copy.handoffs).toContain('──▶');
+    expect(copy.whoHeld).toContain('hotel_search');
+    expect(copy.whoHeld).toContain('timed out');
+    expect(copy.callsAnswered).toContain('no result recorded');
+    expect(copy.timeline.split('\n')).toHaveLength(BUNDLED_EVENTS.length);
+  });
+});
+
+describe('projection readings adapter', () => {
+  it('reuses fixture helpers when handoff order is known', () => {
+    const readings = readingsFromProjection({
+      events: BUNDLED_EVENTS,
+      transfers: BUNDLED_TRANSFERS,
+      handoffOrderKnown: true,
+    });
+    expect(readings.handoffNote).toBeNull();
+    expect(readings.flow.map((step) => step.label)).toEqual([...BUNDLED_TRANSFERS]);
+    expect(readings.check.filter((row) => !row.done)).toHaveLength(1);
+  });
+
+  it('degrades honestly when transfer order is unknown', () => {
+    const readings = readingsFromProjection({
+      events: BUNDLED_EVENTS,
+      handoffOrderKnown: false,
+    });
+    expect(readings.handoffNote).toMatch(/inferred from first appearance/i);
+    expect(readings.flow.length).toBeGreaterThan(0);
   });
 });

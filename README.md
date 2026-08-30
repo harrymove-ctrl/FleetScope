@@ -36,10 +36,25 @@ pnpm demo:cmux
 ```
 
 The Antigravity pane uses `gemini-3.7-flash-low` by default. The TUI and browser
-panes use the same checked-in recording so the demo is repeatable and free.
-Antigravity's private conversation database is not a supported FleetScope input
-format; the Google ADK JSONL producer remains the path for a real multi-agent
-session.
+panes use the same checked-in recording so the cmux layout is repeatable and
+free. Antigravity's private conversation database is not a supported
+FleetScope input format.
+
+For a real Antigravity CLI fan-out that the native TUI follows live, run:
+
+```bash
+pnpm demo:antigravity
+```
+
+This starts four parallel `agy --print --output-format stream-json` workers and
+a fifth synthesizer against `examples/antigravity-project`. All workers use
+`--mode plan`, so they can read the brief but cannot edit it. The bridge writes
+their real responses incrementally to `.fleetscope/sessions/antigravity-live/`;
+the TUI follows that file. The bridge is an explicit ADK-compatible envelope,
+not a claim that FleetScope can read Antigravity's private conversation store.
+Open `/viewer/`, choose **Follow file…**, and select the printed
+`session.jsonl` to watch the same growing run in the browser. The handle is
+kept only in that browser tab and the file is never uploaded.
 
 ```text
 fleetscope <path>                    open/replay a session
@@ -139,14 +154,20 @@ For the one real take, use ADC and explicit opt-ins:
 
 ```bash
 export GOOGLE_GENAI_USE_VERTEXAI=true
+export GOOGLE_GENAI_USE_ENTERPRISE=true
 export GOOGLE_CLOUD_PROJECT=<project-id>
-export GOOGLE_CLOUD_LOCATION=us-central1
+export GOOGLE_CLOUD_LOCATION=global
+export FLEETSCOPE_CLOUD_RUN_LOCATION=us-central1
 export FLEETSCOPE_CLOUD_RUN_SERVICE=<service-name>
 export FLEETSCOPE_SESSION_BUCKET=<bucket-name>
 export FLEETSCOPE_ALLOW_MODEL_CALLS=true
 
 pnpm demo:google-session -- --run
 ```
+
+The model endpoint and Cloud Run region are deliberately separate:
+`gemini-3.7-flash` uses `global`, `us`, or `eu`, while the read-only Cloud Run
+probe uses the service's regional location such as `us-central1`.
 
 The command prints `session_jsonl=<absolute path>` and the matching
 `fleetscope ... --follow` command before the first provider event. Add

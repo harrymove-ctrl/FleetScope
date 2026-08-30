@@ -163,6 +163,27 @@ fn line_timestamps_are_strictly_increasing_across_files() {
 // ── The fold ────────────────────────────────────────────────────────────────
 
 #[test]
+fn a_failed_adk_agent_is_failed_on_the_graph() {
+    // inspect already reports hotel_search [failed] from errorCode. The graph
+    // must match: a terminal Failed that liveness cannot revive.
+    let (session, wire) = loaded();
+    let mut app = scene::build(&wire, &session, 1.0, Playhead::Edge, None);
+    let id = "coordinator/hotel_search";
+    let hotel = app.session.agent(id).expect("hotel_search is on the graph");
+    assert_eq!(
+        hotel.status_word(),
+        "failed",
+        "ADK errorCode must mark the zoetrope agent Failed, not running"
+    );
+    app.session.recompute_liveness(None);
+    assert_eq!(
+        app.session.agent(id).unwrap().status_word(),
+        "failed",
+        "Failed+terminal must survive recompute_liveness"
+    );
+}
+
+#[test]
 fn the_session_folds_into_the_renderer_with_every_agent_present() {
     let (session, wire) = loaded();
     let app = scene::build(&wire, &session, 1.0, Playhead::Edge, None);
@@ -262,7 +283,7 @@ fn the_fixture_projects_to_a_stable_fingerprint() {
     // If this value changes, the projection changed. That is allowed — update
     // it deliberately, and know that every frontend now shows something new.
     let projection = fleetscope_cli::load(&fixture()).expect("loads");
-    assert_eq!(projection.fingerprint(), "2850b12b0760257f");
+    assert_eq!(projection.fingerprint(), "30c89a4ccc85fcbf");
 }
 
 #[test]

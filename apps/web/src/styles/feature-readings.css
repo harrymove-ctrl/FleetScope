@@ -1,0 +1,385 @@
+/**
+ * Session readings — mdx-graphs Flow visual language without the library.
+ * Dashed frames, corner marks, accent-on-path, muted non-focus, negative space.
+ */
+
+.readings {
+  --reading-frame: color-mix(in srgb, var(--fd-line-strong) 85%, transparent);
+  --reading-muted: var(--fd-muted);
+  --reading-accent: var(--fd-action);
+  --reading-fault: color-mix(in srgb, #e85d4c 80%, var(--fd-text));
+  margin-top: 8px;
+}
+
+.readings__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 28px;
+}
+
+.readings__kicker {
+  margin: 0 0 6px;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--reading-muted);
+}
+
+.readings__head h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+.readings__lede {
+  margin: 8px 0 0;
+  max-width: 46rem;
+  color: var(--reading-muted);
+  line-height: 1.5;
+}
+
+.readings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.readings__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.readings__pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+@media (min-width: 900px) {
+  .readings__pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Shared frame: title on the top edge, corner + marks */
+.reading {
+  position: relative;
+  margin: 0;
+  padding: 22px 18px 16px;
+  border: 1px dashed var(--reading-frame);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--fd-surface) 92%, transparent);
+  min-width: 0;
+}
+
+.reading::before,
+.reading::after,
+.reading .reading__corner-bl,
+.reading .reading__corner-br {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  width: 0.9rem;
+  height: 0.9rem;
+  align-items: center;
+  justify-content: center;
+  background: var(--fd-bg, var(--fd-surface));
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--reading-muted);
+  pointer-events: none;
+  content: '+';
+}
+
+.reading::before {
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.reading::after {
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.reading .reading__corner-bl {
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, 50%);
+}
+
+.reading .reading__corner-br {
+  right: 0;
+  bottom: 0;
+  transform: translate(50%, 50%);
+}
+
+.reading__title {
+  position: absolute;
+  top: -0.7em;
+  left: 14px;
+  margin: 0;
+  padding: 0 8px;
+  background: var(--fd-bg, var(--fd-surface));
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--reading-muted);
+}
+
+.reading__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--reading-muted);
+}
+
+.reading__copy {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: pre;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Handoffs — Flow hero */
+.reading--hero {
+  padding-top: 28px;
+  padding-bottom: 22px;
+}
+
+.reading-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reading-flow__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reading-flow__node {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--reading-frame) 80%, transparent);
+  border-radius: 999px;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--reading-muted);
+  background: transparent;
+}
+
+.reading-flow__node[data-tone='accent'] {
+  border-color: color-mix(in srgb, var(--reading-accent) 55%, transparent);
+  color: var(--fd-text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--reading-accent) 25%, transparent);
+}
+
+.reading-flow__node[data-tone='fault'] {
+  border-color: color-mix(in srgb, var(--reading-fault) 60%, transparent);
+  color: var(--reading-fault);
+}
+
+.reading-flow__edge {
+  width: 28px;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--reading-muted) 55%, transparent);
+  margin: 0 4px;
+}
+
+/* Who held the run — Gantt */
+.reading-gantt {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+}
+
+.reading-gantt__row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 9.5rem) 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.reading-gantt__label {
+  color: var(--fd-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-gantt__track {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0;
+  color: var(--reading-accent);
+  letter-spacing: 0.02em;
+  white-space: pre;
+  font-variant-emoji: text;
+}
+
+.reading-gantt__row[data-fault='1'] .reading-gantt__track,
+.reading-gantt__track[data-fault='1'] {
+  color: var(--reading-fault);
+}
+
+.reading-gantt__held {
+  color: var(--reading-muted);
+  white-space: nowrap;
+  tabular-nums: true;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-gantt__held[data-fault='1'] {
+  color: var(--reading-fault);
+}
+
+/* Tree / Check / Spec lists */
+.reading-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.reading-list__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  color: var(--fd-text);
+}
+
+.reading-list__meta {
+  color: var(--reading-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-check__mark {
+  display: inline-block;
+  width: 1.4rem;
+  color: var(--reading-muted);
+}
+
+.reading-check__row[data-done='0'] .reading-check__mark,
+.reading-check__row[data-done='0'] .reading-list__label {
+  color: var(--reading-fault);
+}
+
+/* Event health strip */
+.reading-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--reading-accent);
+}
+
+.reading-health__cell[data-state='down'] {
+  color: var(--reading-fault);
+}
+
+/* Timeline */
+.reading-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.reading-timeline__row {
+  display: grid;
+  grid-template-columns: 4.2rem 1rem minmax(7rem, 11rem) 1fr;
+  gap: 8px;
+  color: var(--fd-text);
+}
+
+.reading-timeline__row[data-ok='0'] {
+  color: var(--reading-fault);
+}
+
+.reading-timeline__at,
+.reading-timeline__mark {
+  color: var(--reading-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-timeline__row[data-ok='0'] .reading-timeline__mark {
+  color: var(--reading-fault);
+}
+
+.reading-timeline__agent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fullscreen readings workspace */
+.readings:fullscreen,
+.readings:-webkit-full-screen {
+  padding: clamp(24px, 4vw, 48px);
+  overflow: auto;
+  background: var(--fd-bg);
+}
+
+.readings:fullscreen .readings__stack,
+.readings:-webkit-full-screen .readings__stack {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.readings.is-revealing .reading--hero {
+  animation: readings-flow-in 720ms ease both;
+}
+
+@keyframes readings-flow-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readings.is-revealing .reading--hero {
+    animation: none;
+  }
+}

@@ -1,14 +1,43 @@
 // @ts-nocheck -- Ported WildType reference algorithm uses bounds-safe dense array indexing.
-import { MESH, TYPE_POSE, TYPE_START } from "./motion";
-import { traceWord, type TracedGlyph, type TracedWord } from "./trace";
+import { MESH, TYPE_POSE, TYPE_START } from './motion';
+import { traceWord, type TracedGlyph, type TracedWord } from './trace';
 import {
-  ACCENTS, AFTER_K, AFTER_MAX, BG, BG_GLOW, BLANK_TICKS, CORNER_DEG,
-  FONT_WEIGHT, FPS, GRAIN_ALPHA, GRAIN_TILE, HOLD_TICKS, INK, LAG_TICKS,
-  LOOP_TICKS, MESH_XS, MESH_YS, MIRROR_ALTERNATE, OBLIQUE, OUT_SPEED,
-  PULL_DAMP, PULL_GAIN, PULL_K, PULL_SIGMA, REF_CUT_TICK,
-  REF_HALF_WIDTH, REST_WIDTH_FRAC, THIN, THIN_MAX, TRACE_EM, TRACE_MIN_AREA,
-  TRACE_TOL, TYPE_TICKS, WARP_TICKS, WORDS,
-} from "./params";
+  ACCENTS,
+  AFTER_K,
+  AFTER_MAX,
+  BG,
+  BG_GLOW,
+  BLANK_TICKS,
+  CORNER_DEG,
+  FONT_WEIGHT,
+  FPS,
+  GRAIN_ALPHA,
+  GRAIN_TILE,
+  HOLD_TICKS,
+  INK,
+  LAG_TICKS,
+  LOOP_TICKS,
+  MESH_XS,
+  MESH_YS,
+  MIRROR_ALTERNATE,
+  OBLIQUE,
+  OUT_SPEED,
+  PULL_DAMP,
+  PULL_GAIN,
+  PULL_K,
+  PULL_SIGMA,
+  REF_CUT_TICK,
+  REF_HALF_WIDTH,
+  REST_WIDTH_FRAC,
+  THIN,
+  THIN_MAX,
+  TRACE_EM,
+  TRACE_MIN_AREA,
+  TRACE_TOL,
+  TYPE_TICKS,
+  WARP_TICKS,
+  WORDS,
+} from './params';
 
 const GX = MESH_XS.length;
 const GY = MESH_YS.length;
@@ -57,9 +86,9 @@ interface Prepared {
   glyphs: PreGlyph[];
 }
 
-const TRACKS = ["w", "i", "l", "d"];
+const TRACKS = ['w', 'i', 'l', 'd'];
 function trackFor(k: number, n: number): string {
-  if (n <= 1) return "w";
+  if (n <= 1) return 'w';
   return TRACKS[Math.min(3, Math.round((k / (n - 1)) * 3))];
 }
 
@@ -79,8 +108,10 @@ function corners(p: ArrayLike<number>): Uint8Array {
   for (let i = 0; i < n; i++) {
     const a = (i - 1 + n) % n;
     const b = (i + 1) % n;
-    const ux = p[i * 2] - p[a * 2], uy = p[i * 2 + 1] - p[a * 2 + 1];
-    const vx = p[b * 2] - p[i * 2], vy = p[b * 2 + 1] - p[i * 2 + 1];
+    const ux = p[i * 2] - p[a * 2],
+      uy = p[i * 2 + 1] - p[a * 2 + 1];
+    const vx = p[b * 2] - p[i * 2],
+      vy = p[b * 2 + 1] - p[i * 2 + 1];
     const lu = Math.hypot(ux, uy) || 1e-9;
     const lv = Math.hypot(vx, vy) || 1e-9;
     const cos = (ux * vx + uy * vy) / (lu * lv);
@@ -97,7 +128,7 @@ export class WildType {
   private dpr = 1;
   private cw = 0;
   private ch = 0;
-  private lastSig = "";
+  private lastSig = '';
   private family: string;
 
   private prepared = new Map<string, Prepared>();
@@ -119,10 +150,13 @@ export class WildType {
 
   readonly ok: boolean;
 
-  constructor(private canvas: HTMLCanvasElement, family?: string) {
-    this.ctx = canvas.getContext("2d");
+  constructor(
+    private canvas: HTMLCanvasElement,
+    family?: string,
+  ) {
+    this.ctx = canvas.getContext('2d');
     this.ok = !!this.ctx;
-    this.family = family ?? "sans-serif";
+    this.family = family ?? 'sans-serif';
     for (let r = 0; r < GY; r++)
       for (let c = 0; c < GX; c++) {
         this.restCtrl[r * GX + c] = MESH_XS[c];
@@ -135,10 +169,10 @@ export class WildType {
   }
 
   private buildGrain() {
-    const g = document.createElement("canvas");
+    const g = document.createElement('canvas');
     g.width = GRAIN_TILE;
     g.height = GRAIN_TILE;
-    const gc = g.getContext("2d");
+    const gc = g.getContext('2d');
     if (!gc) return;
     const img = gc.createImageData(GRAIN_TILE, GRAIN_TILE);
     for (let i = 0; i < img.data.length; i += 4) {
@@ -147,13 +181,21 @@ export class WildType {
       img.data[i + 3] = 255;
     }
     gc.putImageData(img, 0, 0);
-    this.grain = this.ctx?.createPattern(g, "repeat") ?? null;
+    this.grain = this.ctx?.createPattern(g, 'repeat') ?? null;
   }
 
   private prepare(word: string): Prepared | null {
     const hit = this.prepared.get(word);
     if (hit) return hit;
-    const traced = traceWord(word, this.family, FONT_WEIGHT, OBLIQUE, TRACE_EM, TRACE_TOL, TRACE_MIN_AREA);
+    const traced = traceWord(
+      word,
+      this.family,
+      FONT_WEIGHT,
+      OBLIQUE,
+      TRACE_EM,
+      TRACE_TOL,
+      TRACE_MIN_AREA,
+    );
     if (!traced) return null;
     const glyphs: PreGlyph[] = traced.glyphs.map((glyph, k) => ({
       glyph,
@@ -197,13 +239,13 @@ export class WildType {
     this.ch = r.height;
     c.width = Math.round(r.width * this.dpr);
     c.height = Math.round(r.height * this.dpr);
-    for (const key of ["inkA", "inkB"] as const) {
-      const l = this[key] ?? document.createElement("canvas");
+    for (const key of ['inkA', 'inkB'] as const) {
+      const l = this[key] ?? document.createElement('canvas');
       l.width = c.width;
       l.height = c.height;
       this[key] = l;
     }
-    this.lastSig = "";
+    this.lastSig = '';
     if (!this.running) this.renderStill();
   }
 
@@ -222,7 +264,7 @@ export class WildType {
     if (this.running || !this.ok) return;
     this.running = true;
     this.t0 = performance.now();
-    this.lastSig = "";
+    this.lastSig = '';
     const tick = (now: number) => {
       if (!this.running) return;
       const tau = (((now - this.t0) / 1000) * FPS) % LOOP_TICKS;
@@ -248,7 +290,7 @@ export class WildType {
   }
 
   renderStill() {
-    this.lastSig = "";
+    this.lastSig = '';
     this.wordIdx = 0;
     this.draw(BLANK_TICKS + TYPE_TICKS + WARP_TICKS);
   }
@@ -295,7 +337,10 @@ export class WildType {
         tx = dx * g * PULL_GAIN;
         ty = dy * g * PULL_GAIN;
       }
-      for (const [k, t] of [[j, tx], [NCP + j, ty]] as const) {
+      for (const [k, t] of [
+        [j, tx],
+        [NCP + j, ty],
+      ] as const) {
         this.pullVel[k] += (t - this.pullOff[k]) * PULL_K;
         this.pullVel[k] *= PULL_DAMP;
         this.pullOff[k] += this.pullVel[k];
@@ -322,10 +367,10 @@ export class WildType {
     let sig: string;
     if (t < BLANK_TICKS) sig = `b${t}`;
     else if (typingIn) sig = `y${t}`;
-    else if (inWarp) sig = "warp";
+    else if (inWarp) sig = 'warp';
     else if (typingOut) sig = `o${t}`;
-    else sig = settling ? "settle" : "rest";
-    if (sig !== "warp" && sig !== "settle" && sig === this.lastSig) return;
+    else sig = settling ? 'settle' : 'rest';
+    if (sig !== 'warp' && sig !== 'settle' && sig === this.lastSig) return;
     this.lastSig = sig;
 
     const word = WORDS[this.wordIdx];
@@ -364,7 +409,7 @@ export class WildType {
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "source-over";
+    ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = mix(BG, accent, Math.min(1, stretch / 2.2) * BG_GLOW);
     ctx.fillRect(0, 0, W, H);
 
@@ -375,7 +420,7 @@ export class WildType {
 
     const cur = this.inkA;
     const prev = this.inkB;
-    const ic = cur.getContext("2d");
+    const ic = cur.getContext('2d');
     if (!ic) return;
     ic.setTransform(1, 0, 0, 1, 0, 0);
     ic.clearRect(0, 0, W, H);
@@ -399,7 +444,7 @@ export class WildType {
       for (const g of prep.glyphs) {
         const p = new Path2D();
         for (const r of g.rings) this.addRing(p, r, lag, null, half, ox, oy, stretch);
-        ic.fill(p, "evenodd");
+        ic.fill(p, 'evenodd');
       }
     }
 
@@ -415,7 +460,7 @@ export class WildType {
       for (const r of g.rings) s += this.addRing(p, r, ctrl, pose, half, ox, oy, stretch, g.glyph);
       const st = g.rings.length ? s / g.rings.length : 1;
       ic.globalAlpha = 1 - Math.min(THIN_MAX, Math.max(0, (st - 1) * THIN));
-      ic.fill(p, "evenodd");
+      ic.fill(p, 'evenodd');
     }
     ic.globalAlpha = 1;
 
@@ -436,12 +481,12 @@ export class WildType {
 
   private finish(ctx: CanvasRenderingContext2D, W: number, H: number) {
     if (!this.grain) return;
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = GRAIN_ALPHA;
     ctx.fillStyle = this.grain;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "source-over";
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   private addRing(
@@ -460,7 +505,14 @@ export class WildType {
     if (this.warped.length < n * 2) this.warped = new Float64Array(n * 2);
     const out = this.warped;
 
-    let dx = 0, dy = 0, co = 1, si = 0, sx = 1, sh = 0, cx = 0, cy = 0;
+    let dx = 0,
+      dy = 0,
+      co = 1,
+      si = 0,
+      sx = 1,
+      sh = 0,
+      cx = 0,
+      cy = 0;
     if (pose && glyph) {
       dx = pose[0] / REF_HALF_WIDTH;
       dy = pose[1] / REF_HALF_WIDTH;
@@ -476,7 +528,8 @@ export class WildType {
       let y: number;
       if (ctrl) {
         const o = i * NCP;
-        let ax = 0, ay = 0;
+        let ax = 0,
+          ay = 0;
         for (let j = 0; j < NCP; j++) {
           const b = basis[o + j];
           if (b === 0) continue;
@@ -498,14 +551,21 @@ export class WildType {
       out[i * 2 + 1] = oy + y * half;
     }
     if (ctrl && stretch > 0.35) {
-
       for (let i = 0; i < n; i++) {
-        const p0 = (i - 1 + n) % n, p1 = i, p2 = (i + 1) % n, p3 = (i + 2) % n;
-        const c1 = corner[p1], c2 = corner[p2];
+        const p0 = (i - 1 + n) % n,
+          p1 = i,
+          p2 = (i + 1) % n,
+          p3 = (i + 2) % n;
+        const c1 = corner[p1],
+          c2 = corner[p2];
         const b1x = c1 ? out[p1 * 2] : out[p1 * 2] + (out[p2 * 2] - out[p0 * 2]) / 6;
-        const b1y = c1 ? out[p1 * 2 + 1] : out[p1 * 2 + 1] + (out[p2 * 2 + 1] - out[p0 * 2 + 1]) / 6;
+        const b1y = c1
+          ? out[p1 * 2 + 1]
+          : out[p1 * 2 + 1] + (out[p2 * 2 + 1] - out[p0 * 2 + 1]) / 6;
         const b2x = c2 ? out[p2 * 2] : out[p2 * 2] - (out[p3 * 2] - out[p1 * 2]) / 6;
-        const b2y = c2 ? out[p2 * 2 + 1] : out[p2 * 2 + 1] - (out[p3 * 2 + 1] - out[p1 * 2 + 1]) / 6;
+        const b2y = c2
+          ? out[p2 * 2 + 1]
+          : out[p2 * 2 + 1] - (out[p3 * 2 + 1] - out[p1 * 2 + 1]) / 6;
         if (i === 0) path.moveTo(out[0], out[1]);
         path.bezierCurveTo(b1x, b1y, b2x, b2y, out[p2 * 2], out[p2 * 2 + 1]);
       }
@@ -522,11 +582,12 @@ export class WildType {
 
 function mix(a: string, b: string, t: number): string {
   if (t <= 0) return a;
-  const pa = hex(a), pb = hex(b);
+  const pa = hex(a),
+    pb = hex(b);
   const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 function hex(h: string): number[] {
-  const s = h.replace("#", "");
+  const s = h.replace('#', '');
   return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
 }

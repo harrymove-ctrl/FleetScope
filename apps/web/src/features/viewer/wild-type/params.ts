@@ -18,17 +18,17 @@ export const REF_HALF_WIDTH = 167.5;
 export const MESH_XS = [-1.2, -0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9, 1.2];
 export const MESH_YS = [-0.6, -0.2, 0.2, 0.6];
 
-export const WORDS = ["agents", "tasks", "tools", "proof", "replay", "gemini", "graph", "events"];
+export const WORDS = ['agents', 'tasks', 'tools', 'proof', 'replay', 'gemini', 'graph', 'events'];
 
 export const ACCENTS = [
-  "#4f6bff",
-  "#ff3d7f",
-  "#2ee06a",
-  "#ff8a1f",
-  "#b46bff",
-  "#28d8f0",
-  "#ffd84a",
-  "#ff4a3d",
+  '#4f6bff',
+  '#ff3d7f',
+  '#2ee06a',
+  '#ff8a1f',
+  '#b46bff',
+  '#28d8f0',
+  '#ffd84a',
+  '#ff4a3d',
 ];
 
 export const FONT_CSS = "var(--font-gstaad), 'Helvetica Neue', sans-serif";
@@ -43,8 +43,8 @@ export const CORNER_DEG = 48;
 
 export const REST_WIDTH_FRAC = 0.34;
 
-export const BG = "#000000";
-export const INK = "#ffffff";
+export const BG = '#000000';
+export const INK = '#ffffff';
 
 export const BG_GLOW = 0.16;
 

@@ -24,6 +24,10 @@
   order: 4;
 }
 
+[data-surface='feature'] .fs-stack > .readings {
+  order: 0;
+}
+
 [data-surface='feature'] .fs-stack > .viewer-summary {
   order: 5;
 }
@@ -37,6 +41,7 @@
   min-height: 0;
   margin: 0 auto;
   padding: 0;
+  overflow-x: hidden;
   border-radius: 0;
   background: transparent;
   color: var(--fd-text);
@@ -100,16 +105,40 @@
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
   gap: 20px 40px;
-  margin: -28px 0 clamp(44px, 6vw, 80px);
-  padding: 20px 0 24px;
+  margin: -28px 0 clamp(28px, 4vw, 48px);
+  padding: 12px 0 20px;
   border-block: 1px solid var(--fd-line);
 }
 
+[data-surface='feature'] .viewer-cli-card__summary {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--fd-text);
+  font-size: 14px;
+  font-weight: 560;
+}
+
+[data-surface='feature'] .viewer-cli-card__summary::-webkit-details-marker {
+  display: none;
+}
+
 [data-surface='feature'] .viewer-cli-card__eyebrow {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--fd-cyan);
   font: 500 10px/1 var(--fs-mono);
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-surface='feature'] .viewer-cli-card:not([open]) .viewer-cli-card__lede,
+[data-surface='feature'] .viewer-cli-card:not([open]) .viewer-cli-card__command,
+[data-surface='feature'] .viewer-cli-card:not([open]) .viewer-cli-card__facts {
+  display: none;
 }
 
 [data-surface='feature'] .viewer-cli-card h2 {
@@ -222,14 +251,38 @@
 }
 
 [data-surface='feature'] .story__outcome {
-  max-width: 24ch;
-  margin: 0 0 12px;
+  max-width: 100%;
+  margin: 0 0 10px;
   color: var(--fd-text);
-  font-size: clamp(28px, 3vw, 44px);
+  font-size: clamp(22px, 2.6vw, 36px);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  text-transform: none;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* Session readings own the default /viewer surface; keep Story short. */
+[data-surface='feature'] .story__narrative {
+  display: none;
+}
+[data-surface='feature'] .story__summary {
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+[data-surface='feature'] .story__cards {
+  margin-bottom: 12px;
+}
+[data-surface='feature'] .story__card {
+  padding: 14px 16px;
+}
+[data-surface='feature'] .story__chapters ul {
+  margin-bottom: 16px;
+}
+[data-surface='feature'] .story {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
 }
 
 [data-surface='feature'] .story__summary {
@@ -635,6 +688,138 @@
 [data-surface='feature'] .viewer-shell {
   overflow: hidden;
   border-block: 1px solid var(--fd-line);
+}
+
+/*
+ * Full screen graph: the shell is the fullscreen element, so launchpad header,
+ * CLI card, Story, workflow board and Session readings leave the display.
+ * Rail + canvas + inspector + timeline fill what remains.
+ */
+[data-surface='feature'] .viewer-shell:fullscreen,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 12px 16px 16px;
+  overflow: hidden;
+  border: 0;
+  background: var(--fd-bg);
+  color: var(--fd-text);
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .fs-viewer__hint,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .fs-viewer__hint {
+  display: none;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__header,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__header {
+  flex: 0 0 auto;
+  padding-top: 4px;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__body,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr) minmax(250px, 310px);
+}
+
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:fullscreen
+  .viewer-shell__body,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:-webkit-full-screen
+  .viewer-shell__body,
+[data-surface='feature']
+  .viewer-page[data-view-style='split']
+  .viewer-shell:fullscreen
+  .viewer-shell__body,
+[data-surface='feature']
+  .viewer-page[data-view-style='split']
+  .viewer-shell:-webkit-full-screen
+  .viewer-shell__body {
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr) minmax(250px, 310px);
+}
+
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:fullscreen
+  .viewer-shell__rail,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:-webkit-full-screen
+  .viewer-shell__rail,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:fullscreen
+  .viewer-shell__inspector,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:-webkit-full-screen
+  .viewer-shell__inspector {
+  display: block;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__rail,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__rail,
+[data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__inspector,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__inspector {
+  max-height: none;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .fs-viewer__canvas,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .fs-viewer__canvas,
+[data-surface='feature'] .viewer-page .viewer-shell:fullscreen .fs-viewer__canvas,
+[data-surface='feature'] .viewer-page .viewer-shell:-webkit-full-screen .fs-viewer__canvas,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:fullscreen
+  .fs-viewer__canvas,
+[data-surface='feature']
+  .viewer-page[data-view-style='focus']
+  .viewer-shell:-webkit-full-screen
+  .fs-viewer__canvas {
+  height: 100%;
+  min-height: 0;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__timeline,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__timeline {
+  flex: 0 0 auto;
+  max-height: 22vh;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .fsx,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .fsx {
+  border-color: var(--fd-action);
+  color: var(--fd-action);
+}
+
+[data-surface='feature'] .viewer-inspector .fs-button {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  [data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__body,
+  [data-surface='feature'] .viewer-shell:-webkit-full-screen .viewer-shell__body,
+  [data-surface='feature']
+    .viewer-page[data-view-style='focus']
+    .viewer-shell:fullscreen
+    .viewer-shell__body,
+  [data-surface='feature']
+    .viewer-page[data-view-style='focus']
+    .viewer-shell:-webkit-full-screen
+    .viewer-shell__body {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
 }
 
 [data-surface='feature'] .viewer-shell__header {
@@ -1122,5 +1307,98 @@
   [data-surface='feature'] .workflow-lane {
     scroll-behavior: auto;
     transition: none;
+  }
+}
+
+/* Demo-first /viewer: one line of status, readings only */
+[data-surface='feature'] .viewer-page--demo {
+  padding-top: 8px;
+}
+
+[data-surface='feature'] .viewer-demo-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 24px;
+  align-items: end;
+  margin: 0 0 28px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--fd-line);
+}
+
+[data-surface='feature'] .viewer-demo-bar__kicker {
+  margin: 0 0 4px;
+  color: var(--fd-muted);
+  font: 500 10px/1 var(--fs-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-surface='feature'] .viewer-demo-bar__title {
+  margin: 0;
+  color: var(--fd-text);
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+[data-surface='feature'] .viewer-demo-bar__line {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--fd-muted);
+  font: 500 13px/1.45 var(--fs-mono);
+  letter-spacing: 0.01em;
+}
+
+[data-surface='feature'] .viewer-demo-bar__more {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+}
+
+[data-surface='feature'] .viewer-demo-bar__more > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--fd-muted);
+  font: 500 11px/1 var(--fs-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-surface='feature'] .viewer-demo-bar__more > summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-surface='feature'] .viewer-demo-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 28rem;
+}
+
+[data-surface='feature'] .viewer-demo-bar__hint {
+  margin: 10px 0 0;
+  max-width: 36rem;
+  color: var(--fd-faint);
+  font-size: 12px;
+}
+
+[data-surface='feature'] .viewer-demo-bar__cmd {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--fd-text);
+  font: 500 11px/1.4 var(--fs-mono);
+}
+
+@media (max-width: 720px) {
+  [data-surface='feature'] .viewer-demo-bar {
+    grid-template-columns: 1fr;
+  }
+
+  [data-surface='feature'] .viewer-demo-bar__more {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
   }
 }

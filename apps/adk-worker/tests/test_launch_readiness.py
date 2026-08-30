@@ -53,6 +53,7 @@ class FailingJsonClient:
         ("bucket", "BadBucket", "invalid bucket"),
         ("model", "gemini-3.4-flash", "Gemini 3.5+"),
         ("model", "not-gemini", "Gemini 3.5+"),
+        ("model_location", "us-central1", "global, us, or eu"),
         ("max_model_calls", 7, "fixed at 6"),
         ("timeout_seconds", 181, "between 30 and 180"),
     ],
@@ -100,6 +101,12 @@ def test_cloud_run_probe_returns_only_safe_readiness_fields() -> None:
         "latestTrafficPercent": 100,
     }
     assert client.calls == [url]
+
+
+def test_model_and_cloud_run_locations_are_independent() -> None:
+    cfg = config(model_location="global").validate()
+    assert cfg.model_location == "global"
+    assert "/locations/us-central1/services/" in cloud_run_service_url(cfg)
 
 
 def test_storage_probe_does_not_list_or_return_objects_or_iam_details() -> None:

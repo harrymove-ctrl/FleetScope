@@ -23,7 +23,7 @@ use std::io;
 use std::rc::Rc;
 
 use agent_viewer_core::adapter::{Companion, SessionSource};
-use agent_viewer_render::{Playhead, ViewerManifest};
+use agent_viewer_render::{Playhead, ViewState, ViewerManifest};
 use ratzilla::backend::webgl2::{FontAtlasConfig, WebGl2BackendOptions};
 use ratzilla::event::{
     KeyCode as RKeyCode, KeyEvent as RKeyEvent, MouseButton as RMouseButton,
@@ -138,7 +138,8 @@ fn selection_payload(viewer: &Viewer) -> Option<String> {
     let entry_index = viewer.app.timeline.fold_target().saturating_sub(1);
     // The SESSION agent id. The renderer's private `main` must never reach the
     // shell, which would compare it against event agent ids and never match.
-    let selected = agent_viewer_render::selected_agent(&viewer.app, viewer.manifest.root_agent_id());
+    let selected =
+        agent_viewer_render::selected_agent(&viewer.app, viewer.manifest.root_agent_id());
     let current = (selected.clone(), entry_index);
 
     let changed = LAST_SELECTION.with(|cell| {
@@ -182,8 +183,8 @@ fn dispatch_selection(payload: &str) {
 fn main() -> io::Result<()> {
     console_error_panic_hook::set_once();
 
-    let viewer = Viewer::load(DEMO_NAME, DEMO_SESSION.to_owned(), Vec::new())
-        .map_err(io::Error::other)?;
+    let viewer =
+        Viewer::load(DEMO_NAME, DEMO_SESSION.to_owned(), Vec::new()).map_err(io::Error::other)?;
     let viewer = Rc::new(RefCell::new(viewer));
     VIEWER.with(|cell| *cell.borrow_mut() = Some(viewer.clone()));
 
@@ -332,11 +333,7 @@ pub fn agent_viewer_load(
 /// Reload the bundled demo. What the page opens on, and the way back.
 #[wasm_bindgen]
 pub fn agent_viewer_load_demo() -> Result<String, JsError> {
-    agent_viewer_load(
-        DEMO_NAME.to_owned(),
-        DEMO_SESSION.to_owned(),
-        String::new(),
-    )
+    agent_viewer_load(DEMO_NAME.to_owned(), DEMO_SESSION.to_owned(), String::new())
 }
 
 /// The headless summary, identical to `fleetscope inspect`.
@@ -360,8 +357,11 @@ pub fn agent_viewer_fingerprint() -> String {
 #[wasm_bindgen]
 pub fn agent_viewer_snapshot() -> String {
     with_viewer(|viewer| {
-        serde_json::to_string(&agent_viewer_render::snapshot(&viewer.app, &viewer.manifest))
-            .unwrap_or_default()
+        serde_json::to_string(&agent_viewer_render::snapshot(
+            &viewer.app,
+            &viewer.manifest,
+        ))
+        .unwrap_or_default()
     })
     .unwrap_or_else(|| "{}".to_owned())
 }
@@ -415,15 +415,15 @@ pub fn agent_viewer_agents() -> String {
 /// a dense index into one session; `u32` is ample and crosses as a number.
 #[wasm_bindgen]
 pub fn agent_viewer_seek_sequence(sequence: u32) -> bool {
-    with_viewer(|viewer| {
-        match viewer.manifest.fraction_for_sequence(u64::from(sequence)) {
+    with_viewer(
+        |viewer| match viewer.manifest.fraction_for_sequence(u64::from(sequence)) {
             Some(fraction) => {
                 viewer.app.seek_to_fraction(fraction);
                 true
             }
             None => false,
-        }
-    })
+        },
+    )
     .unwrap_or(false)
 }
 
@@ -474,7 +474,8 @@ pub fn agent_viewer_graph_nodes() -> String {
 pub fn agent_viewer_select_agent(agent_id: String) -> String {
     let (answer, payload) = with_viewer(|viewer| {
         let root = viewer.manifest.root_agent_id().map(str::to_owned);
-        let outcome = agent_viewer_render::select_agent(&mut viewer.app, root.as_deref(), &agent_id);
+        let outcome =
+            agent_viewer_render::select_agent(&mut viewer.app, root.as_deref(), &agent_id);
         let label = match outcome {
             agent_viewer_render::SelectionOutcome::Selected(_) => "selected",
             agent_viewer_render::SelectionOutcome::Deselected(_) => "deselected",
@@ -490,7 +491,12 @@ pub fn agent_viewer_select_agent(agent_id: String) -> String {
         // panics.
         (answer, selection_payload(viewer))
     })
-    .unwrap_or_else(|| (r#"{"outcome":"unknown","selectedAgentId":null}"#.to_owned(), None));
+    .unwrap_or_else(|| {
+        (
+            r#"{"outcome":"unknown","selectedAgentId":null}"#.to_owned(),
+            None,
+        )
+    });
 
     if let Some(payload) = payload {
         dispatch_selection(&payload);
@@ -591,6 +597,32 @@ pub fn agent_viewer_toggle_play() {
     with_viewer(|viewer| viewer.app.toggle_play_pause());
 }
 
+/// Set pause without toggling. No-op when already in that state.
+#[wasm_bindgen]
+pub fn agent_viewer_set_paused(paused: bool) {
+    with_viewer(|viewer| viewer.app.set_paused(paused));
+}
+
+/// Apply a `view.json` sidecar. Returns false for corrupt JSON (ignore once).
+///
+/// Writer filtering is a JS decision so both sides can apply the other's
+/// writes: this applies any valid payload.
+#[wasm_bindgen]
+pub fn agent_viewer_apply_view(json: String) -> bool {
+    let (ok, payload) = with_viewer(|viewer| {
+        let Some(state) = ViewState::parse(&json) else {
+            return (false, None);
+        };
+        state.apply(&mut viewer.app, &viewer.manifest);
+        (true, selection_payload(viewer))
+    })
+    .unwrap_or((false, None));
+    if let Some(payload) = payload {
+        dispatch_selection(&payload);
+    }
+    ok
+}
+
 // ---------------------------------------------------------------------------
 // Input — the same actions the terminal frontend binds.
 // ---------------------------------------------------------------------------
@@ -617,6 +649,7 @@ fn handle_key(key: RKeyEvent, app: &mut App) {
         }
         RKeyCode::Char('f') | RKeyCode::Char('F') => {
             app.camera = Camera::Follow;
+            app.follow_inspector = true;
             app.track_activity();
             return;
         }
@@ -637,15 +670,7 @@ fn handle_key(key: RKeyEvent, app: &mut App) {
         RKeyCode::PageUp if scroll_detail(app, -PAGE_SCROLL) => return,
 
         RKeyCode::Esc => {
-            if app.show_help {
-                app.show_help = false;
-            } else if app.show_info {
-                app.show_info = false;
-            } else if app.camera != Camera::Follow {
-                app.flow.clear_selection();
-                app.detail_scroll = 0;
-                app.detail_follow = true;
-            }
+            app.dismiss_overlays();
             return;
         }
         _ => {}

@@ -86,7 +86,17 @@ class CallbackCapture:
 
     # ── model ────────────────────────────────────────────────────────────────
 
-    def before_model(self, context: Any, request: Any = None) -> None:
+    def before_model(
+        self,
+        *args: Any,
+        callback_context: Any = None,
+        llm_request: Any = None,
+        **_kwargs: Any,
+    ) -> None:
+        # ADK 2.8 calls this as before_model(callback_context=..., llm_request=...).
+        # Local tests still pass the context positionally.
+        context = callback_context if callback_context is not None else (args[0] if args else None)
+        _ = llm_request if llm_request is not None else (args[1] if len(args) > 1 else None)
         used = self._budget.reserve()
         self._stream.emit(
             agent=_agent_name(context),

@@ -1,26 +1,22 @@
 ---
 /**
- * Seven readings of the bundled session, in the mdx-graphs idiom.
+ * Session readings — demo-first, glanceable, non-interactive.
  *
- * Each sits in a dashed frame with its title on the top edge and is drawn from
- * characters, not vectors -- which is the point on a surface that is already a
- * terminal: the panels select, copy and read aloud like the log beside them.
- *
- * The set stops at seven because the session stops at seven. mdx-graphs offers
- * KPI, Plot, Waterfall and Stat as well, and all four want tokens, cost or
- * latency that this format does not record. Drawing them would mean inventing
- * numbers on the one surface whose whole claim is that it never does.
+ * One vertical story of evidence. No clicks required to understand the run.
+ * Glyph vocabulary stays copyable; numbers come only from graphs.ts.
  */
 import {
   checkRows,
   flowSteps,
   ganttRows,
+  readingCopyBlocks,
   specRows,
   timelineRows,
   treeRows,
   uptimeCells,
 } from '../features/viewer/graphs';
 import FullscreenToggle from './FullscreenToggle.astro';
+import '../styles/feature-readings.css';
 
 const GANTT_WIDTH = 28;
 const flow = flowSteps();
@@ -30,168 +26,196 @@ const tree = treeRows();
 const check = checkRows();
 const uptime = uptimeCells();
 const spec = specRows();
-const bar = (count: number, glyph: string) => glyph.repeat(Math.max(0, count));
+const copy = readingCopyBlocks();
+const failedCount = uptime.filter((cell) => cell === 'down').length;
+const unanswered = check.filter((row) => !row.done).length;
+const faultedId = gantt.find((row) => row.faulted)?.label;
+const accentId = faultedId ?? flow.at(-1)?.label;
 ---
 
-<section class="graphs" data-session-graphs aria-labelledby="graphs-title">
-  <header class="graphs__head">
-    <h2 id="graphs-title">Session readings</h2>
-    <FullscreenToggle target="[data-session-graphs]" label="readings" />
+<section class="readings readings--demo" data-session-graphs aria-labelledby="graphs-title">
+  <header class="readings__head">
+    <div>
+      <p class="readings__kicker">What the record shows</p>
+      <h2 id="graphs-title">One session, seven readings</h2>
+    </div>
+    <div class="readings__actions">
+      <FullscreenToggle target="[data-session-graphs]" label="readings" idleLabel="Full screen" />
+    </div>
   </header>
 
-  <div class="graphs__grid">
-    <figure class="g" data-graph="flow">
-      <figcaption class="g__title">handoffs</figcaption>
-      <pre class="g__body">{flow.map((step) => (step.last ? step.label : `${step.label} ──▶ `)).join('')}</pre>
-    </figure>
-
-    <figure class="g g--wide" data-graph="gantt">
-      <figcaption class="g__title">who held the run</figcaption>
-      <pre class="g__body">{
-        gantt
-          .map((row) =>
-            `${row.label.padEnd(17)}${bar(row.pad, '·')}${bar(row.fill, row.faulted ? '▚' : '█')}${bar(GANTT_WIDTH - row.pad - row.fill, '·')}  ${row.held.toFixed(1).padStart(5)}s${row.faulted ? '  timed out' : ''}`,
-          )
-          .join('\n')
-      }</pre>
-    </figure>
-
-    <figure class="g" data-graph="tree">
-      <figcaption class="g__title">agent tree</figcaption>
-      <pre class="g__body">{
-        tree.map((row) => `${row.glyph}${row.glyph ? ' ' : ''}${row.label.padEnd(20 - row.glyph.length)}${String(row.events).padStart(2)} events`).join('\n')
-      }</pre>
-    </figure>
-
-    <figure class="g" data-graph="check">
-      <figcaption class="g__title">calls answered</figcaption>
-      <pre class="g__body">{
-        check.map((row) => `[${row.done ? 'x' : ' '}] ${row.label.padEnd(16)}${row.note}`).join('\n')
-      }</pre>
-    </figure>
-
-    <figure class="g" data-graph="uptime">
-      <figcaption class="g__title">event health</figcaption>
-      <pre class="g__body">{uptime.map((cell) => (cell === 'ok' ? '█' : '▚')).join(' ')}</pre>
-      <p class="g__note">
-        {uptime.filter((cell) => cell === 'down').length} of {uptime.length} events recorded a failure
+  <div class="readings__stack">
+    <figure class="reading reading--hero" data-graph="flow">
+      <figcaption class="reading__title">handoffs</figcaption>
+      <span class="reading__corner-bl" aria-hidden="true">+</span>
+      <span class="reading__corner-br" aria-hidden="true">+</span>
+      <ol class="reading-flow" aria-label="Handoff chain">
+        {
+          flow.map((step) => (
+            <li class="reading-flow__step">
+              <span
+                class="reading-flow__node"
+                data-tone={step.label === faultedId ? 'fault' : step.label === accentId ? 'accent' : 'muted'}
+              >
+                {step.label}
+              </span>
+              {!step.last && <span class="reading-flow__edge" aria-hidden="true" />}
+            </li>
+          ))
+        }
+      </ol>
+      <p class="reading__note">
+        {faultedId
+          ? `${faultedId} is marked because the record shows a failure on that lane.`
+          : 'Transfer order taken from the session, not inferred.'}
       </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="handoffs">{copy.handoffs}</pre>
     </figure>
 
-    <figure class="g" data-graph="spec">
-      <figcaption class="g__title">session</figcaption>
-      <pre class="g__body">{spec.map((row) => `${row.label.padEnd(15)}${row.value}`).join('\n')}</pre>
+    <figure class="reading" data-graph="gantt">
+      <figcaption class="reading__title">who held the run</figcaption>
+      <span class="reading__corner-bl" aria-hidden="true">+</span>
+      <span class="reading__corner-br" aria-hidden="true">+</span>
+      <ul class="reading-gantt" role="list">
+        {
+          gantt.map((row) => {
+            const track =
+              '·'.repeat(row.pad) +
+              (row.faulted ? '▚' : '█').repeat(row.fill) +
+              '·'.repeat(Math.max(0, GANTT_WIDTH - row.pad - row.fill));
+            return (
+              <li
+                class="reading-gantt__row"
+                data-fault={row.faulted ? '1' : '0'}
+                aria-label={`${row.label} held ${row.held.toFixed(1)} seconds${row.faulted ? ', timed out' : ''}`}
+              >
+                <span class="reading-gantt__label">{row.label}</span>
+                <span class="reading-gantt__track" aria-hidden="true" data-fault={row.faulted ? '1' : '0'}>
+                  {track}
+                </span>
+                <span class="reading-gantt__held" data-fault={row.faulted ? '1' : '0'}>
+                  {row.held.toFixed(1).padStart(5)}s{row.faulted ? '  timed out' : ''}
+                </span>
+              </li>
+            );
+          })
+        }
+      </ul>
+      <p class="reading__note">
+        Bars show each recorded holding interval; the hatched lane is the one that timed out.
+      </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="whoHeld">{copy.whoHeld}</pre>
     </figure>
 
-    <figure class="g g--wide" data-graph="timeline">
-      <figcaption class="g__title">timeline</figcaption>
-      <pre class="g__body">{
-        timeline.map((row) => `${row.at.padStart(6)}  ${row.ok ? '·' : '×'}  ${row.agent.padEnd(18)}${row.note}`).join('\n')
-      }</pre>
+    <div class="readings__pair">
+      <figure class="reading" data-graph="tree">
+        <figcaption class="reading__title">agent tree</figcaption>
+        <span class="reading__corner-bl" aria-hidden="true">+</span>
+        <span class="reading__corner-br" aria-hidden="true">+</span>
+        <ul class="reading-list" role="list">
+          {
+            tree.map((row) => (
+              <li class="reading-list__row">
+                <span class="reading-list__label">
+                  {row.glyph ? `${row.glyph} ` : ''}
+                  {row.label}
+                </span>
+                <span class="reading-list__meta">{row.events} events</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">Branches preserve the recorded parent-child handoff path.</p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="agentTree">{copy.agentTree}</pre>
+      </figure>
+
+      <figure class="reading" data-graph="check">
+        <figcaption class="reading__title">calls answered</figcaption>
+        <span class="reading__corner-bl" aria-hidden="true">+</span>
+        <span class="reading__corner-br" aria-hidden="true">+</span>
+        <ul class="reading-list" role="list">
+          {
+            check.map((row) => (
+              <li class="reading-list__row reading-check__row" data-done={row.done ? '1' : '0'}>
+                <span class="reading-list__label">
+                  <span class="reading-check__mark" aria-hidden="true">[{row.done ? 'x' : ' '}]</span>
+                  {row.label}
+                </span>
+                <span class="reading-list__meta">{row.note}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          {unanswered} of {check.length} recorded calls has no matching result.
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="callsAnswered">{copy.callsAnswered}</pre>
+      </figure>
+    </div>
+
+    <div class="readings__pair">
+      <figure class="reading" data-graph="uptime">
+        <figcaption class="reading__title">event health</figcaption>
+        <span class="reading__corner-bl" aria-hidden="true">+</span>
+        <span class="reading__corner-br" aria-hidden="true">+</span>
+        <ul class="reading-health" aria-label="Per-event health">
+          {
+            uptime.map((cell) => (
+              <li class="reading-health__cell" data-state={cell}>
+                {cell === 'ok' ? '█' : '▚'}
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          {failedCount} of {uptime.length} events recorded a failure
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="eventHealth">{copy.eventHealth}</pre>
+      </figure>
+
+      <figure class="reading" data-graph="spec">
+        <figcaption class="reading__title">session</figcaption>
+        <span class="reading__corner-bl" aria-hidden="true">+</span>
+        <span class="reading__corner-br" aria-hidden="true">+</span>
+        <ul class="reading-list" role="list">
+          {
+            spec.map((row) => (
+              <li class="reading-list__row">
+                <span class="reading-list__label">{row.label}</span>
+                <span class="reading-list__meta">{row.value}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          Counts come from the recording; cost and token totals are not inferred.
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="session">{copy.session}</pre>
+      </figure>
+    </div>
+
+    <figure class="reading" data-graph="timeline">
+      <figcaption class="reading__title">timeline</figcaption>
+      <span class="reading__corner-bl" aria-hidden="true">+</span>
+      <span class="reading__corner-br" aria-hidden="true">+</span>
+      <ol class="reading-timeline">
+        {
+          timeline.map((row) => (
+            <li class="reading-timeline__row" data-ok={row.ok ? '1' : '0'}>
+              <span class="reading-timeline__at">{row.at}</span>
+              <span class="reading-timeline__mark" aria-hidden="true">
+                {row.ok ? '·' : '×'}
+              </span>
+              <span class="reading-timeline__agent">{row.agent}</span>
+              <span class="reading-timeline__note">{row.note}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="reading__note">
+        Every row keeps the event's recorded order, actor, outcome, and timestamp.
+      </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="timeline">{copy.timeline}</pre>
     </figure>
   </div>
 </section>
-
-<style>
-  .graphs {
-    margin-top: 28px;
-  }
-
-  .graphs__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .graphs__head h2 {
-    margin: 0;
-  }
-
-  .graphs__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 14px;
-  }
-
-  .g--wide {
-    grid-column: 1 / -1;
-  }
-
-  /* The dashed frame with the title sitting on its top edge. */
-  .g {
-    position: relative;
-    margin: 0;
-    padding: 18px 16px 14px;
-    border: 1px dashed var(--fd-line-strong);
-    border-radius: 6px;
-    background: var(--fd-surface);
-    min-width: 0;
-  }
-
-  .g__title {
-    position: absolute;
-    top: -0.65em;
-    left: 12px;
-    padding: 0 7px;
-    background: var(--fd-surface);
-    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--fd-muted);
-  }
-
-  .g__body {
-    margin: 0;
-    overflow-x: auto;
-    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-    font-size: 12px;
-    line-height: 1.7;
-    white-space: pre;
-    color: var(--fd-text);
-  }
-
-  .g__note {
-    margin: 10px 0 0;
-    font-size: 12px;
-    color: var(--fd-muted);
-  }
-
-  /*
-   * Filled cells read as the accent; the hatch glyph carries failure on its
-   * own, so colour is a second signal rather than the only one.
-   */
-  /*
-   * The chain is the one panel whose length is not bounded by the data shape:
-   * a session with six agents overflows a narrow column. It wraps at the
-   * separators rather than scrolling, so the whole chain stays on screen.
-   */
-  [data-graph='flow'] .g__body {
-    white-space: pre-wrap;
-  }
-
-  [data-graph='gantt'] .g__body,
-  [data-graph='uptime'] .g__body {
-    color: var(--fd-action);
-  }
-
-  [data-graph='timeline'] .g__body,
-  [data-graph='check'] .g__body,
-  [data-graph='tree'] .g__body,
-  [data-graph='spec'] .g__body {
-    color: var(--fd-text);
-  }
-
-  /* Filling the viewport is only useful if the panels use the room. */
-  .graphs:fullscreen {
-    padding: 32px;
-    overflow: auto;
-    background: var(--fd-bg);
-  }
-
-  .graphs:fullscreen .graphs__grid {
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  }
-</style>

@@ -13,45 +13,44 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
-import ViewerLoader from '../components/ViewerLoader.astro';
 import FormatMarks from '../components/FormatMarks.astro';
-import SessionGraphs from '../components/SessionGraphs.astro';
+import FullscreenToggle from '../components/FullscreenToggle.astro';
 import '../styles/feature-viewer.css';
 ---
 
 <BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
-  <ViewerLoader />
-  <div class="viewer-page" data-view-style="terminal">
+  <div class="viewer-page" data-view-style="terminal" data-viewer-mode="operator">
     <PageHeader
       title="Agent Viewer"
-      lede="A Gemini / Antigravity flight deck for local agent sessions. Files stay in your browser and are never uploaded."
+      lede="Follow and inspect a local Gemini or Antigravity session. Files stay in your browser and are never uploaded."
     >
-      <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> GEMINI SIGNAL</span>
+      <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> OPERATOR MODE</span>
       <FormatMarks slot="badges" />
-      <button slot="actions" class="fs-button viewer-action" data-variant="primary" data-cli-copy>Copy CLI command</button>
-      <button slot="actions" class="fs-button viewer-action" data-load-demo>Preview example</button>
-      <button slot="actions" class="fs-button viewer-action" data-pick-file>Open file…</button>
-      <button slot="actions" class="fs-button viewer-action" data-pick-folder>Open folder…</button>
+      <button slot="actions" class="fs-button viewer-action" type="button" data-load-demo>Load example</button>
+      <button slot="actions" class="fs-button viewer-action" type="button" data-follow-file>Follow file…</button>
+      <button slot="actions" class="fs-button viewer-action" data-variant="primary" type="button" data-follow-folder>Follow folder…</button>
+      <a slot="actions" class="fs-button viewer-action" href="/demo" data-demo-link>Demo poster</a>
     </PageHeader>
 
-    <section class="viewer-cli-card fs-feature-section" aria-labelledby="viewer-cli-title">
-      <div>
-        <p class="viewer-cli-card__eyebrow">CLI-FIRST SESSION</p>
-        <h2 id="viewer-cli-title">Run Gemini. Watch the JSONL.</h2>
-        <p class="viewer-cli-card__lede">
-          The producer runs in your terminal. FleetScope only reads the session it writes, so the web surface never starts a model or uploads your file.
-        </p>
-      </div>
+    <details class="viewer-cli-card fs-feature-section">
+      <summary class="viewer-cli-card__summary">
+        <span class="viewer-cli-card__eyebrow">LOCAL OBSERVER</span>
+        <span>Producer and fallback controls</span>
+      </summary>
+      <p class="viewer-cli-card__lede">
+        The producer runs in your terminal. FleetScope only reads its local session, so this page never starts a model.
+      </p>
       <div class="viewer-cli-card__command" data-cli-command-wrap>
-        <code data-cli-command>pnpm demo:cmux</code>
+        <code data-cli-command>pnpm demo:antigravity</code>
+        <button class="fs-button fs-button--sm" type="button" data-cli-copy>Copy CLI command</button>
         <span class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></span>
       </div>
       <dl class="viewer-cli-card__facts">
-        <div><dt>Producer</dt><dd>Google ADK 2.8.0</dd></div>
-        <div><dt>Demo model</dt><dd>Vertex AI <code>gemini-3.7-flash</code></dd></div>
         <div><dt>Input</dt><dd>Local <code>session.jsonl</code></dd></div>
+        <div><dt>Pairing</dt><dd>Optional local <code>view.json</code></dd></div>
+        <div><dt>Fallback</dt><dd><button class="fs-button fs-button--sm" type="button" data-pick-folder>Open folder…</button></dd></div>
       </dl>
-    </section>
+    </details>
 
   <input type="file" data-file-input hidden accept=".jsonl,.json" />
   <!-- `webkitdirectory` is how a browser offers folder selection. A session is
@@ -61,30 +60,15 @@ import '../styles/feature-viewer.css';
   <input type="file" data-folder-input hidden multiple />
 
   <div class="fs-stack">
-    <!--
-      The shell around the renderer. Rust owns the graph and every fact about
-      the session; this markup owns arrangement. Every value below is written
-      by the script from the WASM ABI, so nothing here is a placeholder that
-      could be right on screen and wrong in fact.
-    -->
-    <!--
-      Story Mode. Answers "what happened, what did FleetScope do, did it
-      recover" before anything technical. Every string is written by the script
-      from facts the Rust side computed; a claim with no evidence behind it is
-      rendered as an absence, never as a claim with a caveat under it.
-    -->
     <section class="story fs-feature-section" aria-labelledby="story-title" data-story>
       <p class="story__source" data-story-source>—</p>
       <h2 id="story-title" class="story__outcome" data-story-outcome>Reading the session…</h2>
       <p class="story__summary" data-story-summary></p>
-
       <ul class="story__cards" data-story-cards role="list"></ul>
       <p class="story__disclosure" data-story-disclosure hidden></p>
-
       <nav class="story__chapters" aria-label="Session chapters">
         <ul data-story-chapters role="list"></ul>
       </nav>
-
       <div class="story__narrative">
         <div>
           <h3>What happened</h3>
@@ -99,10 +83,6 @@ import '../styles/feature-viewer.css';
           <p data-story-result></p>
         </div>
       </div>
-
-      <button class="fs-button" type="button" data-expert-toggle aria-expanded="false">
-        Open technical evidence
-      </button>
     </section>
 
     <section class="workflow-board fs-feature-section" aria-labelledby="workflow-board-title" data-workflow-board>
@@ -160,14 +140,20 @@ import '../styles/feature-viewer.css';
             <button class="fs-button fs-button--sm" type="button" data-fit-graph disabled>
               Fit graph
             </button>
+            <FullscreenToggle
+              target="[data-dropzone]"
+              label="graph"
+              idleLabel="Full screen graph"
+              activeLabel="Exit full screen"
+            />
           </span>
         </div>
       </header>
 
       <p class="fs-viewer__hint">
-        Drop a session file here, or a folder containing one. Space plays and pauses,
-        <kbd>←</kbd>/<kbd>→</kbd> step, <kbd>g</kbd> jumps to the end, <kbd>o</kbd> fits the graph,
-        <kbd>?</kbd> shows every key.
+        Drop a session file here, or a folder containing one. <kbd>space</kbd> pauses,
+        <kbd>[</kbd>/<kbd>]</kbd> step, <kbd>g</kbd> live, <kbd>o</kbd> fits the graph,
+        <kbd>esc</kbd> clears the selection.
       </p>
 
       <div class="viewer-shell__body">
@@ -204,7 +190,7 @@ import '../styles/feature-viewer.css';
         </aside>
       </div>
 
-      <footer class="viewer-shell__timeline" aria-labelledby="timeline-title" data-expert hidden>
+      <footer class="viewer-shell__timeline" aria-labelledby="timeline-title">
         <div class="fs-row fs-row--between">
           <h2 id="timeline-title" class="viewer-shell__panel-title">Timeline</h2>
           <span class="fs-mono fs-faint" data-timeline-count>—</span>
@@ -218,9 +204,7 @@ import '../styles/feature-viewer.css';
       </footer>
     </section>
 
-    <SessionGraphs />
-
-    <section class="fs-feature-section viewer-summary" data-expert hidden>
+    <section class="fs-feature-section viewer-summary">
       <h2>Session summary</h2>
       <p class="fs-muted">
         The same text <code>fleetscope inspect</code> prints, produced by the same code. It reports
@@ -240,6 +224,7 @@ import '../styles/feature-viewer.css';
     foreignEventNote,
     graphNodeIds as toGraphNodeIds,
     inspectorFields,
+    latestEventForAgent,
     positionLabel,
     transportBadge,
     NO_EVENT_MESSAGE,
@@ -260,6 +245,20 @@ import '../styles/feature-viewer.css';
     type Chapter,
     type StoryFacts,
   } from '../features/story/story';
+  import {
+    FOLLOW_POLL_MS,
+    JUMP_TO_AGENT_LATEST_LABEL,
+    isViewSidecar,
+    needsPlayToggle,
+    parseViewState,
+    pickFollowedTranscript,
+    playheadIsPastLocalEvents,
+    serializeViewState,
+    shouldApplyRemoteView,
+    viewPausedFromTransport,
+    type ViewCamera,
+    type ViewState,
+  } from '../features/viewer/follow';
 
   const statusEl = document.querySelector('[data-status]') as HTMLElement | null;
   const summaryEl = document.querySelector('[data-summary]') as HTMLElement | null;
@@ -270,11 +269,48 @@ import '../styles/feature-viewer.css';
   const cliCopyEl = document.querySelector('[data-cli-copy]') as HTMLButtonElement | null;
   const cliCommandEl = document.querySelector('[data-cli-command]') as HTMLElement | null;
   const cliCopyStatusEl = document.querySelector('[data-cli-copy-status]') as HTMLElement | null;
-  const CLI_COMMAND = 'pnpm demo:cmux';
+  const sessionGraphsEl = document.querySelector('[data-session-graphs]') as HTMLElement | null;
+  const CLI_COMMAND = 'pnpm demo:antigravity';
   const DASHBOARD_HANDOFF_KEY = 'fleetscope:dashboard-upload';
 
   /** Files a session can be made of. Anything else in a folder is ignored. */
   const READABLE = /\.(jsonl|json)$/i;
+  type LocalWritable = { write: (data: string) => Promise<void>; close: () => Promise<void> };
+  type LocalFileHandle = {
+    getFile: () => Promise<File>;
+    createWritable?: () => Promise<LocalWritable>;
+  };
+  type LocalDirectoryHandle = {
+    readonly name?: string;
+    getFileHandle: (name: string, options?: { create?: boolean }) => Promise<LocalFileHandle>;
+    values?: () => AsyncIterable<{ kind: string; name: string }>;
+    queryPermission?: (desc: { mode: 'read' | 'readwrite' }) => Promise<string>;
+    requestPermission?: (desc: { mode: 'read' | 'readwrite' }) => Promise<string>;
+  };
+  type LocalPickerWindow = Window & {
+    showOpenFilePicker?: (options?: Record<string, unknown>) => Promise<LocalFileHandle[]>;
+    showDirectoryPicker?: (options?: Record<string, unknown>) => Promise<LocalDirectoryHandle>;
+  };
+  type LocatedFile = {
+    readonly name: string;
+    readonly path: string;
+    readonly size: number;
+    readonly lastModified: number;
+    readonly handle: LocalFileHandle;
+    readonly directory: LocalDirectoryHandle;
+    readonly file: File;
+  };
+  let followedFile: LocalFileHandle | null = null;
+  let followedFileSignature = '';
+  let followedFileTimer = 0;
+  let followedDirectory: LocalDirectoryHandle | null = null;
+  let sessionDirectory: LocalDirectoryHandle | null = null;
+  let followedFolderSignature = '';
+  let followedFolderTimer = 0;
+  let lastAppliedViewAt = 0;
+  let applyingRemoteView = false;
+  let lastCamera: ViewCamera = 'manual';
+  let viewWritesAllowed: boolean | null = null;
 
   type Api = {
     agent_viewer_load: (name: string, main: string, companions: string) => string;
@@ -293,6 +329,8 @@ import '../styles/feature-viewer.css';
     agent_viewer_fit_graph: () => void;
     agent_viewer_go_live: () => void;
     agent_viewer_toggle_play: () => void;
+    agent_viewer_set_paused?: (paused: boolean) => void;
+    agent_viewer_apply_view?: (json: string) => boolean;
   };
 
   let api: Api | null = null;
@@ -354,7 +392,7 @@ import '../styles/feature-viewer.css';
   if (cliCommandEl) cliCommandEl.textContent = CLI_COMMAND;
   cliCopyEl?.addEventListener('click', copyCliCommand);
 
-  function report(statusJson: string) {
+  function report(statusJson: string, customSession = false, followNote?: string) {
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(statusJson);
@@ -372,7 +410,17 @@ import '../styles/feature-viewer.css';
     // The flatten note is the renderer admitting what it could not draw. It is
     // not decoration: without it a deep session looks flat and correct.
     if (parsed.flattenNote) bits.push(String(parsed.flattenNote));
+    if (followNote) bits.unshift(followNote);
     say(bits.join('  ·  '));
+    // Readings stay visible: fixture panels describe the bundled demo; when a
+    // custom session is loaded they remain as the audience surface until the
+    // projection-backed adapter rewrites them (honest empty > inventing).
+    sessionGraphsEl?.toggleAttribute('hidden', false);
+    if (customSession) {
+      sessionGraphsEl?.setAttribute('data-source', 'custom');
+    } else {
+      sessionGraphsEl?.setAttribute('data-source', 'fixture');
+    }
     if (summaryEl && api) summaryEl.textContent = api.agent_viewer_summary();
     reloadShellData();
   }
@@ -380,8 +428,10 @@ import '../styles/feature-viewer.css';
   /** Read one File as text, rejecting nothing: an unreadable file is reported. */
   const readText = (file: File): Promise<string> => file.text();
 
-  async function loadFiles(files: File[]) {
-    const readable = files.filter((file) => READABLE.test(file.name));
+  async function loadFiles(files: File[], following = false) {
+    const readable = files.filter(
+      (file) => READABLE.test(file.name) && !isViewSidecar(file.webkitRelativePath || file.name),
+    );
     if (readable.length === 0) {
       say('No .jsonl or .json session file in that selection.', true);
       return;
@@ -415,10 +465,355 @@ import '../styles/feature-viewer.css';
         await readText(main),
         JSON.stringify(companions),
       );
-      report(status);
+      report(status, true);
+      if (following) api?.agent_viewer_go_live();
     } catch (error) {
       // Say WHY. A viewer that fails to a blank canvas is worse than one that
       // refuses a file and names the reason.
+      say(error instanceof Error ? error.message : String(error), true);
+    }
+  }
+
+  function stopFileFollow() {
+    followedFile = null;
+    followedFileSignature = '';
+    window.clearTimeout(followedFileTimer);
+  }
+
+  function stopFolderFollow() {
+    followedDirectory = null;
+    sessionDirectory = null;
+    followedFolderSignature = '';
+    lastAppliedViewAt = 0;
+    viewWritesAllowed = null;
+    window.clearTimeout(followedFolderTimer);
+  }
+
+  function stopAllFollows() {
+    stopFileFollow();
+    stopFolderFollow();
+  }
+
+  function openExpertWorkspace() {
+    const button = document.querySelector('[data-expert-toggle]') as HTMLButtonElement | null;
+    if (button === null) return;
+    button.setAttribute('aria-expanded', 'true');
+    button.textContent = 'Hide technical evidence';
+    for (const panel of document.querySelectorAll('[data-expert]')) {
+      (panel as HTMLElement).hidden = false;
+    }
+  }
+
+  function enableGraphFullscreen() {
+    openExpertWorkspace();
+    const button = document.querySelector(
+      '[data-fullscreen-toggle][data-target="[data-dropzone]"]',
+    ) as HTMLButtonElement | null;
+    if (button === null) return;
+    const root = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    if (typeof root.requestFullscreen !== 'function' && typeof root.webkitRequestFullscreen !== 'function') {
+      return;
+    }
+    button.setAttribute('data-ready', 'true');
+  }
+
+  async function pollFollowedFile() {
+    if (followedFile === null) return;
+    try {
+      const file = await followedFile.getFile();
+      const signature = `${file.size}:${file.lastModified}`;
+      if (signature !== followedFileSignature) {
+        followedFileSignature = signature;
+        await loadFiles([file], true);
+      }
+    } catch (error) {
+      stopFileFollow();
+      say(
+        `Stopped following the local file (${
+          error instanceof Error ? error.message : 'file access was lost'
+        }).`,
+        true,
+      );
+      return;
+    }
+    followedFileTimer = window.setTimeout(pollFollowedFile, 750);
+  }
+
+  async function chooseFollowedFile() {
+    stopAllFollows();
+    const picker = (window as LocalPickerWindow).showOpenFilePicker;
+    if (picker === undefined) {
+      fileInput?.click();
+      return;
+    }
+    try {
+      const [handle] = await picker.call(window, {
+        multiple: false,
+        types: [
+          {
+            description: 'Agent session',
+            accept: { 'application/json': ['.json', '.jsonl'] },
+          },
+        ],
+      });
+      if (handle === undefined) return;
+      followedFile = handle;
+      await pollFollowedFile();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      say(error instanceof Error ? error.message : String(error), true);
+    }
+  }
+
+  async function collectDirectoryFiles(
+    dir: LocalDirectoryHandle,
+    prefix = '',
+    depth = 0,
+  ): Promise<LocatedFile[]> {
+    const files: LocatedFile[] = [];
+    if (typeof dir.values !== 'function') {
+      for (const name of ['session.jsonl', 'view.json']) {
+        try {
+          const handle = await dir.getFileHandle(name);
+          const file = await handle.getFile();
+          files.push({
+            name,
+            path: prefix === '' ? name : `${prefix}/${name}`,
+            size: file.size,
+            lastModified: file.lastModified,
+            handle,
+            directory: dir,
+            file,
+          });
+        } catch {
+          // Missing is normal until the producer creates the file.
+        }
+      }
+      return files;
+    }
+    for await (const entry of dir.values()) {
+      const path = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+      if (entry.kind === 'file') {
+        if (!READABLE.test(entry.name) && !isViewSidecar(entry.name)) continue;
+        const handle = entry as unknown as LocalFileHandle;
+        const file = await handle.getFile();
+        files.push({
+          name: entry.name,
+          path,
+          size: file.size,
+          lastModified: file.lastModified,
+          handle,
+          directory: dir,
+          file,
+        });
+      } else if (entry.kind === 'directory' && depth < 5) {
+        const nested = entry as unknown as LocalDirectoryHandle;
+        files.push(...(await collectDirectoryFiles(nested, path, depth + 1)));
+      }
+    }
+    return files;
+  }
+
+  async function loadLocatedSession(files: readonly LocatedFile[], main: LocatedFile) {
+    const mainPath = main.path;
+    const root = mainPath.replace(/\.[^./]+$/, '');
+    const companions = await Promise.all(
+      files
+        .filter((file) => file.path !== main.path && !isViewSidecar(file.path))
+        .filter((file) => READABLE.test(file.name))
+        .map(async (file) => {
+          const name = file.path.startsWith(`${root}/`) ? file.path.slice(root.length + 1) : file.path;
+          return { name, text: await file.file.text() };
+        }),
+    );
+    const status = api!.agent_viewer_load(main.name, await main.file.text(), JSON.stringify(companions));
+    const folderName = followedDirectory?.name ?? 'session';
+    report(
+      status,
+      true,
+      `Following folder “${folderName}” locally — never uploaded`,
+    );
+    enableGraphFullscreen();
+  }
+
+  async function directoryCanWrite(dir: LocalDirectoryHandle): Promise<boolean> {
+    if (viewWritesAllowed === false) return false;
+    try {
+      if (typeof dir.queryPermission === 'function') {
+        const current = await dir.queryPermission({ mode: 'readwrite' });
+        if (current === 'granted') return true;
+        if (current === 'denied') {
+          viewWritesAllowed = false;
+          return false;
+        }
+        if (typeof dir.requestPermission === 'function') {
+          const next = await dir.requestPermission({ mode: 'readwrite' });
+          if (next === 'granted') return true;
+          viewWritesAllowed = false;
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      viewWritesAllowed = false;
+      return false;
+    }
+  }
+
+  function applyViewState(state: ViewState) {
+    if (api === null) return;
+    applyingRemoteView = true;
+    try {
+      if (typeof api.agent_viewer_apply_view === 'function') {
+        const ok = api.agent_viewer_apply_view(
+          JSON.stringify({
+            v: 1,
+            playhead: state.playhead,
+            paused: state.paused,
+            selectedAgent: state.selectedAgent,
+            camera: state.camera,
+            updatedAt: state.updatedAt,
+            writer: state.writer,
+          }),
+        );
+        if (ok) {
+          const snap = snapshot();
+          if (snap?.sequence != null) {
+            selectedSequence = snap.sequence;
+            selectionHasNoEvent = false;
+          }
+          lastCamera = state.camera;
+          lastAppliedViewAt = state.updatedAt;
+          refreshShell();
+          return;
+        }
+      }
+      const sequences = events.map((event) => event.sequence);
+      const pastLocal = playheadIsPastLocalEvents(state.playhead, sequences);
+      if (state.camera === 'follow' || pastLocal) {
+        api.agent_viewer_go_live();
+        lastCamera = 'follow';
+      } else {
+        api.agent_viewer_seek_sequence(state.playhead);
+        selectedSequence = state.playhead;
+        selectionHasNoEvent = false;
+      }
+      if (typeof api.agent_viewer_set_paused === 'function') {
+        api.agent_viewer_set_paused(state.paused);
+      } else {
+        const snap = snapshot();
+        if (snap !== null && needsPlayToggle(snap.transport, state.paused)) {
+          api.agent_viewer_toggle_play();
+        }
+      }
+      const after = snapshot();
+      if (state.selectedAgent === null || state.selectedAgent === '') {
+        if (after?.selectedAgentId) api.agent_viewer_clear_selection();
+      } else if (after?.selectedAgentId !== state.selectedAgent) {
+        api.agent_viewer_select_agent(state.selectedAgent);
+      }
+      if (state.camera === 'overview') {
+        api.agent_viewer_fit_graph();
+        lastCamera = 'overview';
+      } else if (state.camera === 'manual') {
+        lastCamera = 'manual';
+      }
+      lastAppliedViewAt = state.updatedAt;
+      refreshShell();
+    } finally {
+      applyingRemoteView = false;
+    }
+  }
+
+  async function writePairedView() {
+    const dir = sessionDirectory ?? followedDirectory;
+    if (dir === null || applyingRemoteView || api === null) return;
+    if (!(await directoryCanWrite(dir))) return;
+    const snap = snapshot();
+    const json = serializeViewState({
+      playhead: selectedSequence ?? snap?.sequence ?? 0,
+      paused: snap?.paused ?? (snap === null ? true : viewPausedFromTransport(snap.transport)),
+      selectedAgent: selectedAgentId,
+      camera: lastCamera,
+      updatedAt: Date.now(),
+    });
+    try {
+      const handle = await dir.getFileHandle('view.json', { create: true });
+      if (typeof handle.createWritable !== 'function') return;
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      const written = parseViewState(json);
+      if (written !== null) lastAppliedViewAt = written.updatedAt;
+    } catch {
+      viewWritesAllowed = false;
+    }
+  }
+
+  async function pollFollowedFolder() {
+    if (followedDirectory === null) return;
+    try {
+      const files = await collectDirectoryFiles(followedDirectory);
+      const readable = files.filter((file) => !isViewSidecar(file.path) && READABLE.test(file.name));
+      const main = pickFollowedTranscript(readable);
+      if (main === null) {
+        say('Following this folder locally — never uploaded. Waiting for session.jsonl.');
+      } else {
+        const signature = `${main.path}:${main.size}:${main.lastModified}`;
+        const jsonlChanged = signature !== followedFolderSignature;
+        if (jsonlChanged) {
+          followedFolderSignature = signature;
+          sessionDirectory = main.directory;
+          await loadLocatedSession(readable, main);
+        }
+        const sidecar =
+          files.find((file) => isViewSidecar(file.path) && file.directory === (sessionDirectory ?? followedDirectory)) ??
+          files.find((file) => isViewSidecar(file.path));
+        const state = sidecar === undefined ? null : parseViewState(await sidecar.file.text());
+        if (state !== null && (jsonlChanged || shouldApplyRemoteView(state, lastAppliedViewAt))) {
+          applyViewState(state);
+        } else if (jsonlChanged) {
+          api?.agent_viewer_go_live();
+        }
+      }
+    } catch (error) {
+      stopFolderFollow();
+      say(
+        `Stopped following the local folder (${
+          error instanceof Error ? error.message : 'folder access was lost'
+        }).`,
+        true,
+      );
+      return;
+    }
+    followedFolderTimer = window.setTimeout(pollFollowedFolder, FOLLOW_POLL_MS);
+  }
+
+  async function chooseFollowedFolder() {
+    stopAllFollows();
+    const picker = (window as LocalPickerWindow).showDirectoryPicker;
+    if (picker === undefined) {
+      say(
+        'Follow folder needs a directory picker (Chromium). Open folder… still loads a snapshot, and Follow file… still works.',
+        true,
+      );
+      return;
+    }
+    try {
+      let handle: LocalDirectoryHandle;
+      try {
+        handle = await picker.call(window, { mode: 'readwrite' });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        handle = await picker.call(window);
+      }
+      followedDirectory = handle;
+      enableGraphFullscreen();
+      await pollFollowedFolder();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       say(error instanceof Error ? error.message : String(error), true);
     }
   }
@@ -524,6 +919,7 @@ import '../styles/feature-viewer.css';
               handoff.main,
               JSON.stringify(handoff.companions),
             ),
+            true,
           );
         } catch (error) {
           report(module.agent_viewer_load_demo());
@@ -964,7 +1360,11 @@ import '../styles/feature-viewer.css';
       if (event.isError) meta.setAttribute('data-tone', 'bad');
 
       button.append(seq, label, meta);
-      button.addEventListener('click', () => selectEvent(event.sequence));
+      button.addEventListener('click', () => {
+        lastCamera = 'manual';
+        selectEvent(event.sequence);
+        void writePairedView();
+      });
       li.append(button);
       timelineEl.append(li);
     }
@@ -1019,6 +1419,19 @@ import '../styles/feature-viewer.css';
     const foreign = foreignEventNote(selectedAgentId, detail.agentId, detail.agentLabel);
     if (foreign !== null) {
       note(foreign);
+      const latest = latestEventForAgent(events, selectedAgentId);
+      if (latest !== null) {
+        const jump = document.createElement('button');
+        jump.type = 'button';
+        jump.className = 'fs-button fs-button--sm';
+        jump.textContent = JUMP_TO_AGENT_LATEST_LABEL;
+        jump.addEventListener('click', () => {
+          lastCamera = 'manual';
+          selectEvent(latest.sequence);
+          void writePairedView();
+        });
+        inspectorEl.append(jump);
+      }
       return;
     }
 
@@ -1071,6 +1484,7 @@ import '../styles/feature-viewer.css';
     selectedAgentId = answer.selectedAgentId;
     selectionHasNoEvent = false;
     refreshShell();
+    if (!applyingRemoteView) void writePairedView();
   }
 
   /** Clear the graph selection through the renderer. */
@@ -1098,9 +1512,9 @@ import '../styles/feature-viewer.css';
     if (api === null) return;
     const snap = snapshot();
     if (snap === null) return;
-    // The playhead's own event, reported by Rust through the manifest. `null`
-    // means it rests on a renderer item that came from no event.
-    if (snap.sequence !== null && selectedSequence === null) selectedSequence = snap.sequence;
+    // Story chapters and the timeline follow the playhead so a paired view.json
+    // seek narrates the same event on the audience screen.
+    if (!selectionHasNoEvent && snap.sequence !== null) selectedSequence = snap.sequence;
     // The renderer's own selection wins over anything the shell was holding.
     // A click inside the canvas, Follow re-tracking, or a reload can all move
     // it without the shell asking, and the rail must not out-vote the graph.
@@ -1208,7 +1622,11 @@ import '../styles/feature-viewer.css';
           const sequence = chapter.sequence;
           // A chapter seeks the same way a timeline row does: by canonical
           // sequence, through the manifest.
-          button.addEventListener('click', () => selectEvent(sequence));
+          button.addEventListener('click', () => {
+            lastCamera = 'manual';
+            selectEvent(sequence);
+            void writePairedView();
+          });
         }
         li.append(button);
         chaptersEl.append(li);
@@ -1254,6 +1672,10 @@ import '../styles/feature-viewer.css';
       selectedSequence = signal.sequence;
     }
     refreshShell();
+    if (!applyingRemoteView && signal.sequence !== null) {
+      lastCamera = 'manual';
+      void writePairedView();
+    }
   });
 
   /**
@@ -1267,26 +1689,49 @@ import '../styles/feature-viewer.css';
    * Scoped out of text fields so it cannot swallow a native Escape.
    */
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || event.defaultPrevented) return;
     const target = event.target as HTMLElement | null;
-    if (target !== null && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName))) {
+    const inField =
+      target !== null &&
+      (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName));
+    if (event.key === 'Escape' && !event.defaultPrevented && !inField) {
+      clearSelection();
       return;
     }
-    clearSelection();
+    if (inField || followedDirectory === null || applyingRemoteView) return;
+    if (event.key === ' ' || event.key === '[' || event.key === ']') {
+      lastCamera = 'manual';
+      window.setTimeout(() => {
+        refreshShell();
+        void writePairedView();
+      }, 0);
+    } else if (event.key === 'g' || event.key === 'G') {
+      lastCamera = 'follow';
+      window.setTimeout(() => {
+        refreshShell();
+        void writePairedView();
+      }, 0);
+    } else if (event.key === 'o' || event.key === 'O') {
+      lastCamera = 'overview';
+    }
   });
 
   toggleEl?.addEventListener('click', () => {
     api?.agent_viewer_toggle_play();
+    lastCamera = 'manual';
     refreshShell();
+    void writePairedView();
   });
   goLiveEl?.addEventListener('click', () => {
     api?.agent_viewer_go_live();
+    lastCamera = 'follow';
     selectedSequence = null;
     selectionHasNoEvent = false;
     refreshShell();
+    void writePairedView();
   });
   fitEl?.addEventListener('click', () => {
     api?.agent_viewer_fit_graph();
+    lastCamera = 'overview';
   });
   moreEl?.addEventListener('click', () => {
     loadEvents(events.length);
@@ -1311,15 +1756,18 @@ import '../styles/feature-viewer.css';
     event.preventDefault();
     dropzone.dataset.dragging = 'false';
     if (!api) return;
+    stopAllFollows();
     const files = Array.from(event.dataTransfer?.files ?? []);
     if (files.length > 0) await loadFiles(files);
   });
 
-  document.querySelector('[data-pick-file]')?.addEventListener('click', () => fileInput?.click());
+  document.querySelector('[data-follow-file]')?.addEventListener('click', chooseFollowedFile);
+  document.querySelector('[data-follow-folder]')?.addEventListener('click', chooseFollowedFolder);
   document
     .querySelector('[data-pick-folder]')
     ?.addEventListener('click', () => folderInput?.click());
   document.querySelector('[data-load-demo]')?.addEventListener('click', () => {
+    stopAllFollows();
     if (api) report(api.agent_viewer_load_demo());
   });
 
@@ -1329,9 +1777,26 @@ import '../styles/feature-viewer.css';
   for (const input of [fileInput, folderInput]) {
     input?.addEventListener('change', async () => {
       if (!api || !input.files) return;
+      stopAllFollows();
       await loadFiles(Array.from(input.files));
     });
   }
+
+  const fullscreenTarget = () =>
+    (document as Document & { webkitFullscreenElement?: Element | null }).fullscreenElement ??
+    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
+    null;
+
+  const syncWorkspaceFullscreen = () => {
+    const on = dropzone !== null && fullscreenTarget() === dropzone;
+    const timeline = document.querySelector('.viewer-shell__timeline') as HTMLElement | null;
+    const expertToggle = document.querySelector('[data-expert-toggle]') as HTMLButtonElement | null;
+    const expertOpen = expertToggle?.getAttribute('aria-expanded') === 'true';
+    if (timeline !== null) timeline.hidden = on ? false : !expertOpen;
+    if (on) api?.agent_viewer_fit_graph();
+  };
+  document.addEventListener('fullscreenchange', syncWorkspaceFullscreen);
+  document.addEventListener('webkitfullscreenchange', syncWorkspaceFullscreen);
 
   void boot();
 </script>

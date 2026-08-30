@@ -1165,8 +1165,41 @@ async function main(): Promise<void> {
     await page.locator('[data-command-close]').click();
     check('dashboard: command menu closes', await page.locator('[data-command-panel]').isHidden());
 
-    await page.goto(`${baseUrl}/viewer/`, { waitUntil: 'networkidle' });
+    check(
+      'dashboard: Tech Wall renders the configured panel field',
+      (await page.locator('[data-tech-wall] .fs-tech-wall__panel').count()) === 42,
+      await page.locator('[data-tech-wall] .fs-tech-wall__panel').count(),
+    );
+    await page
+      .locator('[data-session-file-input]')
+      .setInputFiles(
+        join(repoRoot, 'crates/fleetscope-cli/tests/fixtures/gemini-multi-agent/session.jsonl'),
+      );
+    await page.locator('[data-approval-card]').waitFor({ state: 'visible', timeout: 10_000 });
+    check(
+      'dashboard: a selected recording reaches the ready state',
+      (await page.locator('[data-upload-item][data-upload-state="complete"]').count()) === 1,
+      await page.locator('[data-upload-list]').innerText(),
+    );
+    check(
+      'dashboard: human review gates the Viewer handoff',
+      (await page.locator('[data-approval-card]').getAttribute('data-approval-state')) ===
+        'pending',
+      await page.locator('[data-approval-card]').innerText(),
+    );
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === '/viewer' || url.pathname === '/viewer/', {
+        timeout: 20_000,
+      }),
+      page.locator('[data-approval-approve]').click(),
+    ]);
+
     await page.waitForSelector('#agent-viewer-canvas canvas', { timeout: 20_000 });
+    check(
+      'dashboard: the approved recording opens in Agent Viewer',
+      (await page.locator('[data-status]').innerText()).includes('session inv-1'),
+      await page.locator('[data-status]').innerText(),
+    );
     check(
       'viewer: WASM renderer instantiated',
       (await page.locator('#agent-viewer-canvas canvas').count()) === 1,
@@ -1179,7 +1212,7 @@ async function main(): Promise<void> {
     );
     check(
       'viewer: demo fingerprint is stable',
-      (await page.locator('[data-status]').innerText()).includes('2850b12b0760257f'),
+      (await page.locator('[data-status]').innerText()).includes('30c89a4ccc85fcbf'),
     );
 
     // ── Story Mode ───────────────────────────────────────────────────────

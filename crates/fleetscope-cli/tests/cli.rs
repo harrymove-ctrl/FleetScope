@@ -42,7 +42,19 @@ fn the_checked_in_example_folder_is_loadable_by_cli() {
     let (ok, stdout, stderr) = run(&["inspect", example_dir().to_str().unwrap()]);
     assert!(ok, "inspect on examples/gemini-session failed: {stderr}");
     assert!(stdout.contains("adapter   google-adk@1"), "got: {stdout}");
-    assert!(stdout.contains("flight_search [completed]"), "got: {stdout}");
+    assert!(
+        stdout.contains("flight_search [completed]"),
+        "got: {stdout}"
+    );
+}
+
+#[test]
+fn inspect_accepts_tiny_and_does_not_size_gate() {
+    // `--tiny` is a view-only override. inspect must still run in a small
+    // terminal (and in CI, where there is no TTY) without exiting 2.
+    let (ok, stdout, stderr) = run(&["inspect", fixture_dir().to_str().unwrap(), "--tiny"]);
+    assert!(ok, "inspect --tiny failed: {stderr}");
+    assert!(stdout.contains("adapter   google-adk@1"), "got: {stdout}");
 }
 
 #[test]
@@ -127,9 +139,17 @@ fn help_documents_the_transport_actions_that_are_always_available() {
     // so, or the flags read like modes.
     let (ok, stdout, _) = run(&["--help"]);
     assert!(ok);
-    for expected in ["play/pause", "follow", "--speed", "inspect"] {
+    for expected in ["pause", "follow", "--speed", "inspect", "--tiny"] {
         assert!(stdout.contains(expected), "help omits {expected:?}");
     }
+    assert!(
+        stdout.contains("[ / ]") || (stdout.contains('[') && stdout.contains(']')),
+        "help must advertise [ / ] for step, got:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("←/→"),
+        "help must not advertise arrows as step, got:\n{stdout}"
+    );
     assert!(
         stdout.contains("no API key"),
         "the help must state the local-only guarantee"

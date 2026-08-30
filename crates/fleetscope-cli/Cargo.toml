@@ -48,6 +48,7 @@ zoetrope = { path = "../../vendor/zoetrope", default-features = false, features 
 
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 anyhow = "1"
+crossterm = "0.29"
 
 [dev-dependencies]
 # Tests reach the core directly to exercise `project_as` without the frontend.

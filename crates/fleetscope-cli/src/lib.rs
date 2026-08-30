@@ -31,6 +31,7 @@ pub use agent_viewer_render as scene;
 
 pub mod discover;
 pub mod follow;
+pub mod view_state;
 
 /// Read a session file from disk and project it.
 ///

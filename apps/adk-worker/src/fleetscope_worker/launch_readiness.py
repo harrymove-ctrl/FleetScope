@@ -33,6 +33,7 @@ MODEL_CALLS_BY_AGENT = {
 
 _PROJECT = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 _LOCATION = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)+$")
+_MODEL_LOCATIONS = frozenset({"global", "us", "eu"})
 _SERVICE = re.compile(r"^[a-z](?:[a-z0-9-]{0,47}[a-z0-9])?$")
 _BUCKET = re.compile(r"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$")
 _GEMINI_MODEL = re.compile(r"^gemini-(?P<major>[0-9]+)\.(?P<minor>[0-9]+)-[a-z0-9][a-z0-9.-]*$")
@@ -52,6 +53,7 @@ class LaunchReadinessConfig:
     service: str
     bucket: str
     model: str = "gemini-3.7-flash"
+    model_location: str = "global"
     artifact_prefix: str = "fleetscope-sessions"
     max_model_calls: int = 6
     timeout_seconds: float = 180.0
@@ -69,6 +71,10 @@ class LaunchReadinessConfig:
         model = _GEMINI_MODEL.fullmatch(self.model)
         if model is None or (int(model["major"]), int(model["minor"])) < (3, 5):
             raise InvalidLaunchReadinessConfig("model must be a Gemini 3.5+ model id")
+        if self.model_location not in _MODEL_LOCATIONS:
+            raise InvalidLaunchReadinessConfig(
+                "model_location must be one of global, us, or eu"
+            )
         if self.max_model_calls != MAX_MODEL_CALLS:
             raise InvalidLaunchReadinessConfig(
                 f"max_model_calls is fixed at {MAX_MODEL_CALLS} for this demo"

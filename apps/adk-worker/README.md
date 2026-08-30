@@ -57,14 +57,21 @@ resource names and both spend/provider opt-ins:
 gcloud auth application-default login
 
 export GOOGLE_GENAI_USE_VERTEXAI=true
+export GOOGLE_GENAI_USE_ENTERPRISE=true
 export GOOGLE_CLOUD_PROJECT=<project-id>
-export GOOGLE_CLOUD_LOCATION=us-central1
+export GOOGLE_CLOUD_LOCATION=global
+export FLEETSCOPE_CLOUD_RUN_LOCATION=us-central1
 export FLEETSCOPE_CLOUD_RUN_SERVICE=<service-name>
 export FLEETSCOPE_SESSION_BUCKET=<bucket-name>
 export FLEETSCOPE_ALLOW_MODEL_CALLS=true
 
 pnpm demo:google-session -- --run
 ```
+
+`GOOGLE_CLOUD_LOCATION` is the Gemini endpoint. The current
+`gemini-3.7-flash` model supports `global`, `us`, and `eu`; `global` is the
+lowest-cost default. `FLEETSCOPE_CLOUD_RUN_LOCATION` is kept separate because
+the probed Cloud Run service uses a regional location such as `us-central1`.
 
 The script prints the absolute JSONL path and a corresponding FleetScope
 `--follow` command before provider events begin. Open the second terminal using

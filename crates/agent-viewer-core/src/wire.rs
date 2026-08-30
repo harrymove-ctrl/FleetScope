@@ -188,6 +188,31 @@ pub fn compile(session: &ViewerSession) -> WireSession {
             continue;
         }
 
+        // A terminal fact has to land on the MAIN transcript as a
+        // `<task-notification>`: that is the only signal the renderer treats
+        // as Failed/Done + terminal. An assistant `[failed]` line on the
+        // child's file is visible as text and is ignored by liveness, which
+        // is why inspect could say `failed` while the graph said `running`.
+        if let Payload::Status { terminal, detail } = &event.payload {
+            let status = match terminal {
+                crate::viewer::Terminal::Completed => "completed",
+                crate::viewer::Terminal::Failed => "failed",
+            };
+            // The root node is `main` inside the renderer, not the session id.
+            let task_id = if in_main {
+                "main"
+            } else {
+                event.agent_id.as_str()
+            };
+            let summary = detail.replace(['<', '>'], "");
+            let text = format!(
+                "<task-notification>\n<task-id>{task_id}</task-id>\n<status>{status}</status>\n<summary>{summary}</summary>\n</task-notification>"
+            );
+            main.push(uuid, user_notification_line(&session_id, &timestamp, &text));
+            emitted += 1;
+            continue;
+        }
+
         let target: &mut FileBuilder = if in_main {
             &mut main
         } else {
@@ -249,27 +274,7 @@ pub fn compile(session: &ViewerSession) -> WireSession {
                     *is_error,
                 ),
             ),
-            Payload::Status { terminal, detail } => {
-                // The renderer has no status entry type; a terminal fact is
-                // shown as a line on the agent's own timeline. The machine-
-                // readable answer is `inspect`, not this label.
-                let marker = match terminal {
-                    crate::viewer::Terminal::Completed => "completed",
-                    crate::viewer::Terminal::Failed => "failed",
-                };
-                target.push(
-                    uuid,
-                    assistant_line(
-                        &session_id,
-                        &timestamp,
-                        agent_tag.as_deref(),
-                        vec![serde_json::json!({
-                            "type": "text",
-                            "text": format!("[{marker}] {detail}"),
-                        })],
-                    ),
-                );
-            }
+            Payload::Status { .. } => unreachable!("handled above"),
         }
         emitted += 1;
     }
@@ -313,6 +318,16 @@ fn assistant_line(
     });
     tag_sidechain(&mut line, agent_id);
     line
+}
+
+fn user_notification_line(session_id: &str, timestamp: &str, text: &str) -> serde_json::Value {
+    serde_json::json!({
+        "type": "user",
+        "timestamp": timestamp,
+        "sessionId": session_id,
+        "origin": { "kind": "task-notification" },
+        "message": { "role": "user", "content": text },
+    })
 }
 
 fn user_text_line(

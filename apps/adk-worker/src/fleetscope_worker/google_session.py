@@ -25,6 +25,7 @@ from urllib.parse import quote
 
 import google.auth
 from google.adk.events import Event
+from google.adk.models.google_llm import Gemini
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.auth.transport.requests import AuthorizedSession
@@ -76,6 +77,7 @@ class AuthorizedGoogleClient:
             scopes=["https://www.googleapis.com/auth/cloud-platform"]
         )
         self._session = AuthorizedSession(credentials)
+        self.credentials = credentials
         self._timeout_seconds = timeout_seconds
 
     def get_json(self, url: str) -> JsonResponse:
@@ -368,7 +370,16 @@ async def run_live_session(
         budget = ModelBudget(config.max_model_calls)
         calls_by_agent = {agent: 0 for agent in SPECIALIST_AGENTS}
 
-        def before_model(context: Any, _request: Any = None) -> None:
+        def before_model(
+            *args: Any,
+            callback_context: Any = None,
+            llm_request: Any = None,
+            **_kwargs: Any,
+        ) -> None:
+            # ADK 2.8 invokes before_model_callback by keyword
+            # (callback_context=, llm_request=). Older unit tests still pass
+            # the context positionally.
+            context = callback_context if callback_context is not None else (args[0] if args else None)
             agent_name = getattr(context, "agent_name", None)
             limit = MODEL_CALLS_BY_AGENT.get(agent_name)
             if limit is None:
@@ -379,6 +390,7 @@ async def run_live_session(
                 )
             budget.reserve()
             calls_by_agent[agent_name] += 1
+            _ = llm_request
 
         error_detail = ""
         decision = ""
@@ -387,8 +399,19 @@ async def run_live_session(
             # dependency/configuration error happens before the first provider
             # event, the local JSONL still contains a safe failed session.
             cloud_run_probe, storage_probe, budget_report = _specialist_inputs(config, client)
-            workflow = build_launch_readiness_workflow(
+            model = Gemini(
                 model=config.model,
+                client_kwargs={
+                    "enterprise": True,
+                    "project": config.project,
+                    "location": config.model_location,
+                    # Supplying ADC explicitly makes it take precedence over
+                    # any ambient API-key environment variable.
+                    "credentials": getattr(client, "credentials", None),
+                },
+            )
+            workflow = build_launch_readiness_workflow(
+                model=model,
                 before_model_callback=before_model,
                 cloud_run_probe=cloud_run_probe,
                 storage_probe=storage_probe,
@@ -504,7 +527,8 @@ def _proof(
         "modelEvidence": "observed" if observed else "missing",
         "googleCloud": {
             "project": config.project,
-            "location": config.location,
+            "modelLocation": config.model_location,
+            "cloudRunLocation": config.location,
             "cloudRunService": config.service,
             "storageBucket": config.bucket,
         },
@@ -538,7 +562,17 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--run", action="store_true", help="issue real Vertex AI and Google API calls")
     parser.add_argument("--upload", action="store_true", help="upload JSONL and proof to Cloud Storage after the run")
     parser.add_argument("--project", default=os.environ.get("GOOGLE_CLOUD_PROJECT", ""))
-    parser.add_argument("--location", default=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"))
+    parser.add_argument(
+        "--location",
+        default=os.environ.get("FLEETSCOPE_CLOUD_RUN_LOCATION", "us-central1"),
+        help="regional Cloud Run location used by the read-only service probe",
+    )
+    parser.add_argument(
+        "--model-location",
+        default=os.environ.get("GOOGLE_CLOUD_LOCATION", "global"),
+        choices=("global", "us", "eu"),
+        help="Gemini 3.7 Flash Agent Platform endpoint",
+    )
     parser.add_argument("--service", default=os.environ.get("FLEETSCOPE_CLOUD_RUN_SERVICE", ""))
     parser.add_argument("--bucket", default=os.environ.get("FLEETSCOPE_SESSION_BUCKET", ""))
     parser.add_argument("--model", default=os.environ.get("FLEETSCOPE_ADK_MODEL", "gemini-3.7-flash"))
@@ -557,6 +591,7 @@ def _config(args: argparse.Namespace) -> LaunchReadinessConfig:
         service=args.service,
         bucket=args.bucket,
         model=args.model,
+        model_location=args.model_location,
         artifact_prefix=args.artifact_prefix,
         max_model_calls=args.max_model_calls,
         timeout_seconds=args.timeout_seconds,
@@ -581,9 +616,12 @@ def _require_live_opt_in(args: argparse.Namespace) -> None:
         raise LiveRunRefused(
             "refused: --run can spend Google Cloud credit; set FLEETSCOPE_ALLOW_MODEL_CALLS=true"
         )
-    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() != "true":
+    enterprise_enabled = os.environ.get("GOOGLE_GENAI_USE_ENTERPRISE", "").lower() == "true"
+    legacy_vertex_enabled = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() == "true"
+    if not (enterprise_enabled or legacy_vertex_enabled):
         raise LiveRunRefused(
-            "refused: this proof requires Vertex AI; set GOOGLE_GENAI_USE_VERTEXAI=true"
+            "refused: this proof requires Agent Platform; set "
+            "GOOGLE_GENAI_USE_ENTERPRISE=true (or legacy GOOGLE_GENAI_USE_VERTEXAI=true)"
         )
 
 

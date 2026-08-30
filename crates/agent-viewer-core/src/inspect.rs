@@ -75,11 +75,62 @@ pub fn summary(projection: &Projection) -> String {
         let _ = writeln!(out, "note      {note}");
     }
 
-    let _ = writeln!(out, "\nagents");
+    // Section titles match the browser Session readings vocabulary so demo
+    // narration and `fleetscope inspect` speak the same language.
+    let _ = writeln!(out, "\nsession");
+    let _ = writeln!(out, "  events         {}", session.events.len());
+    let _ = writeln!(out, "  agents         {}", session.agents.len());
+    let tools: usize = session
+        .events
+        .iter()
+        .filter(|e| matches!(e.payload, Payload::ToolCall { .. }))
+        .count();
+    let unanswered: usize = session
+        .agents
+        .iter()
+        .map(|agent| session.unanswered_calls(&agent.id).len())
+        .sum();
+    let failed: usize = session
+        .agents
+        .iter()
+        .map(|agent| session.error_count(&agent.id))
+        .sum();
+    let _ = writeln!(out, "  tools          {tools}");
+    let _ = writeln!(out, "  unanswered     {unanswered}");
+    let _ = writeln!(out, "  failed events  {failed}");
+
+    let _ = writeln!(out, "\nagent tree");
     if let Some(root) = session.root() {
         write_agent(&mut out, session, &root.id, 0);
     } else {
         let _ = writeln!(out, "  (no root agent: every agent names a parent)");
+    }
+
+    let _ = writeln!(out, "\ncalls answered");
+    let mut saw_call = false;
+    for agent in &session.agents {
+        for event in session.events_for(&agent.id) {
+            if let Payload::ToolCall { tool, call_id, .. } = &event.payload {
+                saw_call = true;
+                let answered = session.events.iter().any(|other| {
+                    matches!(
+                        &other.payload,
+                        Payload::ToolResult {
+                            call_id: other_id,
+                            ..
+                        } if other_id == call_id
+                    )
+                });
+                if answered {
+                    let _ = writeln!(out, "  [x] {tool}");
+                } else {
+                    let _ = writeln!(out, "  [ ] {tool}  no result recorded");
+                }
+            }
+        }
+    }
+    if !saw_call {
+        let _ = writeln!(out, "  (no tool calls recorded)");
     }
 
     out

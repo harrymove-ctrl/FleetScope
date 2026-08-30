@@ -17,6 +17,7 @@ version = "0.1.0"
 dependencies = [
  "agent-viewer-core",
  "serde",
+ "serde_json",
  "zoetrope",
 ]
 
@@ -292,6 +293,7 @@ dependencies = [
  "agent-viewer-render",
  "anyhow",
  "chrono",
+ "crossterm",
  "serde",
  "serde_json",
  "tokio",

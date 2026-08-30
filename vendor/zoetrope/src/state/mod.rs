@@ -169,6 +169,11 @@ pub struct App {
     pub session_info: SessionInfo,
     /// Whether the `i` session-info overlay is shown (`i` toggles, `esc` closes).
     pub show_info: bool,
+    /// Follow auto-opens the inspector to narrate the active agent. Esc
+    /// dismisses that panel without leaving Follow; this flag keeps
+    /// `track_activity` from immediately re-selecting and covering the graph.
+    /// `f` turns it back on.
+    pub follow_inspector: bool,
     /// Node id awaiting a center-glide, set on a user selection and consumed by
     /// `draw` AFTER the flow has rendered into the split (narrower) canvas —
     /// `center_on` probes the last-rendered size, so centering at event time
@@ -207,6 +212,7 @@ impl App {
             last_batch_at: None,
             session_info: SessionInfo::default(),
             show_info: false,
+            follow_inspector: true,
             pending_center: None,
             pending_seek: None,
         }
@@ -664,14 +670,50 @@ impl App {
             return;
         };
         self.center_node(&id, true); // Follow: clamp zoom for readability.
-        // In Follow the panel narrates the followed agent. `select_node` is quiet
-        // (no SelectionChanged), so this never trips the drop-Follow detection in
-        // the handler — a user selection, which does fire it, drops to Manual and
-        // stops this auto-narration entirely.
-        if self.selected_agent_id().as_deref() != Some(id.as_str()) {
+        // In Follow the panel narrates the followed agent unless the operator
+        // dismissed it with Esc. `select_node` is quiet (no SelectionChanged),
+        // so this never trips the drop-Follow detection in the handler — a user
+        // selection, which does fire it, drops to Manual and stops this
+        // auto-narration entirely.
+        if self.follow_inspector && self.selected_agent_id().as_deref() != Some(id.as_str()) {
             self.flow.select_node(&id);
             self.detail_scroll = 0;
             self.detail_follow = true;
+        }
+    }
+
+    /// Close help, then info, then the detail panel. Follow's camera is left
+    /// alone: the operator can get the graph back without leaving Follow.
+    pub fn dismiss_overlays(&mut self) {
+        if self.show_help {
+            self.show_help = false;
+            return;
+        }
+        if self.show_info {
+            self.show_info = false;
+            return;
+        }
+        self.flow.clear_selection();
+        self.detail_scroll = 0;
+        self.detail_follow = true;
+        self.follow_inspector = false;
+    }
+
+    /// Set pause without toggling. No-op when already in that pause/play state.
+    pub fn set_paused(&mut self, paused: bool) {
+        let playing = self.timeline.follow_head && !self.is_paused;
+        if paused {
+            if self.is_paused {
+                return;
+            }
+            self.is_paused = true;
+            self.timeline.follow_head = false;
+        } else {
+            if playing {
+                return;
+            }
+            self.is_paused = false;
+            self.timeline.follow_head = true;
         }
     }
 

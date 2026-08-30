@@ -21,6 +21,8 @@ export interface Snapshot {
   readonly entryCount: number;
   readonly atEdge: boolean;
   readonly transport: 'idle' | 'playing' | 'paused' | 'history' | 'live';
+  /** Explicit pause flag from the renderer; pairing uses this instead of toggling. */
+  readonly paused?: boolean;
   /**
    * The viewer event the playhead rests on. `null` is a real answer: the
    * playhead may be sitting on a sub-agent sidecar, which is renderer state
@@ -290,6 +292,20 @@ export function foreignEventNote(
   if (selectedAgentId === null || detailAgentId === selectedAgentId) return null;
   const owner = detailAgentLabel ?? detailAgentId;
   return `The event on show belongs to ${owner}. Choose one of the selected agent's events below.`;
+}
+
+/** Latest event for the selected agent, used by the inspector jump control. */
+export function latestEventForAgent(
+  events: readonly EventSummary[],
+  agentId: string | null,
+): EventSummary | null {
+  if (agentId === null) return null;
+  let latest: EventSummary | null = null;
+  for (const event of events) {
+    if (event.agentId !== agentId) continue;
+    if (latest === null || event.sequence >= latest.sequence) latest = event;
+  }
+  return latest;
 }
 
 /** Events belonging to one agent, for the rail's selection to filter by. */

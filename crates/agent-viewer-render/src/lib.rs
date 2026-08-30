@@ -22,11 +22,13 @@ use agent_viewer_core::wire::WireSession;
 
 pub mod manifest;
 pub mod selection;
+pub mod view_state;
 pub use manifest::{ViewerManifest, ViewerManifestEntry, ViewerManifestItemKind};
 pub use selection::{
-    clear_selection, graph_nodes, has_node, select_agent, selected_agent, GraphNode,
+    clear_selection, graph_nodes, has_node, reveal_agent, select_agent, selected_agent, GraphNode,
     SelectionOutcome,
 };
+pub use view_state::ViewState;
 
 /// The wordmark the renderer draws in the status bar and help overlay.
 const PRODUCT: &str = "FleetScope";
@@ -157,6 +159,10 @@ pub struct ViewerSnapshot {
     /// not report selection", and a shell cannot tell those apart.
     #[serde(rename = "selectedAgentId")]
     pub selected_agent_id: Option<String>,
+    /// Explicit pause flag. Transport already distinguishes paused/history/live;
+    /// pairing needs the boolean itself so a sidecar can set pause without
+    /// toggling.
+    pub paused: bool,
     /// The viewer event the playhead rests on, resolved through the manifest.
     ///
     /// `None` is a real answer: the playhead may be sitting on a sub-agent
@@ -177,6 +183,7 @@ pub fn snapshot(app: &App, manifest: &ViewerManifest) -> ViewerSnapshot {
         entry_index,
         entry_count: app.timeline.items.len(),
         at_edge: app.timeline.at_edge(),
+        paused: app.is_paused,
         transport: match app.transport() {
             Transport::Live => "live",
             Transport::Playing => "playing",

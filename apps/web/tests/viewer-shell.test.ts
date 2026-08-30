@@ -5,6 +5,7 @@ import {
   foreignEventNote,
   graphNodeIds,
   inspectorFields,
+  latestEventForAgent,
   positionLabel,
   transportBadge,
   NO_EVENT_MESSAGE,
@@ -14,6 +15,16 @@ import {
   type GraphNode,
   type Snapshot,
 } from '../src/features/viewer/shell';
+import {
+  JUMP_TO_AGENT_LATEST_LABEL,
+  isViewSidecar,
+  needsPlayToggle,
+  parseViewState,
+  pickFollowedTranscript,
+  playheadIsPastLocalEvents,
+  serializeViewState,
+  shouldApplyRemoteView,
+} from '../src/features/viewer/follow';
 import { workflowLanes } from '../src/features/viewer/workflows';
 
 /**
@@ -372,5 +383,135 @@ describe("the inspector never shows one agent's event under another's selection"
     expect(foreignEventNote('coordinator/hotel_search', 'coordinator', null)).toContain(
       'coordinator',
     );
+  });
+
+  it('keeps the jump label for the selected agent’s latest event', () => {
+    expect(JUMP_TO_AGENT_LATEST_LABEL).toBe('Jump to this agent’s latest event');
+  });
+
+  it('finds the selected agent’s latest event by sequence, not array order', () => {
+    const events: EventSummary[] = [
+      {
+        sequence: 4,
+        agentId: 'coordinator/hotel_search',
+        timestamp: 't',
+        kind: 'message',
+        label: 'later-first',
+        isError: false,
+        callId: null,
+      },
+      {
+        sequence: 1,
+        agentId: 'coordinator',
+        timestamp: 't',
+        kind: 'message',
+        label: 'parent',
+        isError: false,
+        callId: null,
+      },
+      {
+        sequence: 9,
+        agentId: 'coordinator/hotel_search',
+        timestamp: 't',
+        kind: 'tool_result',
+        label: 'latest',
+        isError: true,
+        callId: 'c',
+      },
+    ];
+    expect(latestEventForAgent(events, 'coordinator/hotel_search')?.sequence).toBe(9);
+    expect(latestEventForAgent(events, 'coordinator')?.sequence).toBe(1);
+    expect(latestEventForAgent(events, 'missing')).toBeNull();
+    expect(latestEventForAgent(events, null)).toBeNull();
+  });
+});
+
+describe('follow-folder pairing', () => {
+  it('prefers session.jsonl over a larger sibling transcript', () => {
+    const picked = pickFollowedTranscript([
+      { name: 'trace.jsonl', path: 'trace.jsonl', size: 9000 },
+      { name: 'session.jsonl', path: 'session.jsonl', size: 100 },
+    ]);
+    expect(picked?.name).toBe('session.jsonl');
+  });
+
+  it('picks the shallowest then largest jsonl when session.jsonl is absent', () => {
+    const picked = pickFollowedTranscript([
+      { name: 'deep.jsonl', path: 'nested/deep.jsonl', size: 8000 },
+      { name: 'small.jsonl', path: 'small.jsonl', size: 10 },
+      { name: 'big.jsonl', path: 'big.jsonl', size: 50 },
+    ]);
+    expect(picked?.name).toBe('big.jsonl');
+  });
+
+  it('never treats view.json as a transcript', () => {
+    expect(isViewSidecar('view.json')).toBe(true);
+    expect(isViewSidecar('run/view.json')).toBe(true);
+    expect(
+      pickFollowedTranscript([{ name: 'view.json', path: 'view.json', size: 999 }]),
+    ).toBeNull();
+  });
+
+  it('parses a TUI sidecar and ignores corrupt bytes', () => {
+    const parsed = parseViewState(
+      JSON.stringify({
+        v: 1,
+        playhead: 71,
+        paused: true,
+        selectedAgent: 'ux_designer',
+        camera: 'manual',
+        updatedAt: 1756571844375,
+        writer: 'tui',
+      }),
+    );
+    expect(parsed).toEqual({
+      v: 1,
+      playhead: 71,
+      paused: true,
+      selectedAgent: 'ux_designer',
+      camera: 'manual',
+      updatedAt: 1756571844375,
+      writer: 'tui',
+    });
+    expect(parseViewState('{')).toBeNull();
+    expect(
+      parseViewState(
+        '{"v":2,"playhead":1,"paused":false,"camera":"manual","updatedAt":1,"writer":"tui"}',
+      ),
+    ).toBeNull();
+  });
+
+  it('applies only a newer non-web write', () => {
+    const tui = parseViewState(
+      '{"v":1,"playhead":3,"paused":false,"selectedAgent":null,"camera":"follow","updatedAt":20,"writer":"tui"}',
+    )!;
+    expect(shouldApplyRemoteView(tui, 10)).toBe(true);
+    expect(shouldApplyRemoteView(tui, 20)).toBe(false);
+    const web = parseViewState(
+      serializeViewState({
+        playhead: 3,
+        paused: true,
+        selectedAgent: 'lead',
+        camera: 'manual',
+        updatedAt: 99,
+      }),
+    )!;
+    expect(web.writer).toBe('web');
+    expect(shouldApplyRemoteView(web, 0)).toBe(false);
+  });
+
+  it('toggles play only when the snapshot disagrees with paused', () => {
+    expect(needsPlayToggle('playing', true)).toBe(true);
+    expect(needsPlayToggle('live', true)).toBe(true);
+    expect(needsPlayToggle('paused', true)).toBe(false);
+    expect(needsPlayToggle('history', false)).toBe(true);
+    expect(needsPlayToggle('playing', false)).toBe(false);
+    expect(needsPlayToggle('idle', false)).toBe(false);
+  });
+
+  it('treats a playhead past the loaded sequences as the live edge', () => {
+    expect(playheadIsPastLocalEvents(71, [0, 1, 70])).toBe(true);
+    expect(playheadIsPastLocalEvents(70, [0, 1, 70])).toBe(false);
+    expect(playheadIsPastLocalEvents(0, [])).toBe(true);
   });
 });

@@ -83,6 +83,42 @@ away from doing so.
 | `cargo clippy --no-default-features -- -D warnings` | exit 0 |
 | `cargo fmt --all -- --check` | exit 0 |
 
+## Patch 2 — paired-viewer TUI control (Esc, Failed, tall inspector, hooks)
+
+**Files:** `vendor/zoetrope/src/handler.rs`, `vendor/zoetrope/src/state/mod.rs`, `vendor/zoetrope/src/state/session.rs`, `vendor/zoetrope/src/ui/mod.rs`, `vendor/zoetrope/src/ui/panel.rs`, `vendor/zoetrope/src/tui.rs`
+
+**What upstream does.** Esc is a no-op in Follow so the inspector auto-narrates; `recompute_liveness` overwrites Failed/terminal agents when `last_ts` is recent; a selected agent always splits the canvas 30/70 horizontally, covering the graph on a short terminal; the TUI loop has no pairing hook.
+
+**The change.**
+
+- Esc closes help, then info, then the detail panel even in Follow. Follow's camera stays Follow. `follow_inspector` stops `track_activity` from immediately re-selecting; `f` turns narration back on.
+- `recompute_liveness` (and `end_of_stream`) must not overwrite `AgentStatus::Failed` or revive a `terminal` agent.
+- Terminals ≥48 rows put the inspector in a ~16-row bottom pane so the graph stays full width. The 30/70 split remains the short-terminal fallback.
+- The inspector notes when the selected agent's event is not the playhead (`[`/`]` still step; selection ≠ seek).
+- `App::dismiss_overlays` / `App::set_paused` are the shared Esc/pause primitives (native + wasm).
+- `tui::run_with` + `TuiHooks` let FleetScope write/poll `view.json` without duplicating the event loop.
+
+**Why a wrapper could not do it.** Esc routing, liveness, layout, the panel, and the event loop all live inside `zoetrope::ui::draw` / `handler` / `tui::run`. A wrapper can choose *what data* to fold, but not *which keys close the overlay* or *how the canvas splits*.
+
+**Verification re-run after the patch:**
+
+| Command | Result |
+|---|---|
+| `cargo test --manifest-path vendor/zoetrope/Cargo.toml --lib` | **186 passed**, 0 failed |
+| `cargo test -p fleetscope-cli` | **pass** (lib + adapter/cli/manifest/render) |
+| `cargo test -p agent-viewer-render` | **21 passed**, 0 failed |
+| `cargo test -p agent-viewer-core` | **0 tests** (lib compiles) |
+
+## Patch 3 — show streamed assistant output on cards and inspector
+
+**Files:** `vendor/zoetrope/src/state/session.rs`, `vendor/zoetrope/src/state/graph.rs`, `vendor/zoetrope/src/ui/nodes.rs`, `vendor/zoetrope/src/ui/panel.rs`, `vendor/zoetrope/src/ui/mod.rs`
+
+**What upstream does.** The inspector is a tool-call list. Cards show title, optional spawn description, and `⚒ N tools`. Assistant `text` blocks are used only as spawn-reasoning provenance, then discarded. Antigravity `--print` streams are almost all text and zero tools, so the TUI looked empty (`0 tools`, `no tool calls`) while the JSONL held dozens of output chunks.
+
+**The change.** Each agent keeps `last_text` and a capped `notes` list of assistant text excerpts. Cards prefer `last_text` as the description line. An inspector with no tools lists those notes under **output**. The timeline log row shows even when there are no Claude-style prompt eras. Subagent cards are slightly taller so the output line fits.
+
+**Why a wrapper could not do it.** The session model and card/panel widgets live inside the vendored renderer. Emitting fake `tool_use` blocks from FleetScope would lie about tools.
+
 ## What FleetScope did NOT patch
 
 Recorded so the decisions are not re-litigated:

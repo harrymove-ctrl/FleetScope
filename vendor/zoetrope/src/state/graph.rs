@@ -74,22 +74,30 @@ fn content_matches(info: &AgentInfo, node: &AgentNode) -> bool {
         AgentKind::Subagent => node.title == info.agent_type.as_deref().unwrap_or("subagent"),
     };
     title_ok
-        && node.description.as_deref() == info.description.as_deref()
+        && node.description.as_deref() == card_description(info)
         && node.status == info.status
-        && node.tool_count == info.tool_calls.len()
-        && node.last_tool.as_deref() == info.last_tool()
+        && node.tool_count == info.work_tool_count()
+        && node.last_tool.as_deref() == info.last_work_tool()
+        && node.note_count == info.notes.len()
+        && node.spawn_count == info.spawn_count()
         && node.output_tokens == info.output_tokens
         && node.interactive == info.is_interactive()
+}
+
+fn card_description(info: &AgentInfo) -> Option<&str> {
+    info.last_text.as_deref().or(info.description.as_deref())
 }
 
 /// Build the [`AgentNode`] content mirrored from an [`AgentInfo`].
 fn build_content(info: &AgentInfo) -> AgentNode {
     AgentNode {
         title: node_title(info),
-        description: info.description.clone(),
+        description: card_description(info).map(str::to_string),
         status: info.status,
-        tool_count: info.tool_calls.len(),
-        last_tool: info.last_tool().map(str::to_string),
+        tool_count: info.work_tool_count(),
+        last_tool: info.last_work_tool().map(str::to_string),
+        note_count: info.notes.len(),
+        spawn_count: info.spawn_count(),
         output_tokens: info.output_tokens,
         interactive: info.is_interactive(),
     }

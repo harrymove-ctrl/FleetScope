@@ -10,8 +10,10 @@
 
   if (host && canvas) {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const MIN_VISIBLE_MS = 3500;
-    const MAX_WAIT_MS = 7200;
+    // Keep the signal brief so Session readings (the default surface) appear
+    // without a long black curtain. WASM can still finish in the background.
+    const MIN_VISIBLE_MS = 900;
+    const MAX_WAIT_MS = 2200;
     const startedAt = performance.now();
     let engine: WildType | null = null;
     let ready = false;
@@ -74,8 +76,11 @@
       window.setTimeout(() => {
         if (!ready) markReady();
       }, MAX_WAIT_MS);
+      // Hard ceiling: never leave the black curtain over Session readings.
+      window.setTimeout(finish, MAX_WAIT_MS + 600);
 
       const watch = (): void => {
+        if (exiting) return;
         if (
           ready &&
           performance.now() - startedAt >= MIN_VISIBLE_MS &&
@@ -84,9 +89,9 @@
           finish();
           return;
         }
-        window.requestAnimationFrame(watch);
+        window.setTimeout(watch, 100);
       };
-      window.requestAnimationFrame(watch);
+      window.setTimeout(watch, 100);
     }
   }
 </script>

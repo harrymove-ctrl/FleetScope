@@ -5,13 +5,9 @@ allowlisted read, the capture translation and the recovery policy are all
 provable without an SDK, a key or a network. This module is the seam where a
 real runtime is bound to those same ports.
 
-The callback signatures below were taken from google-adk 2.8.0 itself
-(`LlmAgent.model_fields`), not from memory:
-
-    before_agent_callback(context)
-    before_model_callback(context, llm_request)
-    before_tool_callback(tool, args, context)
-    after_tool_callback(tool, args, context, response)
+ADK 2.8.0 invokes model callbacks by keyword
+(`callback_context=`, `llm_request=`), even though type aliases look
+positional. Bind callbacks that accept those keywords.
 """
 
 from __future__ import annotations
@@ -102,7 +98,7 @@ def build_agents(
 
 def build_launch_readiness_workflow(
     *,
-    model: str,
+    model: Any,
     before_model_callback: Any,
     cloud_run_probe: Any,
     storage_probe: Any,

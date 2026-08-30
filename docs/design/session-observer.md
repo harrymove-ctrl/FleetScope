@@ -15,6 +15,7 @@ projection remains deterministic and provider-neutral.
 ```mermaid
 flowchart LR
   O[Operator script] --> A[Google ADK 2.8.0<br/>SequentialAgent]
+  X[Antigravity CLI<br/>stream-json] --> J
   A --> V[Vertex AI<br/>Gemini 3.7 Flash]
   A --> R[Cloud Run Admin API<br/>services.get]
   A --> S[Cloud Storage API<br/>buckets.get]
@@ -30,6 +31,14 @@ flowchart LR
 
 FleetScope begins at JSONL. ADK, Vertex, and the Google API calls are producer
 responsibilities.
+
+The optional Antigravity demo is a second producer boundary. It fans out real
+`agy` processes in plan mode and translates their public `stream-json` events
+to the same ADK-compatible append-only envelope. The metadata names
+`antigravity-cli-bridge 1`; it does not claim ADK executed the workers and it
+does not inspect Antigravity's private conversation database. The browser can
+retain a user-granted file handle and poll `getFile()` to follow that growing
+JSONL locally; no bytes leave the tab.
 
 ## Producer topology
 

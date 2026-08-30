@@ -1,0 +1,115 @@
+---
+/**
+ * Judge/video poster for the bundled Agent Viewer recording.
+ *
+ * This route is deliberately server-rendered and deterministic. It does not
+ * mount the Agent Viewer shell, load the WASM renderer, follow a file, or start
+ * a model. SessionGraphs is the whole evidence body.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SessionGraphs from '../components/SessionGraphs.astro';
+import { sessionStatusLine } from '../features/viewer/graphs';
+
+const statusLine = sessionStatusLine();
+---
+
+<BaseLayout title="Session readings" wide surface="feature" theme="adaptive">
+  <article class="demo-poster" data-demo-poster>
+    <header class="demo-poster__bar">
+      <div>
+        <p class="demo-poster__kicker">FleetScope · recorded session</p>
+        <h1>Session readings</h1>
+      </div>
+      <a class="demo-poster__viewer-link" href="/viewer">Open Agent Viewer</a>
+      <p class="demo-poster__status" data-demo-line>{statusLine}</p>
+    </header>
+
+    <SessionGraphs />
+
+    <footer class="demo-poster__footnote">
+      <span>Recorded example · local files stay local · no upload</span>
+      <span>Produced with <code>pnpm demo:antigravity</code></span>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .demo-poster {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+  }
+
+  .demo-poster__bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 24px;
+    align-items: end;
+    margin-bottom: clamp(28px, 5vw, 56px);
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--fd-line);
+  }
+
+  .demo-poster__kicker {
+    margin: 0 0 6px;
+    color: var(--fd-muted);
+    font: 500 10px/1 var(--fs-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .demo-poster h1 {
+    margin: 0;
+    color: var(--fd-text);
+    font-size: clamp(30px, 4vw, 52px);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+
+  .demo-poster__viewer-link {
+    align-self: start;
+    color: var(--fd-muted);
+    font: 500 11px/1.4 var(--fs-mono);
+    letter-spacing: 0.06em;
+    text-decoration: none;
+  }
+
+  .demo-poster__viewer-link:hover,
+  .demo-poster__viewer-link:focus-visible {
+    color: var(--fd-action);
+  }
+
+  .demo-poster__status {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--fd-text);
+    font: 500 clamp(13px, 1.6vw, 17px) / 1.55 var(--fs-mono);
+  }
+
+  .demo-poster__footnote {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-top: clamp(36px, 6vw, 72px);
+    padding-top: 16px;
+    border-top: 1px solid var(--fd-line);
+    color: var(--fd-faint);
+    font: 500 11px/1.6 var(--fs-mono);
+  }
+
+  .demo-poster__footnote code {
+    color: var(--fd-muted);
+    font: inherit;
+  }
+
+  @media (max-width: 640px) {
+    .demo-poster__bar {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .demo-poster__viewer-link,
+    .demo-poster__status {
+      grid-column: 1;
+    }
+  }
+</style>

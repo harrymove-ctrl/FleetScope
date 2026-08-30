@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string): string => readFileSync(join(process.cwd(), path), 'utf8');
 
 const viewer = read('apps/web/src/pages/viewer.astro');
+const sessionGraphs = read('apps/web/src/components/SessionGraphs.astro');
+const readingsStyles = read('apps/web/src/styles/feature-readings.css');
 const viewerLoader = read('apps/web/src/components/ViewerLoader.astro');
 const viewerLoaderParams = read('apps/web/src/features/viewer/wild-type/params.ts');
 const viewerLoaderEngine = read('apps/web/src/features/viewer/wild-type/engine.ts');
@@ -88,9 +90,9 @@ describe('the feature-detail visual surface', () => {
     expect(dashboard).toContain('data-upload-list');
     expect(dashboard).toContain('data-approval-card');
     expect(dashboard).toContain('data-approval-approve');
-    expect(dashboard).toContain("sessionStorage.setItem(DASHBOARD_HANDOFF_KEY");
+    expect(dashboard).toContain('sessionStorage.setItem(DASHBOARD_HANDOFF_KEY');
     expect(viewer).toContain('takeDashboardHandoff');
-    expect(viewer).toContain("window.sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY)");
+    expect(viewer).toContain('window.sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY)');
   });
 
   it('uses a bounded native Tech Wall behind the onboarding flow', () => {
@@ -137,23 +139,61 @@ describe('the feature-detail visual surface', () => {
     expect(dashboardLoaderEngine).not.toContain("'sunset'");
   });
 
-  it('mounts the measured wild-type loader only on Agent Viewer', () => {
-    expect(viewer).toContain("import ViewerLoader from '../components/ViewerLoader.astro'");
-    expect(viewer).toContain('<ViewerLoader />');
+  it('keeps the wild-type loader available but does not curtain Session readings', () => {
+    // Readings are the default /viewer surface; a full-viewport black loader
+    // hid them. The component stays in-tree for a later Flow handoff reveal.
+    expect(viewer).not.toContain('<ViewerLoader />');
     expect(viewer).toContain('fleetscope:viewer-ready');
     expect(dashboard).not.toContain('<ViewerLoader />');
-    expect(viewerLoader).toContain('MIN_VISIBLE_MS = 3500');
+    expect(viewerLoader).toContain('MIN_VISIBLE_MS');
     expect(viewerLoader).toContain('prefers-reduced-motion: reduce');
     expect(viewerLoaderEngine).toContain('export class WildType');
     expect(viewerLoaderParams).toContain('"agents", "tasks", "tools", "proof"');
   });
 
-  it('makes the CLI-first producer and model contract visible on the viewer', () => {
+  it('keeps producer/CLI controls behind More so the demo first paint stays readings-only', () => {
+    expect(viewer).toContain('data-demo-mode="readings"');
+    expect(viewer).toContain('viewer-demo-bar');
     expect(viewer).toContain('data-cli-copy');
-    expect(viewer).toContain('pnpm demo:cmux');
+    expect(viewer).toContain('pnpm demo:antigravity');
     expect(viewer).toContain('data-cli-command');
-    expect(viewer).toContain('Google ADK 2.8.0');
-    expect(viewer).toContain('gemini-3.7-flash');
-    expect(viewerStyles).toContain('.viewer-cli-card');
+    expect(viewer).toContain('Demo view is read-only');
+    expect(viewerStyles).toContain('.viewer-demo-bar__line');
+  });
+
+  it('follows a user-granted local session and keeps readings as the audience surface', () => {
+    expect(viewer).toContain('Follow file…');
+    expect(viewer).toContain('showOpenFilePicker');
+    expect(viewer).toContain('followedFile.getFile()');
+    expect(viewer).toContain('window.setTimeout(pollFollowedFile, 750)');
+    expect(viewer).toContain("sessionGraphsEl?.toggleAttribute('hidden', false)");
+    expect(viewer).toContain("sessionGraphsEl?.setAttribute('data-source', 'custom')");
+    expect(viewer).toContain('api?.agent_viewer_go_live()');
+  });
+
+  it('puts Session readings before technical evidence and frames them as the default surface', () => {
+    expect(viewer).toContain('<SessionGraphs');
+    expect(viewer.indexOf('<SessionGraphs')).toBeLessThan(viewer.indexOf('data-dropzone'));
+    expect(viewer).toContain('data-expert hidden');
+    expect(viewer).toContain('data-story hidden');
+    expect(viewer).toContain('Full screen graph');
+    expect(sessionGraphs).toContain('data-session-graphs');
+    expect(sessionGraphs).toContain('What the record shows');
+    expect(sessionGraphs).toContain('One session, seven readings');
+    expect(sessionGraphs).toContain('reading-flow');
+    expect(readingsStyles).toContain('.reading-flow__node');
+    expect(readingsStyles).toContain("data-tone='accent'");
+  });
+
+  it('follows a local folder and pairs view.json without uploading', () => {
+    expect(viewer).toContain('Follow folder…');
+    expect(viewer).toContain('showDirectoryPicker');
+    expect(viewer).toContain('view.json');
+    expect(viewer).toContain('Following folder');
+    expect(viewer).toContain('never uploaded');
+    expect(viewer).toContain('JUMP_TO_AGENT_LATEST_LABEL');
+    expect(viewer).toContain('Exit full screen');
+    expect(viewer).toContain('<kbd>[</kbd>/<kbd>]</kbd> step');
+    expect(viewerStyles).toContain('.viewer-shell:fullscreen');
   });
 });

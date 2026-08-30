@@ -321,3 +321,37 @@ Intervention ID.
 A demo-friendly but imprecise label. Requirements and interfaces use **cancel**
 
 or **terminate** to distinguish graceful and forced operations.
+
+## Agent Viewer surfaces
+
+### Agent Viewer
+
+The Session Observer UI. It has two paired renderers of the same projection:
+the native TUI (`fleetscope`) and the browser `/viewer`. Neither starts,
+retries, or authorizes an agent.
+
+### Playhead
+
+The event index both the graph and the inspector are showing. Pause, step,
+seek, and return-to-edge move the playhead. Selecting an agent without seeking
+MUST NOT pretend the playhead moved.
+
+### Live edge
+
+The newest complete JSONL line in the evidence file. Follow mode parks the
+playhead here as the producer appends. History is any playhead behind that
+edge. Replay is a finished file with a still edge.
+
+### View state
+
+Operator cursor over one session: playhead index, paused/playing, selected
+agent, camera (overview / follow / manual), and whether the inspector overlay
+is open. View state is not evidence. It MUST NOT be written into
+`session.jsonl`.
+
+### Paired viewers
+
+One TUI process and one browser tab following the same session directory.
+They share evidence through `session.jsonl` and, when enabled, share view
+state through a sidecar next to that file. They do not share a backend and
+they do not upload the session.

@@ -30,12 +30,14 @@ OPTIONS
     -s, --speed <N>     replay speed multiplier (default 1)
         --format <ID>   force a session format instead of detecting one
         --formats       list the session formats this build can read
+        --tiny          allow a terminal smaller than 160×48 (tests / cramped)
     -h, --help          print this message
     -V, --version       print the version
 
 IN THE VIEWER
-    space  play/pause      ←/→  step        g/G  start/end
-    o      overview        f    follow      ?    help        q  quit
+    space  pause           [ / ]  step      g    live edge
+    o      overview        f      follow    esc  close panel
+    ?      help            q      quit
 
 The viewer reads local files only. It starts no agent, sends nothing over the
 network, and needs no API key.
@@ -48,6 +50,7 @@ enum Command {
         follow: bool,
         speed: f64,
         format: Option<String>,
+        tiny: bool,
     },
     Inspect {
         path: PathBuf,
@@ -129,7 +132,8 @@ fn main() -> ExitCode {
             follow,
             speed,
             format,
-        } => match run_view(&path, follow, speed, format.as_deref()) {
+            tiny,
+        } => match run_view(&path, follow, speed, format.as_deref(), tiny) {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("fleetscope: {error}");
@@ -176,6 +180,7 @@ fn parse(args: &[String]) -> Result<Command, String> {
     let mut follow = false;
     let mut speed = 1.0_f64;
     let mut format: Option<String> = None;
+    let mut tiny = false;
 
     let mut index = 0;
     while index < rest.len() {
@@ -185,6 +190,7 @@ fn parse(args: &[String]) -> Result<Command, String> {
             "-V" | "--version" => return Ok(Command::Version),
             "--formats" => return Ok(Command::Formats),
             "-f" | "--follow" => follow = true,
+            "--tiny" => tiny = true,
             "--format" => {
                 index += 1;
                 let value = rest
@@ -226,6 +232,7 @@ fn parse(args: &[String]) -> Result<Command, String> {
             follow,
             speed,
             format,
+            tiny,
         })
     }
 }
@@ -306,7 +313,13 @@ fn run_view(
     follow: bool,
     speed: f64,
     format: Option<&str>,
+    tiny: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(message) = size_gate(tiny) {
+        eprintln!("{message}");
+        std::process::exit(2);
+    }
+
     let resolved = discover::resolve(path)?;
     let loaded = load(&resolved, format)?;
 
@@ -321,7 +334,9 @@ fn run_view(
     };
 
     let root_label = loaded.session.root().map(|agent| agent.label.as_str());
-    let app = scene::build(&loaded.wire, &loaded.session, speed, playhead, root_label);
+    let (app, manifest) =
+        scene::build_with_manifest(&loaded.wire, &loaded.session, speed, playhead, root_label);
+    let pairing_dir = fleetscope_cli::view_state::session_dir(path, &resolved);
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -338,10 +353,30 @@ fn run_view(
         // out to be live keeps working without the developer relaunching.
         tokio::spawn(follow::watch_task(resolved, ui_tx));
 
-        zoetrope::tui::run(app, tail_tx, ui_rx).await
+        let pairing = fleetscope_cli::view_state::Pairing::new(pairing_dir, manifest);
+        zoetrope::tui::run_with(app, tail_tx, ui_rx, pairing).await
     })?;
 
     Ok(())
+}
+
+/// Refuse to open a cramped TUI unless `--tiny` is set.
+///
+/// `inspect` / `demo` / `--help` never call this. Only a TTY is gated: a pipe
+/// has no size to judge and tests must keep passing.
+fn size_gate(tiny: bool) -> Option<String> {
+    use std::io::IsTerminal;
+    if tiny || !std::io::stdin().is_terminal() {
+        return None;
+    }
+    let (cols, rows) = crossterm::terminal::size().ok()?;
+    if cols >= 160 && rows >= 48 {
+        return None;
+    }
+    Some(format!(
+        "fleetscope: terminal is {cols}×{rows}; the viewer needs at least 160×48.\n\
+         Zoom the window (pinch-zoom, or macOS Terminal: View → Larger Text) or pass --tiny."
+    ))
 }
 
 mod follow {

@@ -37,7 +37,10 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     // plus an event-log line and a single divider on top when the session has
     // prompts (→ 8 rows); bottom: a one-row status bar.
     let show_scrubber = app.timeline.has_span();
-    let show_log = show_scrubber && !app.session.prompts.is_empty();
+    // Always narrate the playhead when there is a timeline — ADK/Antigravity
+    // sessions often have no Claude-style prompt eras, but they still have
+    // assistant text the operator needs to see.
+    let show_log = show_scrubber;
     let (canvas_area, timeline_area, status_area) = if show_scrubber {
         let panel_h = if show_log { 8 } else { 6 };
         let [canvas, panel, status] = Layout::vertical([
@@ -61,19 +64,15 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     // the canvas render (borrow split: companions take &Flow, Widget is &mut).
     let selected = app.selected_agent_id();
 
-    // When an agent is selected, split the canvas 30/70 for the detail panel —
-    // the panel is what you're reading; the canvas only keeps the selected
-    // node (click-centered) in view for orientation.
-    let (flow_area, panel_area) = if selected.is_some() {
-        let [left, right] =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
-                .areas(canvas_area);
-        (left, Some(right))
-    } else {
-        (canvas_area, None)
-    };
+    // When an agent is selected: tall terminals keep a wide graph and put the
+    // inspector under it (above the timeline). Short / `--tiny` terminals keep
+    // the original 30/70 overlay, which is the only layout that fits.
+    let tall = area.height >= 48;
+    let (flow_area, panel_area) = agent_panel_split(canvas_area, tall, selected.is_some());
 
-    render_canvas(frame, flow_area, app, selected.is_none());
+    // Minimap is skipped on the 30% orientation strip (it would cover the
+    // centered node). A bottom-pane inspector leaves the graph wide, so keep it.
+    render_canvas(frame, flow_area, app, selected.is_none() || tall);
 
     // A user selection centers its node — resolved HERE, after the flow has
     // rendered into the (possibly just-narrowed) canvas, because `center_on`
@@ -100,6 +99,30 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     }
     if app.show_info {
         render_info(frame, area, app);
+    }
+}
+
+/// Split the graph canvas when an agent is selected.
+///
+/// `tall` is the full terminal (≥48 rows), not the leftover canvas: a 160×48
+/// window must keep a full-width graph. Short terminals fall back to the
+/// original 30/70 horizontal split.
+pub(crate) fn agent_panel_split(canvas: Rect, tall: bool, selected: bool) -> (Rect, Option<Rect>) {
+    if !selected {
+        return (canvas, None);
+    }
+    if tall {
+        // 14–18 rows; 16 leaves a usable graph on a 48-row terminal after the
+        // timeline (6–8) and status (1) are taken off.
+        let inspector = 16u16.min(canvas.height.saturating_sub(4)).max(1);
+        let [graph, panel] =
+            Layout::vertical([Constraint::Fill(1), Constraint::Length(inspector)]).areas(canvas);
+        (graph, Some(panel))
+    } else {
+        let [left, right] =
+            Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
+                .areas(canvas);
+        (left, Some(right))
     }
 }
 
@@ -723,11 +746,22 @@ fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
     ];
 
     left.push(Span::styled(
-        format!(
-            "  {} agents · {} tools",
-            app.session.agent_count(),
-            app.session.tool_count()
-        ),
+        {
+            let mut bits = vec![format!("{} agents", app.session.agent_count())];
+            let msgs = app.session.note_count();
+            if msgs > 0 {
+                bits.push(format!("{msgs} msgs"));
+            }
+            let tools = app.session.work_tool_count();
+            if tools > 0 {
+                bits.push(format!("{tools} tools"));
+            }
+            let spawned = app.session.spawn_count();
+            if spawned > 0 {
+                bits.push(format!("{spawned} spawned"));
+            }
+            format!("  {}", bits.join(" · "))
+        },
         bg.fg(palette.subtle),
     ));
 
@@ -752,9 +786,9 @@ fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
         "q quit · "
     };
     let hints = if app.mode == Mode::Replay {
-        format!("{quit}? help · space pause")
+        format!("{quit}esc panel · [ ] step · ? help · space pause")
     } else {
-        format!("{quit}? help")
+        format!("{quit}esc panel · [ ] step · ? help")
     };
 
     // Reserve the hint area in terminal CELLS, not bytes: the hints contain
@@ -923,8 +957,46 @@ pub(crate) fn truncate_tail(s: &str, max: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_scrubber_tally, truncate, truncate_tail, wrap};
+    use super::{agent_panel_split, compute_scrubber_tally, truncate, truncate_tail, wrap};
     use crate::tailer::{ReplayItem, Source, Update};
+    use ratatui::layout::Rect;
+
+    #[test]
+    fn tall_inspector_keeps_a_wide_graph() {
+        // 160×48 minus status (1) and a prompt timeline (8) leaves 39 canvas
+        // rows. The inspector is a bottom pane, so the graph stays 160 wide.
+        let canvas = Rect::new(0, 0, 160, 39);
+        let (flow, panel) = agent_panel_split(canvas, true, true);
+        let panel = panel.expect("inspector is open");
+        assert_eq!(flow.width, 160, "tall layout must not squeeze the graph");
+        assert_eq!(panel.width, 160);
+        assert!(
+            flow.height >= 16,
+            "graph must remain visible, got {}",
+            flow.height
+        );
+        assert!(
+            (14..=18).contains(&panel.height),
+            "inspector should be ~14–18 rows, got {}",
+            panel.height
+        );
+        assert_eq!(
+            flow.y + flow.height,
+            panel.y,
+            "inspector sits under the graph"
+        );
+    }
+
+    #[test]
+    fn short_terminal_falls_back_to_horizontal_split() {
+        let canvas = Rect::new(0, 0, 80, 20);
+        let (flow, panel) = agent_panel_split(canvas, false, true);
+        let panel = panel.expect("inspector is open");
+        assert!(flow.width < 80, "short layout uses the 30/70 overlay");
+        assert_eq!(flow.height, 20);
+        assert_eq!(panel.height, 20);
+        assert_eq!(flow.x + flow.width, panel.x);
+    }
 
     #[test]
     fn truncate_basic() {

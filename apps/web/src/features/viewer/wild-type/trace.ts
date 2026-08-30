@@ -1,6 +1,5 @@
 // @ts-nocheck -- Ported WildType reference algorithm uses bounds-safe dense array indexing.
 export interface Ring {
-
   pts: Float64Array;
   hole: boolean;
 }
@@ -65,20 +64,48 @@ function march(a: Float32Array, w: number, h: number, minArea: number): number[]
               : cross(x, y, x, y + 1);
       let pairs: number[][];
       switch (c) {
-        case 1: case 14: pairs = [[3, 0]]; break;
-        case 2: case 13: pairs = [[0, 1]]; break;
-        case 3: case 12: pairs = [[3, 1]]; break;
-        case 4: case 11: pairs = [[1, 2]]; break;
-        case 6: case 9: pairs = [[0, 2]]; break;
-        case 7: case 8: pairs = [[3, 2]]; break;
-        case 5: case 10: {
-
+        case 1:
+        case 14:
+          pairs = [[3, 0]];
+          break;
+        case 2:
+        case 13:
+          pairs = [[0, 1]];
+          break;
+        case 3:
+        case 12:
+          pairs = [[3, 1]];
+          break;
+        case 4:
+        case 11:
+          pairs = [[1, 2]];
+          break;
+        case 6:
+        case 9:
+          pairs = [[0, 2]];
+          break;
+        case 7:
+        case 8:
+          pairs = [[3, 2]];
+          break;
+        case 5:
+        case 10: {
           const mid = (at(x, y) + at(x + 1, y) + at(x + 1, y + 1) + at(x, y + 1)) / 4;
           const inside = mid >= iso;
-          pairs = (c === 5) === inside ? [[3, 0], [1, 2]] : [[0, 1], [2, 3]];
+          pairs =
+            (c === 5) === inside
+              ? [
+                  [3, 0],
+                  [1, 2],
+                ]
+              : [
+                  [0, 1],
+                  [2, 3],
+                ];
           break;
         }
-        default: pairs = [];
+        default:
+          pairs = [];
       }
       for (const [p, q] of pairs) {
         const A = e(p);
@@ -110,16 +137,27 @@ function march(a: Float32Array, w: number, h: number, minArea: number): number[]
       if (k === startKey) break;
       const cand = touching.get(k);
       let next = -1;
-      if (cand) for (const j of cand) if (!used[j]) { next = j; break; }
+      if (cand)
+        for (const j of cand)
+          if (!used[j]) {
+            next = j;
+            break;
+          }
       if (next < 0) break;
       used[next] = 1;
       const sg = segs[next];
 
-      if (key(sg[0], sg[1]) === k) { cx = sg[2]; cy = sg[3]; }
-      else { cx = sg[0]; cy = sg[1]; }
+      if (key(sg[0], sg[1]) === k) {
+        cx = sg[2];
+        cy = sg[3];
+      } else {
+        cx = sg[0];
+        cy = sg[1];
+      }
     }
 
-    if (loop.length >= 4 && key(loop[loop.length - 2], loop[loop.length - 1]) === startKey) loop.length -= 2;
+    if (loop.length >= 4 && key(loop[loop.length - 2], loop[loop.length - 1]) === startKey)
+      loop.length -= 2;
     if (loop.length >= 6 && Math.abs(area(loop)) >= minArea) loops.push(loop);
   }
   return loops;
@@ -134,16 +172,28 @@ function simplify(pts: number[], tol: number): number[] {
   const stack: [number, number][] = [[0, n - 1]];
   while (stack.length) {
     const [a, b] = stack.pop()!;
-    const ax = pts[a * 2], ay = pts[a * 2 + 1], bx = pts[b * 2], by = pts[b * 2 + 1];
-    const dx = bx - ax, dy = by - ay;
+    const ax = pts[a * 2],
+      ay = pts[a * 2 + 1],
+      bx = pts[b * 2],
+      by = pts[b * 2 + 1];
+    const dx = bx - ax,
+      dy = by - ay;
     const len = Math.hypot(dx, dy) || 1e-9;
-    let best = -1, bd = tol;
+    let best = -1,
+      bd = tol;
     for (let i = a + 1; i < b; i++) {
-      const px = pts[i * 2] - ax, py = pts[i * 2 + 1] - ay;
+      const px = pts[i * 2] - ax,
+        py = pts[i * 2 + 1] - ay;
       const d = Math.abs(px * dy - py * dx) / len;
-      if (d > bd) { bd = d; best = i; }
+      if (d > bd) {
+        bd = d;
+        best = i;
+      }
     }
-    if (best > 0) { keep[best] = 1; stack.push([a, best], [best, b]); }
+    if (best > 0) {
+      keep[best] = 1;
+      stack.push([a, best], [best, b]);
+    }
   }
   const out: number[] = [];
   for (let i = 0; i < n; i++) if (keep[i]) out.push(pts[i * 2], pts[i * 2 + 1]);
@@ -154,7 +204,10 @@ function inside(px: number, py: number, ring: number[]): boolean {
   let hit = false;
   const n = ring.length / 2;
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = ring[i * 2], yi = ring[i * 2 + 1], xj = ring[j * 2], yj = ring[j * 2 + 1];
+    const xi = ring[i * 2],
+      yi = ring[i * 2 + 1],
+      xj = ring[j * 2],
+      yj = ring[j * 2 + 1];
     if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) hit = !hit;
   }
   return hit;
@@ -169,7 +222,7 @@ export function traceWord(
   tol: number,
   minArea = 0,
 ): TracedWord | null {
-  const measure = document.createElement("canvas").getContext("2d");
+  const measure = document.createElement('canvas').getContext('2d');
   if (!measure) return null;
   const font = `${weight} ${em}px ${family}`;
   measure.font = font;
@@ -183,14 +236,17 @@ export function traceWord(
   const W = Math.ceil(total + pad * 2 + em * oblique);
   const H = Math.ceil(em * 1.7);
   const baselineY = Math.round(em * 1.15);
-  const c = document.createElement("canvas");
+  const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
-  const ctx = c.getContext("2d", { willReadFrequently: true });
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
 
   const raw: { name: string; rings: number[][] }[] = [];
-  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  let minx = Infinity,
+    maxx = -Infinity,
+    miny = Infinity,
+    maxy = -Infinity;
   const chars = [...word];
   for (let k = 0; k < chars.length; k++) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -198,8 +254,8 @@ export function traceWord(
 
     ctx.setTransform(1, 0, -oblique, 1, oblique * baselineY, 0);
     ctx.font = font;
-    ctx.fillStyle = "#000";
-    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillText(chars[k], pad + advances[k], baselineY);
     const img = ctx.getImageData(0, 0, W, H).data;
     const a = new Float32Array(W * H);
@@ -232,7 +288,11 @@ export function traceWord(
       }
       return { pts, hole };
     });
-    let sx = 0, sy = 0, n = 0, x0 = Infinity, x1 = -Infinity;
+    let sx = 0,
+      sy = 0,
+      n = 0,
+      x0 = Infinity,
+      x1 = -Infinity;
     for (const r of rings) {
       if (r.hole) continue;
       for (let p = 0; p < r.pts.length; p += 2) {

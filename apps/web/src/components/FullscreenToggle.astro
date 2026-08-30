@@ -11,16 +11,39 @@ interface Props {
   /** Selector for the element to expand. Resolved at click time. */
   target: string;
   label: string;
+  /** Idle caption. Defaults to "Full screen". */
+  idleLabel?: string;
+  /** Active caption. Defaults to "Leave {label}". */
+  activeLabel?: string;
+  /**
+   * Stay hidden until the host sets `data-ready="true"`. Used so Full screen
+   * graph appears after Follow folder, from a real click rather than a timer.
+   */
+  gated?: boolean;
 }
 
-const { target, label } = Astro.props;
+const {
+  target,
+  label,
+  idleLabel = 'Full screen',
+  activeLabel = `Leave ${label}`,
+  gated = false,
+} = Astro.props;
 ---
 
-<button class="fsx" type="button" data-fullscreen-toggle data-target={target} aria-pressed="false" hidden>
-  <span data-fullscreen-label>Full screen</span>
+<button
+  class="fsx"
+  type="button"
+  data-fullscreen-toggle
+  data-target={target}
+  data-gated={gated ? 'true' : undefined}
+  aria-pressed="false"
+  hidden
+>
+  <span data-fullscreen-label>{idleLabel}</span>
 </button>
 
-<script is:inline define:vars={{ target, label }}>
+<script is:inline define:vars={{ target, idleLabel, activeLabel, gated }}>
   (() => {
     const button = document.querySelector(`[data-fullscreen-toggle][data-target="${target}"]`);
     if (!button) return;
@@ -30,15 +53,23 @@ const { target, label } = Astro.props;
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     if (!request || !exit) return;
 
-    button.hidden = false;
     const text = button.querySelector('[data-fullscreen-label]');
     const current = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const reveal = () => {
+      if (gated && button.getAttribute('data-ready') !== 'true') return;
+      button.hidden = false;
+    };
+    reveal();
+    if (gated) {
+      const watch = new MutationObserver(reveal);
+      watch.observe(button, { attributes: true, attributeFilter: ['data-ready'] });
+    }
 
     const sync = () => {
       const node = document.querySelector(target);
       const on = node !== null && current() === node;
       button.setAttribute('aria-pressed', String(on));
-      if (text) text.textContent = on ? `Leave ${label}` : 'Full screen';
+      if (text) text.textContent = on ? activeLabel : idleLabel;
     };
 
     button.addEventListener('click', async () => {
