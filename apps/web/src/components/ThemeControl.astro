@@ -1,0 +1,48 @@
+---
+/** A local appearance control for the two feature-detail routes. */
+---
+
+<button class="fs-theme-control" type="button" data-theme-control aria-label="Switch appearance">
+  <span class="fs-theme-control__mark" aria-hidden="true" data-theme-mark>☼</span>
+  <span data-theme-label>Light</span>
+</button>
+
+<script>
+  const root = document.documentElement;
+  const controls = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-theme-control]'));
+  const query = window.matchMedia('(prefers-color-scheme: light)');
+
+  const currentTheme = (): 'dark' | 'light' => {
+    if (root.dataset.theme === 'dark' || root.dataset.theme === 'light') return root.dataset.theme;
+    return query.matches ? 'light' : 'dark';
+  };
+
+  function renderThemeControl() {
+    const current = currentTheme();
+    const next = current === 'dark' ? 'light' : 'dark';
+    for (const control of controls) {
+      const label = control.querySelector('[data-theme-label]');
+      const mark = control.querySelector('[data-theme-mark]');
+      if (label !== null) label.textContent = next === 'light' ? 'Light' : 'Dark';
+      if (mark !== null) mark.textContent = next === 'light' ? '☼' : '◐';
+      control.setAttribute('aria-label', `Switch to ${next} appearance`);
+      control.title = `Switch to ${next} appearance`;
+    }
+  }
+
+  for (const control of controls) {
+    control.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem('fleetscope:theme', next);
+      } catch {
+        // The theme still applies for this tab when storage is unavailable.
+      }
+      renderThemeControl();
+    });
+  }
+
+  query.addEventListener('change', renderThemeControl);
+  renderThemeControl();
+</script>

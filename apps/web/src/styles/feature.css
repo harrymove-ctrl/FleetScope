@@ -1,0 +1,273 @@
+/*
+ * Feature-detail surface for /viewer and /dashboard only.
+ *
+ * Dark mode borrows the restraint of a terminal UI: graphite, thin rules and
+ * quiet green/amber/cyan state accents. Light mode uses Apple's two-neutral
+ * palette. There is no glass, gradient or nested-card depth on this surface.
+ * The launch layout never imports BaseLayout, so none of this can reach it.
+ */
+
+[data-surface='feature'] {
+  --fd-bg: #070908;
+  --fd-bg-alt: #0c100d;
+  --fd-surface: #0b0e0c;
+  --fd-surface-raised: #111612;
+  --fd-text: #f1f5ef;
+  --fd-muted: #9aa49b;
+  --fd-faint: #727c74;
+  --fd-line: #222a23;
+  --fd-line-strong: #344037;
+  --fd-action: #9bcf95;
+  --fd-action-hover: #b0dfa9;
+  --fd-action-ink: #071008;
+  --fd-cyan: #79bdb4;
+  --fd-amber: #d3aa68;
+  --fd-red: #dc8982;
+
+  --fs-bg: var(--fd-bg);
+  --fs-surface: var(--fd-surface);
+  --fs-surface-raised: var(--fd-surface-raised);
+  --fs-surface-sunken: var(--fd-bg-alt);
+  --fs-border: var(--fd-line);
+  --fs-border-strong: var(--fd-line-strong);
+  --fs-text: var(--fd-text);
+  --fs-text-muted: var(--fd-muted);
+  --fs-text-faint: var(--fd-faint);
+  --fs-ok: var(--fd-action);
+  --fs-warn: var(--fd-amber);
+  --fs-deny: var(--fd-red);
+  --fs-info: var(--fd-cyan);
+  --fs-accent: var(--fd-action);
+
+  background: var(--fd-bg);
+  color: var(--fd-text);
+  color-scheme: dark;
+}
+
+[data-theme='light'] [data-surface='feature'] {
+  --fd-bg: #ffffff;
+  --fd-bg-alt: #f5f5f7;
+  --fd-surface: #ffffff;
+  --fd-surface-raised: #f5f5f7;
+  --fd-text: #1d1d1f;
+  --fd-muted: #6e6e73;
+  --fd-faint: #86868b;
+  --fd-line: #d2d2d7;
+  --fd-line-strong: #b8b8bd;
+  --fd-action: #0071e3;
+  --fd-action-hover: #0077ed;
+  --fd-action-ink: #ffffff;
+  --fd-cyan: #087f8c;
+  --fd-amber: #9a6400;
+  --fd-red: #b42318;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']):not([data-theme='light']) [data-surface='feature'] {
+    --fd-bg: #ffffff;
+    --fd-bg-alt: #f5f5f7;
+    --fd-surface: #ffffff;
+    --fd-surface-raised: #f5f5f7;
+    --fd-text: #1d1d1f;
+    --fd-muted: #6e6e73;
+    --fd-faint: #86868b;
+    --fd-line: #d2d2d7;
+    --fd-line-strong: #b8b8bd;
+    --fd-action: #0071e3;
+    --fd-action-hover: #0077ed;
+    --fd-action-ink: #ffffff;
+    --fd-cyan: #087f8c;
+    --fd-amber: #9a6400;
+    --fd-red: #b42318;
+    color-scheme: light;
+  }
+}
+
+[data-surface='feature'] .fs-nav {
+  background: color-mix(in srgb, var(--fd-bg) 88%, transparent);
+  border-bottom-color: var(--fd-line);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+[data-surface='feature'] .fs-nav__link:hover {
+  background: var(--fd-bg-alt);
+}
+
+[data-surface='feature'] .fs-nav__link[aria-current='page'] {
+  border-bottom-color: var(--fd-action);
+}
+
+[data-surface='feature'] .fs-main {
+  padding: clamp(24px, 3vw, 48px);
+}
+
+[data-surface='feature'] .fs-page-head {
+  align-items: center;
+  max-width: 1500px;
+  margin: 0 auto clamp(40px, 5vw, 72px);
+}
+
+[data-surface='feature'] .fs-page-head h1 {
+  color: var(--fd-text);
+  font-size: clamp(30px, 3.4vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+[data-surface='feature'] .fs-page-head__lede {
+  max-width: 62ch;
+  margin-top: 10px;
+  color: var(--fd-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+[data-surface='feature'] .fs-page-head__actions {
+  gap: 10px;
+}
+
+[data-surface='feature'] .fs-button,
+[data-surface='feature'] .fs-theme-control {
+  min-height: 38px;
+  padding: 8px 15px;
+  border: 1px solid var(--fd-line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fd-text);
+  box-shadow: none;
+  font: 500 13px/1.2 var(--fs-font);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+[data-surface='feature'] .fs-button:hover:not(:disabled),
+[data-surface='feature'] .fs-theme-control:hover {
+  border-color: var(--fd-muted);
+  background: var(--fd-bg-alt);
+  color: var(--fd-text);
+  transform: none;
+}
+
+[data-surface='feature'] .fs-button[data-variant='primary'],
+[data-surface='feature'] .viewer-action--primary {
+  border-color: var(--fd-action);
+  background: var(--fd-action);
+  color: var(--fd-action-ink);
+}
+
+[data-surface='feature'] .fs-button[data-variant='primary']:hover:not(:disabled),
+[data-surface='feature'] .viewer-action--primary:hover:not(:disabled) {
+  border-color: var(--fd-action-hover);
+  background: var(--fd-action-hover);
+  color: var(--fd-action-ink);
+}
+
+[data-surface='feature'] .fs-button--sm {
+  min-height: 32px;
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+[data-surface='feature'] .fs-theme-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+[data-surface='feature'] .fs-theme-control__mark {
+  color: var(--fd-muted);
+  font: 13px/1 var(--fs-mono);
+}
+
+[data-surface='feature'] .fs-feature-section {
+  min-width: 0;
+  padding: clamp(24px, 3vw, 40px) 0;
+  border-top: 1px solid var(--fd-line);
+}
+
+[data-surface='feature'] .fs-feature-section:last-child {
+  border-bottom: 1px solid var(--fd-line);
+}
+
+[data-surface='feature'] .fs-card {
+  border-color: var(--fd-line);
+  background: var(--fd-surface);
+  box-shadow: none;
+}
+
+[data-surface='feature'] .fs-status {
+  background: transparent;
+  border-color: var(--fd-line-strong);
+}
+
+[data-surface='feature'] .fs-status[data-tone='ok'] {
+  color: var(--fd-action);
+  border-color: color-mix(in srgb, var(--fd-action) 46%, var(--fd-line));
+}
+
+[data-surface='feature'] .fs-status[data-tone='warn'] {
+  color: var(--fd-amber);
+  border-color: color-mix(in srgb, var(--fd-amber) 46%, var(--fd-line));
+}
+
+[data-surface='feature'] .fs-status[data-tone='deny'] {
+  color: var(--fd-red);
+  border-color: color-mix(in srgb, var(--fd-red) 46%, var(--fd-line));
+}
+
+[data-surface='feature'] .fs-status[data-tone='info'] {
+  color: var(--fd-cyan);
+  border-color: color-mix(in srgb, var(--fd-cyan) 46%, var(--fd-line));
+}
+
+[data-surface='feature'] .fs-footer {
+  border-top-color: var(--fd-line);
+  color: var(--fd-faint);
+}
+
+@media (max-width: 720px) {
+  [data-surface='feature'] .fs-main {
+    padding: 24px 18px 40px;
+  }
+
+  [data-surface='feature'] .fs-page-head {
+    margin-bottom: 36px;
+  }
+
+  [data-surface='feature'] .fs-page-head__actions {
+    width: 100%;
+  }
+
+  [data-surface='feature'] .fs-page-head__actions .fs-button,
+  [data-surface='feature'] .fs-page-head__actions .fs-theme-control {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 1180px) {
+  [data-surface='feature'] .fs-nav__brand-sub,
+  [data-surface='feature'] .fs-nav__env .fs-mode,
+  [data-surface='feature'] .fs-theme-control [data-theme-label] {
+    display: none;
+  }
+
+  [data-surface='feature'] .fs-theme-control {
+    justify-content: center;
+    width: 34px;
+    min-height: 34px;
+    padding: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-surface='feature'] .fs-button,
+  [data-surface='feature'] .fs-theme-control,
+  [data-surface='feature'] .fs-card {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

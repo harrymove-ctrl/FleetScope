@@ -13,16 +13,17 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import '../styles/feature-viewer.css';
 ---
 
-<BaseLayout title="Agent Viewer" wide surface="glass">
+<BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
   <div class="viewer-page">
     <PageHeader
       title="Agent Viewer"
       lede="A Gemini / Antigravity flight deck for local agent sessions. Files stay in your browser and are never uploaded."
     >
       <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> GEMINI SIGNAL</span>
-      <button slot="actions" class="fs-button viewer-action viewer-action--primary" data-load-demo>Load bundled demo</button>
+      <button slot="actions" class="fs-button viewer-action" data-variant="primary" data-load-demo>Load bundled demo</button>
       <button slot="actions" class="fs-button viewer-action" data-pick-file>Open file…</button>
       <button slot="actions" class="fs-button viewer-action" data-pick-folder>Open folder…</button>
     </PageHeader>
@@ -47,7 +48,7 @@ import PageHeader from '../components/PageHeader.astro';
       from facts the Rust side computed; a claim with no evidence behind it is
       rendered as an absence, never as a claim with a caveat under it.
     -->
-    <section class="fs-card story" aria-labelledby="story-title" data-story>
+    <section class="story fs-feature-section" aria-labelledby="story-title" data-story>
       <p class="story__source" data-story-source>—</p>
       <h2 id="story-title" class="story__outcome" data-story-outcome>Reading the session…</h2>
       <p class="story__summary" data-story-summary></p>
@@ -79,7 +80,7 @@ import PageHeader from '../components/PageHeader.astro';
       </button>
     </section>
 
-    <section class="fs-card viewer-shell fs-viewer__drop" data-dropzone>
+    <section class="viewer-shell fs-viewer__drop" data-dropzone>
       <header class="viewer-shell__header">
         <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
           Loading the viewer…
@@ -153,7 +154,7 @@ import PageHeader from '../components/PageHeader.astro';
       </footer>
     </section>
 
-    <section class="fs-card" data-expert hidden>
+    <section class="fs-feature-section viewer-summary" data-expert hidden>
       <h2>Session summary</h2>
       <p class="fs-muted">
         The same text <code>fleetscope inspect</code> prints, produced by the same code. It reports

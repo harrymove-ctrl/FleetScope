@@ -1,4 +1,6 @@
 ---
+import ThemeControl from './ThemeControl.astro';
+
 /**
  * Primary navigation.
  *
@@ -9,8 +11,10 @@ interface Props {
   path: string;
   defaultCaseId: string;
   liveMode: boolean;
+  showThemeControl?: boolean;
 }
-const { path, defaultCaseId, liveMode } = Astro.props;
+
+const { path, defaultCaseId, liveMode, showThemeControl = false } = Astro.props;
 
 const links = [
   { href: '/dashboard', label: 'Dashboard', section: '/dashboard' },
@@ -43,6 +47,7 @@ const isCurrent = (link: { href: string; section?: string }): boolean => {
     ))}
   </div>
   <div class="fs-nav__env">
+    {showThemeControl && <ThemeControl />}
     <span class="fs-mode" data-tone={liveMode ? 'info' : 'neutral'} title={liveMode
       ? 'The bounded live-proof endpoint is enabled for this deployment.'
       : 'Recorded path only. Zero cloud calls, zero spend.'}>

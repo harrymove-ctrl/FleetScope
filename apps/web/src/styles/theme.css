@@ -125,6 +125,16 @@
    */
   --carousel-ink: #05060a;
 
+  /*
+   * Foreground for anything drawn on that plate.
+   *
+   * The plate is dark in every theme, so text over it cannot take
+   * `--theme-ink`: under a light system that resolves to near-black and the
+   * caption disappears against it. These are deliberately not scoped.
+   */
+  --carousel-ink-fg: #f2f5fa;
+  --carousel-ink-fg-muted: #a4adbf;
+
   --theme-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 

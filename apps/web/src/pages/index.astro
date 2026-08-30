@@ -73,12 +73,17 @@ const first = cards[0];
     </p>
 
     <div class="caption" data-caption hidden>
-      <p class="caption__title" data-caption-title></p>
-      <p class="caption__note" data-caption-note></p>
-      <p class="caption__meta">
-        <a class="caption__link" data-caption-link href="/viewer">Open <span aria-hidden="true">›</span></a>
-        <span class="caption__provenance" data-caption-provenance></span>
-      </p>
+      <div class="caption__corner caption__corner--head">
+        <p class="caption__title" data-caption-title></p>
+      </div>
+
+      <div class="caption__corner caption__corner--tail">
+        <p class="caption__note" data-caption-note></p>
+        <p class="caption__meta">
+          <a class="caption__link" data-caption-link href="/viewer">Open <span aria-hidden="true">›</span></a>
+            <span class="caption__provenance" data-caption-provenance></span>
+        </p>
+      </div>
     </div>
 
     <button class="close" type="button" data-close hidden>Close</button>
@@ -96,6 +101,15 @@ const first = cards[0];
   const counter = document.querySelector<HTMLElement>('[data-counter]');
   const counterCurrent = document.querySelector<HTMLElement>('[data-counter-current]');
   const caption = document.querySelector<HTMLElement>('[data-caption]');
+  // The noise plate is not fully opaque, so leaving it on would hold the text
+  // at part strength. It is only needed while the front is sweeping.
+  for (const corner of caption?.querySelectorAll<HTMLElement>('.caption__corner') ?? []) {
+    corner.addEventListener('transitionend', (event) => {
+      if (event.propertyName === 'filter' && caption?.classList.contains('is-revealed')) {
+        corner.setAttribute('data-resolved', '');
+      }
+    });
+  }
   const captionTitle = document.querySelector<HTMLElement>('[data-caption-title]');
   const captionNote = document.querySelector<HTMLElement>('[data-caption-note]');
   const captionLink = document.querySelector<HTMLAnchorElement>('[data-caption-link]');
@@ -121,7 +135,18 @@ const first = cards[0];
 
   const setFocused = (focused: boolean, index: number): void => {
     const card = cards[index];
-    if (caption) caption.hidden = !focused;
+    if (caption) {
+      caption.hidden = !focused;
+      // A frame between unhiding and the class, or the transition has no
+      // starting value to run from and the blocks appear already resolved.
+      if (focused) requestAnimationFrame(() => caption.classList.add('is-revealed'));
+      else {
+        caption.classList.remove('is-revealed');
+        for (const corner of caption.querySelectorAll('.caption__corner')) {
+          corner.removeAttribute('data-resolved');
+        }
+      }
+    }
     if (counter) counter.hidden = focused;
     if (closeButton) closeButton.hidden = !focused;
     if (cursor) cursor.dataset.hidden = focused ? 'true' : 'false';
@@ -330,40 +355,135 @@ const first = cards[0];
     opacity: 0.4;
   }
 
-  /* The caption takes the counter's place in focus mode, so neither ever sits
-     over the enlarged card. */
+  /*
+   * The caption flanks the card rather than sitting under it.
+   *
+   * Opening a card gives it the middle of the stage; the words belong at the
+   * edges, on a diagonal — the claim on the left, what backs it on the right.
+   * Centred under the image they read as a caption for a picture. Beside it
+   * they read as the two halves of one statement, and the card stays the thing
+   * you are looking at.
+   */
   .caption {
-    bottom: 6%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(88vw, 560px);
+    /* Same plate as the chapter blocks: turbulence mapped into alpha with an
+       offset, so it only opens wispy holes near the sweeping edge. */
+    --caption-cloud: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'>\
+<filter id='c' x='0' y='0' width='100%25' height='100%25'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.011 0.017' numOctaves='4' seed='4'/>\
+<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 0 0 0 -0.18'/>\
+</filter>\
+<rect width='260' height='260' filter='url(%23c)'/></svg>");
+
+    inset: 0;
+    display: grid;
+    /*
+     * The middle track is empty on purpose: it reserves the card's width so
+     * the two side blocks stop short of it. With an `auto` centre the columns
+     * collapse to half the stage each and the title runs across the card.
+     */
+    grid-template-columns: minmax(0, 1fr) min(46vw, 600px) minmax(0, 1fr);
+    align-items: center;
+    gap: 40px;
+    padding: 0 max(24px, 4vw);
+    width: auto;
+    transform: none;
+    /* The shared chrome rule above starts these at 0 and fades them in. */
     opacity: 1;
-    text-align: center;
-    color: var(--ap-ink);
+    text-align: left;
+    /* The plate under this is dark in every theme; see theme.css. */
+    color: var(--carousel-ink-fg);
     mix-blend-mode: normal;
+    /* The stage under this stays clickable; only the link takes a pointer. */
+    pointer-events: none;
   }
+
+  .caption__corner--head {
+    grid-column: 1;
+    align-self: center;
+  }
+
+  /* The card sits in the middle track; nothing is rendered into it. */
+  .caption__corner--tail {
+    grid-column: 3;
+    align-self: center;
+    justify-self: end;
+    max-width: 34ch;
+    text-align: right;
+  }
+
+  /*
+   * The blocks materialise instead of appearing.
+   *
+   * Same cloudy front as the chapter blocks: noise intersected with a sweeping
+   * gradient, a blur that decays behind it, and a small drift so each settles.
+   * Unlike those, this is not driven by scroll — opening a card is a discrete
+   * event, so a transition is the right thing and the two sides are staggered.
+   */
+  .caption__corner {
+    mask-image: var(--caption-cloud), linear-gradient(100deg, #000 0 42%, transparent 78%);
+    mask-size:
+      260% 260%,
+      340% 100%;
+    mask-position:
+      0% 0%,
+      128% 0;
+    mask-composite: intersect;
+    filter: blur(12px);
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    transition:
+      mask-position 900ms cubic-bezier(0.16, 1, 0.3, 1),
+      filter 760ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 620ms ease,
+      transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .caption__corner--tail {
+    transition-delay: 130ms;
+  }
+
+  .caption.is-revealed .caption__corner {
+    mask-position:
+      0% 0%,
+      0% 0;
+    filter: blur(0);
+    opacity: 1;
+    transform: none;
+  }
+
+  .caption__corner[data-resolved] {
+    mask-image: none;
+  }
+
   .caption__title {
     margin: 0;
-    font-size: var(--ap-display-m);
+    /* Smaller than a chapter heading: this one shares the stage with the card
+       rather than owning the row. */
+    font-size: clamp(26px, 2.6vw, 40px);
     font-weight: 600;
     letter-spacing: -0.025em;
     line-height: 1.08;
   }
+
   .caption__note {
-    margin: 16px auto 0;
-    max-width: 38ch;
+    margin: 0 0 0 auto;
+    max-width: 34ch;
     font-size: var(--ap-body);
     line-height: 1.55;
-    color: var(--ap-ink-muted);
+    color: var(--carousel-ink-fg-muted);
   }
+
   .caption__meta {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 20px;
     margin: 20px 0 0;
   }
+
   .caption__link {
+    pointer-events: auto;
     color: var(--ap-action);
     font-size: var(--ap-body);
     text-decoration: none;
@@ -373,7 +493,7 @@ const first = cards[0];
   }
   .caption__provenance {
     font-size: var(--ap-caption);
-    color: var(--ap-ink-muted);
+    color: var(--carousel-ink-fg-muted);
   }
 
   .close {
@@ -423,6 +543,15 @@ const first = cards[0];
     .counter,
     .caption,
     .close {
+      transition: none;
+    }
+
+    /* No dissolve: the words are simply there when the card opens. */
+    .caption__corner {
+      mask-image: none;
+      filter: none;
+      opacity: 1;
+      transform: none;
       transition: none;
     }
   }

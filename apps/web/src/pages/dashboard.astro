@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import TerminalWindow from '../components/TerminalWindow.astro';
 import { DASHBOARD_STATES, INITIAL_STATE, SETUP_CHECKS } from '../features/dashboard/state';
+import '../styles/feature-dashboard.css';
 
 /**
  * The Dashboard renders a STATE, it does not decide one.
@@ -15,7 +16,8 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
 const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
 ---
 
-<BaseLayout title="Dashboard" surface="glass">
+<BaseLayout title="Dashboard" surface="feature" theme="adaptive">
+  <div class="dashboard-page">
   <PageHeader
     title="Dashboard"
     lede="Connect a local Gemini or Antigravity session, then open Agent Viewer to follow, replay, and inspect every agent."
@@ -25,7 +27,7 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
   </PageHeader>
 
   <section
-    class="fs-card fs-dashboard__welcome"
+    class="fs-dashboard__welcome"
     aria-labelledby="welcome-title"
     data-state-panel
     data-state={INITIAL_STATE}
@@ -90,10 +92,10 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
         0 of {verifiable.length} verified · {SETUP_CHECKS.length - verifiable.length} manual
       </span>
     </div>
-    <div class="fs-grid fs-grid--2">
+    <div class="fs-dashboard__checks">
       {
         SETUP_CHECKS.map((check) => (
-          <article class="fs-card fs-dashboard__setup-card" data-check={check.id}>
+          <article class="fs-dashboard__setup-card" data-check={check.id}>
             <div class="fs-row fs-row--between">
               <h3>{check.title}</h3>
               {check.verifiable ? (
@@ -115,8 +117,8 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
     </div>
   </section>
 
-  <div class="fs-grid fs-grid--2">
-    <section class="fs-card" aria-labelledby="sessions-title">
+  <div class="fs-dashboard__details">
+    <section class="fs-dashboard__detail" aria-labelledby="sessions-title">
       <div class="fs-section-head">
         <h2 id="sessions-title">Sessions</h2>
         <a class="fs-section-head__aside" href="/viewer">Open a local session</a>
@@ -141,7 +143,7 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
       </p>
     </section>
 
-    <section class="fs-card" aria-labelledby="live-proof-title">
+    <section class="fs-dashboard__detail" aria-labelledby="live-proof-title">
       <div class="fs-section-head">
         <h2 id="live-proof-title">Live proof</h2>
         <span class="fs-section-head__aside" data-live-proof-state>Recorded path</span>
@@ -155,7 +157,7 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
       </p>
     </section>
 
-    <section class="fs-card" aria-labelledby="controls-title">
+    <section class="fs-dashboard__detail" aria-labelledby="controls-title">
       <div class="fs-section-head">
         <h2 id="controls-title">Antigravity controls</h2>
         <span class="fs-section-head__aside">Viewer shortcuts</span>
@@ -188,6 +190,7 @@ const verifiable = SETUP_CHECKS.filter((check) => check.verifiable);
       <a href="/viewer">Replay bundled demo</a>
       <a href="/cases">Open legacy Case workspace</a>
     </div>
+  </div>
   </div>
 </BaseLayout>
 
