@@ -14,3 +14,6 @@ apps/web/public/wasm/
 # Python worker: prettier does not own these.
 apps/adk-worker/
 .pytest_cache/
+
+# Installed agent skills — third-party, not ours to format.
+.agents/

@@ -52,13 +52,16 @@
   transform: none;
 }
 
-[data-surface='feature'] .viewer-page .fs-button[data-variant='primary'] {
+[data-surface='feature'] .viewer-page .fs-page-head__actions .fs-button[data-variant='primary'] {
   border-color: var(--fd-action);
   background: var(--fd-action);
   color: var(--fd-action-ink);
 }
 
-[data-surface='feature'] .viewer-page .fs-button[data-variant='primary']:hover:not(:disabled) {
+[data-surface='feature']
+  .viewer-page
+  .fs-page-head__actions
+  .fs-button[data-variant='primary']:hover:not(:disabled) {
   border-color: var(--fd-action-hover);
   background: var(--fd-action-hover);
   color: var(--fd-action-ink);

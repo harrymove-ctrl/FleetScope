@@ -248,6 +248,23 @@
 }
 
 @media (max-width: 1180px) {
+  [data-surface='feature'] .fs-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  [data-surface='feature'] .fs-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-surface='feature'] .fs-nav__links {
+    flex: 0 0 auto;
+  }
+
+  [data-surface='feature'] .fs-nav__env {
+    margin-left: 0;
+  }
+
   [data-surface='feature'] .fs-nav__brand-sub,
   [data-surface='feature'] .fs-nav__env .fs-mode,
   [data-surface='feature'] .fs-theme-control [data-theme-label] {

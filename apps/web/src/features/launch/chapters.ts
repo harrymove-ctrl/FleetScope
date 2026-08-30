@@ -40,8 +40,14 @@ export interface LaunchChapter {
   /** Short locator shown above the row, e.g. "03 — Govern". */
   readonly label: string;
   readonly title: string;
-  /** Caption revealed in focus mode. */
+  /** Caption revealed in focus mode. One sentence, factual. */
   readonly summary: string;
+  /**
+   * What the feature actually does, for a reader who wants more than the
+   * caption. Held to the same rule as everything else here: without an
+   * `eventRef` it describes a capability, never a run that happened.
+   */
+  readonly detail: string;
   readonly route: string;
   /** Card artwork. Captured from the running product by `pnpm shots`. */
   readonly src: string;
@@ -75,6 +81,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     title: 'Watch agent work become evidence',
     summary:
       'A local Gemini or Antigravity session, projected in your browser. The file never leaves this machine.',
+    detail:
+      'Point it at a session file already on disk and it draws the run: which agents started, what each called, where a tool returned nothing. Reading is all it does — it cannot start an agent, cannot retry a call, and never uploads the file.',
     route: '/viewer',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
@@ -87,6 +95,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     title: 'What this browser can actually check',
     summary:
       'The runtime and the formats it loaded are probed. Installing the CLI and picking a session are marked manual, never inferred.',
+    detail:
+      'It reports only what this browser can be asked directly: the runtime it is on and the session formats it can parse. Anything it cannot verify from here — whether the CLI is installed, which session you mean — is listed as a step for you, not guessed at and shown as a status.',
     route: '/dashboard',
     src: '/product/dashboard.png',
     aspect: CARD_ASPECT,
@@ -99,6 +109,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     title: 'Four agents, twenty events, one graph',
     summary:
       'Detection, parsing and the fold are one Rust core. The terminal and this browser run the same projection.',
+    detail:
+      'Detection, parsing and the fold live in one Rust core compiled to WebAssembly, so the terminal and this page are not two implementations that agree by luck. The same bytes produce the same graph in both, which is what makes a screenshot worth anything as evidence.',
     route: '/viewer',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
@@ -110,6 +122,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     label: '03 — Cases',
     title: 'Every run that has been recorded',
     summary: 'A Case is a run plus the evidence behind it. Open one to follow what happened.',
+    detail:
+      'A Case is one run together with the events behind it, kept as a unit so a claim and its evidence cannot drift apart. Open one and you are reading the record, not a summary written over it.',
     route: '/cases',
     src: '/product/cases.png',
     aspect: CARD_ASPECT,
@@ -122,6 +136,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     title: 'Every claim points at an event',
     summary:
       'The recorded recovery, with each governance step linked to the canonical event that evidences it.',
+    detail:
+      'Each governance step carries the id of the event that licenses it. Where no event backs a step, the step is absent rather than shown as pending — a gap you can see beats a status you cannot check.',
     route: '/cockpit/CASE-1042',
     src: '/product/cockpit.png',
     aspect: CARD_ASPECT,
@@ -134,6 +150,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     label: '05 — Approvals',
     title: 'Decisions that needed a person',
     summary: 'An approval is event-backed or it is not shown. There is no implied consent here.',
+    detail:
+      'An approval appears only when a canonical event records a person making it. Silence, a timeout, or a default is not consent, and none of them will render here as one.',
     route: '/approvals',
     src: '/product/approvals.png',
     aspect: CARD_ASPECT,
@@ -145,6 +163,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     label: '06 — Catalog',
     title: 'Which agent version may be launched',
     summary: 'A catalog entry records an approved version. It is not proof that anything ran.',
+    detail:
+      'An entry records that a version was approved for launch. That is a permission and nothing more: it is not evidence that the version ran, and this page will not imply otherwise.',
     route: '/catalog',
     src: '/product/catalog.png',
     aspect: CARD_ASPECT,
@@ -157,6 +177,8 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     title: 'Reconstruct the whole record',
     summary:
       'A read-only projection of every canonical event in the Case. Replay causes no side effects.',
+    detail:
+      'A read-only projection of every canonical event in the Case, in order, with nothing collapsed. Replaying it computes a view and writes nothing back, so an investigation cannot change what it is investigating.',
     route: '/audit/CASE-1042',
     src: '/product/audit.png',
     aspect: CARD_ASPECT,

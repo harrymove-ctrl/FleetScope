@@ -29,12 +29,12 @@ const { cards, decorative = false } = Astro.props;
           FleetScope
         </p>
       ) : (
-        <h1 id="chapters-title" class="chapters__title">
+        <h1 id="chapters-title" class="chapters__title" data-animate-text>
           FleetScope
         </h1>
       )
     }
-    <p class="chapters__lede">
+    <p class="chapters__lede" data-animate-text={decorative ? undefined : true}>
       Watch agent work become evidence. Follow a local Gemini or Antigravity session, or inspect a
       bounded recovery record with the evidence behind it.
     </p>
@@ -63,6 +63,7 @@ const { cards, decorative = false } = Astro.props;
 
           <div class="chapter__corner chapter__corner--tail">
             <p class="chapter__note">{card.summary}</p>
+            <p class="chapter__detail">{card.detail}</p>
             <p class="chapter__meta">
               <a
                 class="ap__link chapter__link"
@@ -94,7 +95,50 @@ const { cards, decorative = false } = Astro.props;
   </footer>
 </section>
 
+<script>
+  import { animateText } from '../features/launch/animate-text';
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const host of document.querySelectorAll<HTMLElement>('[data-animate-text]')) {
+    // The fold draws this header three times; only the live copy is animated.
+    if (host.closest('[aria-hidden="true"]')) continue;
+    animateText(host, reduced);
+  }
+</script>
+
 <style>
+  /*
+   * soft-blur-in, per .agents/skills/animate-text specs/soft-blur-in.json.
+   * The units start hidden only once the script has split them, so a page
+   * without JS shows the heading rather than nothing.
+   */
+  [data-at-ready] .at-unit {
+    display: inline-block;
+    white-space: pre;
+    opacity: 0;
+    animation: at-soft-blur-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes at-soft-blur-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(var(--at-blur, 12px));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-at-ready] .at-unit {
+      opacity: 1;
+      animation: none;
+    }
+  }
+
   .chapters {
     /*
      * The cloudy front. `feTurbulence` mapped into alpha with an offset, so
@@ -257,6 +301,17 @@ const { cards, decorative = false } = Astro.props;
     color: var(--ap-ink-muted);
   }
 
+  /* The longer read. Lighter than the summary so the eye takes them in
+     order rather than meeting two paragraphs of equal weight. */
+  .chapter__detail {
+    margin: 14px 0 0 auto;
+    max-width: 46ch;
+    font-size: var(--ap-caption);
+    line-height: 1.65;
+    color: var(--ap-ink-muted);
+    opacity: 0.82;
+  }
+
   .chapter__meta {
     display: flex;
     flex-wrap: wrap;
@@ -299,7 +354,8 @@ const { cards, decorative = false } = Astro.props;
       text-align: left;
     }
 
-    .chapter__note {
+    .chapter__note,
+    .chapter__detail {
       margin-left: 0;
     }
 

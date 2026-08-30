@@ -9,6 +9,10 @@ export default tseslint.config(
       '**/.astro/**',
       '**/target/**',
       'vendor/**',
+      // Installed agent skills. Third-party files this repo neither owns nor
+      // edits, written for a Node runtime this config does not declare — every
+      // report against them is a false positive about someone else's code.
+      '.agents/**',
       // The libm / critical-section shim, copied verbatim from the vendored
       // upstream. Browser JS with no build step; linting it against this
       // project's Node-flavoured environment reports only false positives.
