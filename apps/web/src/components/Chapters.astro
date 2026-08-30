@@ -80,12 +80,15 @@ const { cards, decorative = false } = Astro.props;
               </span>
             </p>
 
-            {
-              card.agents && card.agents.length > 0 && (
-                <CrewTrack run={BUNDLED_CREW} agents={card.agents} />
-              )
-            }
           </div>
+
+          {
+            card.agents && card.agents.length > 0 && (
+              <div class="chapter__crew-cell">
+                <CrewTrack run={BUNDLED_CREW} agents={card.agents} />
+              </div>
+            )
+          }
         </li>
       ))
     }
@@ -231,6 +234,22 @@ const { cards, decorative = false } = Astro.props;
 
   .chapter__corner--head {
     grid-area: 1 / 1;
+  }
+
+  /*
+   * The crew sits in the empty cell, not under the copy.
+   *
+   * The fold leaves a 240px bend at each edge, so on a 1000px viewport only
+   * the middle 520px is flat. Hanging 258px of crew below the tail copy pushed
+   * the card to 850px and put its own last two rows inside the bottom bend,
+   * where 12px labels and hairline bars stop being readable. Moving it into
+   * the diagonal's empty corner shortens the card by roughly the height of the
+   * copy it used to sit under, and fills the hole the layout already had.
+   */
+  .chapter__crew-cell {
+    grid-area: 2 / 1;
+    align-self: start;
+    min-width: 0;
   }
 
   .chapter__corner--tail {

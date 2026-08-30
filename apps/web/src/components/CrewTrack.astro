@@ -85,7 +85,7 @@ const seconds = (value: number) => `${value.toFixed(1)}s`;
    */
   .crew {
     max-width: 360px;
-    margin: 26px 0 0 auto;
+    margin: 0;
     text-align: left;
   }
 
@@ -97,7 +97,7 @@ const seconds = (value: number) => `${value.toFixed(1)}s`;
 
   .crew__rows {
     display: grid;
-    gap: 14px;
+    gap: 11px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -176,7 +176,7 @@ const seconds = (value: number) => `${value.toFixed(1)}s`;
 
   @media (max-width: 900px) {
     .crew {
-      margin-left: 0;
+      max-width: none;
     }
   }
 </style>
