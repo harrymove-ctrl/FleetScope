@@ -26,7 +26,11 @@
   `fleetscope-web-00001-g4s`, region `us-central1`, project
   `project-ac0c5f88-868b-46b9-a2e`. Verified 2026-08-31: `/`, `/viewer/` and
   `/dashboard/` return 200 text/html and the projection runtime is served as
-  `application/wasm`.
+  `application/wasm`. The bounded read-only API is a second Cloud Run service,
+  `https://fleetscope-api-6tes2q7oqa-uc.a.run.app`, revision
+  `fleetscope-api-00001-qtm`; `/health` and `/capability` both answer 200 and
+  report `liveMode: false`, so the deployment is recorded-only until a live
+  run is explicitly opted into.
 - [ ] **Cloud artifact:** optionally show the matching redacted JSONL/proof
   object and generation in Cloud Storage.
 - [ ] All runtime/framework/cloud evidence uses the same session ID.
