@@ -228,13 +228,24 @@ interface CompileResult {
  * How fast the field drifts.
  *
  * The source says speed 26, but that is a number on its own scale and a
- * literal reading of it drifts far too quickly for something sitting behind
- * content people are trying to read — a first pass at 26/1000 was called out
- * as too fast, and rightly. This is the same flow at roughly a quarter of
- * that: it reads as weather rather than as motion, which is what a field
- * behind content should do.
+ * literal reading of it is far too quick for something sitting behind content
+ * people are reading. Two passes were still called out as too fast — 26/1000
+ * and then 26/4200 — so this is a twenty-sixth of the literal number. The
+ * reference drifts almost imperceptibly, and a field behind text should read
+ * as weather, not as motion.
  */
-const GRAD_SPEED = 26 / 4200;
+const GRAD_SPEED = 26 / 26000;
+
+/**
+ * How far up the ramp the field sits.
+ *
+ * `GRAD_CONTRAST` widens the spread of the noise across the stops and
+ * `GRAD_FLOOR` lifts it, so the deep indigo becomes the ground rather than a
+ * rare extreme. Without this the field is pale everywhere and nothing drawn
+ * over it in light ink can be read.
+ */
+const GRAD_CONTRAST = 1.45;
+const GRAD_FLOOR = 0.26;
 
 const GRAD_FRAG = `
 precision highp float;
@@ -293,7 +304,17 @@ void main() {
   float ca = cos(ang), sa = sin(ang);
   q = vec2(q.x * ca - q.y * sa, q.x * sa + q.y * ca);
 
-  float f = clamp(fbm(q * 0.9 + t * 0.6), 0.0, 1.0);
+  float f = fbm(q * 0.9 + t * 0.6);
+
+  // Bias the distribution toward the deep end of the ramp.
+  //
+  // fbm lands around the middle of its range, which on these stop positions is
+  // the cyan-to-teal band — the two brightest colours. The field came out
+  // almost entirely pale, the near-white top stop stopped being a highlight,
+  // and white text over it became unreadable. Pushing the distribution up the
+  // ramp makes indigo the ground and celadon the highlight, which is the way
+  // round these palettes are built.
+  f = clamp(f * GRAD_CONTRAST + GRAD_FLOOR, 0.0, 1.0);
 
   // Blended in linear light, then returned to sRGB.
   vec3 col = toLinear(u_s0);
@@ -302,11 +323,19 @@ void main() {
   col = mix(col, toLinear(u_s3), seg(f, 0.542, 0.585, 0.792));
   col = toSrgb(col);
 
+  // A gentle scrim, darkest where content sits. The palette keeps its hues;
+  // only its value comes down, which is what buys the text its contrast back.
+  float vign = 1.0 - 0.30 * smoothstep(0.9, 0.0, length(c) * 1.2);
+  col *= vign;
+
   // noise 5, so the flats do not band on a wide screen.
   col += (hash(gl_FragCoord.xy + u_time) - 0.5) * (5.0 / 255.0);
 
   gl_FragColor = vec4(col, 1.0);
-}`.replace('GRAD_SPEED', GRAD_SPEED.toFixed(4));
+}`
+  .replace('GRAD_SPEED', GRAD_SPEED.toFixed(6))
+  .replace('GRAD_CONTRAST', GRAD_CONTRAST.toFixed(3))
+  .replace('GRAD_FLOOR', GRAD_FLOOR.toFixed(3));
 
 function compile(gl: WebGLRenderingContext, type: number, source: string): CompileResult {
   const shader = gl.createShader(type);
