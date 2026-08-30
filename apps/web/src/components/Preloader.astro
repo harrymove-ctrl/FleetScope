@@ -1,0 +1,149 @@
+---
+/**
+ * The landing preloader.
+ *
+ * The wordmark sits selected in a design tool that starts thinking for itself:
+ * it splits into letter objects, they scatter, the view dives in, each letter
+ * takes a turn at huge scale, then everything collapses to a dot and pops back
+ * whole. `features/preloader/engine.ts` does the work; this supplies the
+ * canvas and decides when to get out of the way.
+ *
+ * Three rules it holds to, because a preloader is an obstacle by construction:
+ *
+ *   It cannot outstay the page. Dismissal has a hard ceiling that overrides
+ *   both the animation and the load state.
+ *   It is shown once per tab, not on every navigation.
+ *   It is skipped entirely under reduced motion — a still frame of a loading
+ *   animation is a delay with a picture on it.
+ *
+ * The overlay is inert and aria-hidden: it is decoration over content that has
+ * already rendered underneath, so it must never take focus or be read out.
+ */
+---
+
+<div class="preloader" data-preloader aria-hidden="true" inert hidden>
+  <canvas class="preloader__canvas" data-preloader-canvas></canvas>
+</div>
+
+<script>
+  import { RealitySplit } from '../features/preloader/engine';
+  import {
+    PRELOADER_KEY,
+    PRELOADER_SPEED,
+    shouldDismiss,
+    shouldShow,
+    wrapped,
+  } from '../features/preloader/state';
+
+  const host = document.querySelector<HTMLElement>('[data-preloader]');
+  const canvas = host?.querySelector<HTMLCanvasElement>('[data-preloader-canvas]');
+
+  if (host && canvas) {
+    let alreadyShown = false;
+    try {
+      alreadyShown = sessionStorage.getItem(PRELOADER_KEY) === '1';
+    } catch {
+      // Private mode, or storage disabled. Showing it once more is a smaller
+      // failure than throwing before the page is visible.
+      alreadyShown = false;
+    }
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (shouldShow(alreadyShown, reduced)) {
+      host.hidden = false;
+      try {
+        sessionStorage.setItem(PRELOADER_KEY, '1');
+      } catch {
+        // Nothing to do: the overlay still behaves correctly this time.
+      }
+
+      const engine = new RealitySplit(canvas, {
+        word: 'FleetScope',
+        palette: 'fleetscope',
+        shape: 'rect',
+        handleShape: 'square',
+        // Four letters inspected, not ten. With all of them the train stretches
+        // the loop by half again, and at the speed a preloader can afford the
+        // split and the scatter — the legible part — flash past in under a
+        // fifth of a second. This is the reference's own default.
+        trainAll: false,
+        speed: PRELOADER_SPEED,
+        // One pass, one world. Cycling variants is for a display card; here a
+        // second word would mean the visitor is still waiting.
+        variants: [],
+      });
+
+      const start = performance.now();
+      let previous = 0;
+      let passComplete = false;
+      let raf = 0;
+
+      const leave = (): void => {
+        cancelAnimationFrame(raf);
+        engine.destroy();
+        host.classList.add('is-leaving');
+        const drop = (): void => host.remove();
+        host.addEventListener('transitionend', drop, { once: true });
+        // A transition that never fires — display:none on an ancestor, a
+        // browser that skips it — would strand the overlay over the page.
+        window.setTimeout(drop, 700);
+      };
+
+      if (!engine.ok) {
+        // No 2D context. There is nothing to wait for.
+        leave();
+      } else {
+        engine.start();
+        const watch = (): void => {
+          const current = engine.time;
+          if (wrapped(previous, current, engine.loopLength)) passComplete = true;
+          previous = current;
+
+          if (
+            shouldDismiss({
+              elapsedMs: performance.now() - start,
+              passComplete,
+              pageReady: document.readyState === 'complete',
+            })
+          ) {
+            leave();
+            return;
+          }
+          raf = requestAnimationFrame(watch);
+        };
+        raf = requestAnimationFrame(watch);
+      }
+    }
+  }
+</script>
+
+<style>
+  .preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--carousel-ink, #05060a);
+    transition: opacity 420ms var(--theme-ease, ease);
+  }
+
+  .preloader.is-leaving {
+    opacity: 0;
+  }
+
+  .preloader__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /*
+   * Belt and braces with the script: if anything stops the module running, a
+   * reduced-motion visitor still never sees the overlay.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .preloader {
+      display: none;
+    }
+  }
+</style>

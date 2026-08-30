@@ -4,6 +4,7 @@ import type { LaunchChapter } from '../features/launch/chapters';
 import Fold from '../components/Fold.astro';
 import Chapters from '../components/Chapters.astro';
 import PeelFooter from '../components/PeelFooter.astro';
+import Preloader from '../components/Preloader.astro';
 
 /**
  * The public shell.
@@ -40,6 +41,7 @@ const first = cards[0];
     {first && <link rel="preload" as="image" href={first.src} fetchpriority="high" />}
   </head>
   <body class="ap-body">
+    <Preloader />
     <div class="ap">
       <a class="ap-skip" href="#chapters">Skip to the chapters</a>
 

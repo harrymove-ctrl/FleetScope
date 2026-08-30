@@ -6,6 +6,37 @@ licensing files and do **not** appear in FleetScope product navigation.
 
 ## Adapted source
 
+### reality-split — the landing preloader
+
+|             |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| Source      | reality-split, supplied as framework-agnostic core logic     |
+| Vendored in | `apps/web/src/features/preloader/params.ts`, `.../engine.ts` |
+
+**A vendored copy.** The reference ships an engine plus a React card; only the
+card needed React, so `Preloader.astro` drives the engine directly.
+
+`params.ts` is fenced into MEASURED and TUNABLE halves, and the fence is load
+bearing: MEASURED came off a 162-frame reference clip and is data, not knobs.
+The eases have fatter tails than any closed form, the seam gaps are three
+different sizes because a human made them, and the drift law was solved from
+two letters' displacement.
+
+Deviations, each marked at its site:
+
+1. non-null assertions on array indexing, for `noUncheckedIndexedAccess`;
+2. `time` and `loopLength` exposed read-only, so the overlay can dismiss on a
+   phase boundary without reaching into private state;
+3. the frame delta is floored at zero. A rAF timestamp can predate the
+   `performance.now()` taken when the loop started, and `next % loop` keeps
+   that sign, leaving the clock slightly negative and every phase test on the
+   wrong branch;
+4. the scale is the lesser of the height and what the width can hold, measured
+   against the **split** row. Every constant is a fraction of one square's
+   side, which suits the reference's card and its seven-letter word; on a
+   full-viewport overlay a longer word hangs off both edges, and the seams add
+   nearly half a side length on top.
+
 ### canvas-ui Bend — the shader fold
 
 |             |                                                                  |
