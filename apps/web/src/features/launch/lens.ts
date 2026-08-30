@@ -39,14 +39,45 @@ void main() {
   gl_Position = vec4(pos, 0.0, 1.0);
 }`;
 
+/*
+ * The card.
+ *
+ * Rounded corners, because a square-cornered photograph is the one thing on
+ * this page that does not belong to the rest of the system — every surface in
+ * the design tokens carries a radius.
+ *
+ * The output is PREMULTIPLIED and carries a real alpha. It used to be
+ * `vec4(c * u_alpha, 1.0)`, which fades a card toward black rather than toward
+ * whatever is behind it. That was invisible while the field behind was black
+ * and wrong the moment it became a gradient — an entering card fell out of a
+ * dark hole. The same change is what lets the corners antialias instead of
+ * stepping.
+ *
+ * `u_size` is the card in device pixels, so the corner distance is measured in
+ * pixels and a one-pixel feather is exactly one pixel. Deriving it with
+ * `fwidth` would need OES_standard_derivatives, which WebGL1 does not
+ * guarantee.
+ */
 const CARD_FRAG = `#version 100
 precision mediump float;
 varying vec2 v_uv;
 uniform sampler2D u_tex;
 uniform float u_alpha;
+uniform vec2 u_size;
+uniform float u_radius;
 void main() {
   vec3 c = texture2D(u_tex, v_uv).rgb;
-  gl_FragColor = vec4(c * u_alpha, 1.0);
+
+  vec2 p = (v_uv - 0.5) * u_size;
+  // Not named half: that is a reserved word in GLSL ES, and using it fails
+  // the compile silently and drops the carousel to its list fallback.
+  vec2 halfSize = u_size * 0.5 - vec2(u_radius);
+  vec2 d = abs(p) - halfSize;
+  float dist = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - u_radius;
+
+  float edge = 1.0 - smoothstep(-1.0, 1.0, dist);
+  float a = u_alpha * edge;
+  gl_FragColor = vec4(c * a, a);
 }`;
 
 const FULL_VERT = `#version 100
@@ -244,6 +275,9 @@ const GRAD_SPEED = 26 / 26000;
  * rare extreme. Without this the field is pale everywhere and nothing drawn
  * over it in light ink can be read.
  */
+/** Corner radius as a fraction of the card's shorter side. */
+const CARD_RADIUS = 0.042;
+
 const GRAD_CONTRAST = 1.45;
 const GRAD_FLOOR = 0.26;
 
@@ -441,6 +475,8 @@ export function mountLensPass(
   const cardRect = gl.getUniformLocation(cardProg, 'u_rect');
   const cardTex = gl.getUniformLocation(cardProg, 'u_tex');
   const cardAlpha = gl.getUniformLocation(cardProg, 'u_alpha');
+  const cardSize = gl.getUniformLocation(cardProg, 'u_size');
+  const cardRadius = gl.getUniformLocation(cardProg, 'u_radius');
 
   /**
    * Read a `--lens-*` custom property.
@@ -630,6 +666,11 @@ export function mountLensPass(
     gl.clearColor(theme.clear[0], theme.clear[1], theme.clear[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    // Cards carry a real alpha now — for the rounded corners, and so an
+    // entering card fades out of the field rather than out of black.
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
     // The field, before the cards, so the lens has something to refract.
     gl.useProgram(gradProg);
     gl.bindBuffer(gl.ARRAY_BUFFER, fullTri);
@@ -695,6 +736,10 @@ export function mountLensPass(
         (heightPx / h) * 2,
       );
       gl.uniform1f(cardAlpha, entered ? 1 : riseAt);
+      gl.uniform2f(cardSize, widthPx, heightPx);
+      // Proportional, not fixed: a card grows by a third when it takes focus,
+      // and a radius in absolute pixels would visibly tighten as it does.
+      gl.uniform1f(cardRadius, Math.min(widthPx, heightPx) * CARD_RADIUS);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     });
 
