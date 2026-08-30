@@ -1,0 +1,251 @@
+---
+/**
+ * The crew of a recorded run, drawn on the run's own clock.
+ *
+ * A presence avatar normally answers "who is here now" with a coloured dot.
+ * Nothing here is here now -- this session was recorded and shipped with the
+ * build, and `AgentIdentity` exists precisely so a recorded agent can never
+ * look online. So presence is read from the record instead: when each agent
+ * held the run, for how long, and where one of them failed.
+ *
+ * That last part is why this is a track and not four faces in a row. Four
+ * equal chips hide the most useful thing the session says -- that one agent
+ * held it for two thirds of the elapsed time and then timed out.
+ *
+ * The faces are `aria-hidden`: each has its name in text beside it, and the
+ * identity is seeded from the id alone, so two agents in one set can
+ * legitimately draw the same face. The words carry the meaning.
+ */
+import AgentIdentity from './AgentIdentity.astro';
+import {
+  heldSeconds,
+  trackOffset,
+  trackWidth,
+  type CrewRun,
+  type CrewMember,
+} from '../features/launch/crew';
+
+interface Props {
+  run: CrewRun;
+  /** Ids this card claims, in the order it wants them. */
+  agents: readonly string[];
+}
+
+const { run, agents } = Astro.props;
+
+const byId = new Map(run.members.map((member) => [member.id, member]));
+const rows: CrewMember[] = agents
+  .map((id) => byId.get(id))
+  .filter((member): member is CrewMember => member !== undefined);
+
+const seconds = (value: number) => `${value.toFixed(1)}s`;
+---
+
+<div class="crew">
+  <p class="crew__lede">
+    {rows.length} agents held the bundled session across {seconds(run.runSeconds)}
+  </p>
+
+  <ol class="crew__rows">
+    {
+      rows.map((member) => (
+        <li class:list={['crew__row', member.fault && 'crew__row--faulted']}>
+          <div class="crew__head">
+            <span class="crew__face" aria-hidden="true">
+              <AgentIdentity agentId={member.id} label={member.id} size="sm" />
+            </span>
+            <span class="crew__id">{member.id}</span>
+            <span class="crew__held">{seconds(heldSeconds(member))}</span>
+          </div>
+
+          <div class="crew__rail">
+            <span
+              class="crew__bar"
+              style={`--at:${trackOffset(member, run.runSeconds).toFixed(2)}%;--len:${trackWidth(member, run.runSeconds).toFixed(2)}%`}
+            />
+          </div>
+
+          {member.fault && (
+            <p class="crew__fault">
+              <span class="crew__fault-tag">timed out</span>
+              {member.fault}
+            </p>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</div>
+
+<style>
+  /*
+   * Right-aligned as a block to sit with the tail copy, but left-aligned
+   * inside itself: the bars share one time axis and it has to read left to
+   * right, or the gantt means nothing.
+   */
+  .crew {
+    max-width: 360px;
+    margin: 26px 0 0 auto;
+    text-align: left;
+  }
+
+  .crew__lede {
+    margin: 0 0 14px;
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  .crew__rows {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .crew__head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .crew__face {
+    display: inline-flex;
+  }
+
+  .crew__id {
+    font-size: 13px;
+    color: var(--ap-ink);
+  }
+
+  .crew__held {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ap-ink-muted);
+  }
+
+  /* The shared axis: full width on every row, so the offsets are comparable. */
+  .crew__rail {
+    position: relative;
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ap-ink) 8%, transparent);
+    overflow: hidden;
+  }
+
+  .crew__bar {
+    position: absolute;
+    inset-block: 0;
+    left: var(--at, 0%);
+    width: var(--len, 0%);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ap-ink) 62%, transparent);
+  }
+
+  /*
+   * The failure is a hatch and a word, never colour alone: it has to survive a
+   * monochrome print and a red-green deficiency.
+   */
+  .crew__row--faulted .crew__bar {
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--ap-ink) 52%, transparent) 0 4px,
+      color-mix(in srgb, var(--ap-ink) 16%, transparent) 4px 8px
+    );
+  }
+
+  .crew__fault {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ap-ink-muted);
+  }
+
+  .crew__fault-tag {
+    margin-right: 7px;
+    padding: 2px 7px;
+    border: 1px solid var(--ap-hairline);
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ap-ink);
+  }
+
+  /*
+   * The faces' own rules live in `global.css`, which this page deliberately
+   * does not load -- that stylesheet is a dense-console vocabulary and its
+   * `h2 { font-size: 12px }` contradicts a 52px headline. Restated here and
+   * scoped to this component, so it draws wherever it is used rather than only
+   * inside the console. Without them it renders at zero width.
+   */
+  .crew :global(.fs-agent-identity) {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+    background: var(--fs-agent-bg, #b6d8cf);
+    box-shadow: inset 0 -2px rgb(0 0 0 / 12%);
+  }
+
+  .crew :global(.fs-agent-identity svg) {
+    width: 22px;
+    height: 22px;
+  }
+
+  .crew :global(.fs-agent-identity__body) {
+    fill: var(--fs-agent-fg, #315d59);
+  }
+
+  .crew :global(.fs-agent-identity__eye) {
+    fill: #f8f7f0;
+  }
+
+  .crew :global(.fs-agent-identity__mouth) {
+    fill: none;
+    stroke: #f8f7f0;
+    stroke-linecap: round;
+    stroke-width: 1.8;
+  }
+
+  .crew :global(.fs-agent-identity--v0) {
+    --fs-agent-bg: #a7d7d0;
+    --fs-agent-fg: #276d6c;
+  }
+
+  .crew :global(.fs-agent-identity--v1) {
+    --fs-agent-bg: #d8b5e3;
+    --fs-agent-fg: #6d3e7b;
+  }
+
+  .crew :global(.fs-agent-identity--v2) {
+    --fs-agent-bg: #f3c9a4;
+    --fs-agent-fg: #8a4a22;
+  }
+
+  .crew :global(.fs-agent-identity--v3) {
+    --fs-agent-bg: #b9c7f0;
+    --fs-agent-fg: #33478f;
+  }
+
+  .crew :global(.fs-agent-identity--v4) {
+    --fs-agent-bg: #f2b9c4;
+    --fs-agent-fg: #8d3149;
+  }
+
+  .crew :global(.fs-agent-identity--v5) {
+    --fs-agent-bg: #cde3a6;
+    --fs-agent-fg: #4c6b23;
+  }
+
+  @media (max-width: 900px) {
+    .crew {
+      margin-left: 0;
+    }
+  }
+</style>
