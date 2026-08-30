@@ -1,0 +1,408 @@
+---
+/**
+ * The peel footer.
+ *
+ * Adapted from the Truus scroll-peel: the page sits on an opaque plane above a
+ * fixed footer, and a viewport-tall spacer at the end lets that plane slide up
+ * and uncover it. The reveal is pure layout — no scroll handler, no transform
+ * driven from JS — so it cannot desynchronise or jitter. Only the wordmark's
+ * letter stagger is scripted.
+ *
+ * Restyled to this site's tokens rather than copied. Three of the source's
+ * choices are checked by `scripts/qa-landing.ts` and would have failed it:
+ * weights of 800 and 900 (the cap is 600), a second display face, and a
+ * six-colour palette. The collage keeps its shapes and its geometry; the
+ * colours come from `--accent-*` and the weights come down.
+ */
+import { wordmarkLetters, letterDelay } from '../features/launch/footer';
+
+interface Props {
+  brand?: string;
+  email?: string;
+  repo?: string;
+}
+
+const {
+  brand = 'fleet',
+  email = 'lekhacthanhtung.it@gmail.com',
+  repo = 'github.com/harryphan/FleetScope',
+} = Astro.props;
+
+const letters = wordmarkLetters(brand);
+---
+
+<div class="peel-spacer" data-peel-spacer aria-hidden="true"></div>
+
+<div class="peel">
+  <footer class="peel__sheet">
+    <div class="peel__grid">
+      <section class="peel__col">
+        <p class="peel__pill">read a session</p>
+        <h2 class="peel__lead">Point it at a transcript you already have.</h2>
+      </section>
+
+      <section class="peel__col">
+        <p class="peel__pill">where it runs</p>
+        <p class="peel__line">On your machine, in your browser.</p>
+        <p class="peel__line">Nothing is uploaded.</p>
+        <a class="peel__underline" href="/viewer">Open the viewer</a>
+      </section>
+
+      <section class="peel__col">
+        <p class="peel__pill">say hello</p>
+        <p class="peel__line">{email}</p>
+        <p class="peel__line">{repo}</p>
+        <p class="peel__fine">
+          Recorded evidence is bundled with this build. Nothing here calls home.
+        </p>
+      </section>
+    </div>
+
+    <div class="peel__canvas" aria-hidden="true">
+      <p class="peel__wordmark" data-peel-wordmark>
+        {letters.map((letter, index) => <span style={`--d: ${letterDelay(index)}s`}>{letter}</span>)}
+      </p>
+
+      <span class="sticker sticker--burst"><span>local</span></span>
+      <span class="sticker sticker--smiley"><span class="sticker__smile"></span></span>
+      <span class="sticker sticker--replay">
+        <svg viewBox="0 0 100 100" role="presentation">
+          <path
+            d="M50 18a32 32 0 1 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="9"
+            stroke-linecap="round"></path>
+          <path d="M50 4v28l22-14z" fill="currentColor"></path>
+        </svg>
+      </span>
+      <span class="sticker sticker--bound"></span>
+      <span class="sticker sticker--count">20</span>
+      <span class="sticker sticker--frame">
+        <span class="sticker__lens"></span>
+        <span class="sticker__flash"></span>
+      </span>
+      <span class="sticker sticker--credit">evidence, not vibes</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  import { mountFooterReveal } from '../features/launch/footer';
+
+  const spacer = document.querySelector('[data-peel-spacer]');
+  const wordmark = document.querySelector('[data-peel-wordmark]');
+  if (spacer && wordmark) mountFooterReveal(spacer, wordmark);
+</script>
+
+<style>
+  /*
+   * The spacer is the whole mechanism. It gives the page a viewport of scroll
+   * with nothing in it, which is exactly the distance the content above has to
+   * travel to clear the fixed sheet below.
+   */
+  .peel-spacer {
+    height: 100vh;
+    pointer-events: none;
+  }
+
+  .peel {
+    /*
+     * The footer sits outside `.ap`, so it inherits nothing from the launchpad
+     * scale. Without this it renders in the browser's default serif.
+     */
+    font-family: var(--ap-font, -apple-system, system-ui, 'SF Pro Text', 'Segoe UI', Roboto, Inter, sans-serif);
+    -webkit-font-smoothing: antialiased;
+
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 0;
+    height: 100vh;
+    display: flex;
+    background: var(--theme-bg);
+  }
+
+  .peel__sheet {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin: 40px 6px 6px;
+    padding: 60px 40px;
+    border-radius: var(--glass-radius-lg);
+    background: var(--theme-accent);
+    color: var(--theme-accent-ink);
+    overflow: hidden;
+  }
+
+  .peel__grid {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .peel__col {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .peel__pill {
+    display: inline-block;
+    margin: 0 0 20px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--theme-bg);
+    color: var(--theme-ink);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .peel__lead,
+  .peel__line {
+    margin: 0;
+    max-width: 22ch;
+    font-size: clamp(20px, 2.2vw, 28px);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .peel__underline {
+    display: inline-block;
+    margin-top: 20px;
+    color: inherit;
+    font-size: 16px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .peel__fine {
+    margin: 16px 0 0;
+    max-width: 34ch;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  /* The collage sits behind the columns and never takes a click from them. */
+  .peel__canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .peel__wordmark {
+    position: absolute;
+    bottom: -6vw;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-size: 30vw;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    white-space: nowrap;
+    color: var(--theme-bg);
+    opacity: 0.16;
+  }
+
+  .peel__wordmark span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(90px) rotate(8deg);
+    transition:
+      opacity 700ms var(--theme-ease) var(--d, 0s),
+      transform 700ms var(--theme-ease) var(--d, 0s);
+  }
+
+  .peel__wordmark.is-visible span {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sticker {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--theme-accent-ink);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .sticker--burst {
+    bottom: 9%;
+    left: 3%;
+    width: 104px;
+    height: 104px;
+    background: var(--accent-orange);
+    transform: rotate(-15deg);
+    clip-path: polygon(
+      50% 0%,
+      61% 35%,
+      98% 35%,
+      68% 57%,
+      79% 91%,
+      50% 70%,
+      21% 91%,
+      32% 57%,
+      2% 35%,
+      39% 35%
+    );
+  }
+
+  .sticker--burst span {
+    transform: rotate(15deg);
+  }
+
+  .sticker--smiley {
+    bottom: 26%;
+    left: 21%;
+    width: 88px;
+    height: 88px;
+    border: 4px solid var(--theme-bg);
+    border-radius: 50%;
+    background: var(--accent-cyan);
+  }
+
+  .sticker--smiley::before,
+  .sticker--smiley::after {
+    content: '';
+    position: absolute;
+    top: 24px;
+    width: 9px;
+    height: 17px;
+    border: 3px solid var(--theme-bg);
+    border-bottom: 0;
+    border-radius: 50%;
+  }
+
+  .sticker--smiley::before {
+    left: 19px;
+  }
+
+  .sticker--smiley::after {
+    right: 19px;
+  }
+
+  .sticker__smile {
+    position: absolute;
+    inset: auto 15px 15px;
+    height: 32px;
+    border: 3px solid var(--theme-bg);
+    border-top: 0;
+    border-radius: 0 0 40px 40px;
+  }
+
+  .sticker--replay {
+    bottom: 13%;
+    left: 44%;
+    width: 84px;
+    height: 84px;
+    color: var(--theme-bg);
+    transform: rotate(10deg);
+  }
+
+  .sticker--replay svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .sticker--bound {
+    bottom: 4%;
+    left: 55%;
+    width: 92px;
+    height: 68px;
+    border: 4px solid var(--theme-bg);
+    border-radius: 40px;
+    background: var(--accent-violet);
+    transform: rotate(-10deg);
+  }
+
+  .sticker--count {
+    right: 25%;
+    bottom: 31%;
+    width: 82px;
+    height: 60px;
+    border: 4px solid var(--theme-bg);
+    border-radius: 15px;
+    background: var(--accent-neutral);
+    color: var(--theme-bg);
+    font-size: 32px;
+    font-weight: 600;
+    transform: rotate(-15deg);
+  }
+
+  .sticker--frame {
+    right: 10%;
+    bottom: 11%;
+    width: 92px;
+    height: 70px;
+    border: 4px solid var(--theme-bg);
+    border-radius: 15px;
+    background: var(--carousel-ink);
+    transform: rotate(15deg);
+  }
+
+  .sticker__lens {
+    width: 34px;
+    height: 34px;
+    border: 3px solid var(--theme-bg);
+    border-radius: 50%;
+  }
+
+  .sticker__flash {
+    position: absolute;
+    top: 9px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--theme-bg);
+  }
+
+  .sticker--credit {
+    right: -4px;
+    bottom: 15px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: var(--theme-bg);
+    color: var(--theme-ink);
+    font-size: 11px;
+  }
+
+  @media (max-width: 900px) {
+    .peel__grid {
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .peel__sheet {
+      padding: 40px 24px;
+    }
+
+    .peel__wordmark {
+      font-size: 42vw;
+    }
+  }
+
+  /* Below the grid breakpoint the collage is decoration competing for space. */
+  @media (max-width: 700px) {
+    .sticker {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .peel__wordmark span {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+</style>
