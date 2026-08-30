@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FOLD_DEFAULTS,
+  cornerReveal,
   bandRotation,
   effectiveZone,
   faceOffset,
@@ -119,5 +120,36 @@ describe('faceOffset', () => {
 
   it('stops at the end of the content rather than running past it', () => {
     expect(faceOffset(99_999, 900, 4000)).toBe(4000);
+  });
+});
+
+describe('cornerReveal', () => {
+  const H = 900;
+  const ZONE = 240;
+
+  it('is hidden while the block is still below the face', () => {
+    expect(cornerReveal(H, H, ZONE)).toBe(0);
+    expect(cornerReveal(H + 400, H, ZONE)).toBe(0);
+  });
+
+  it('is fully resolved once the block is clear of the bottom crease', () => {
+    // Anything still folding must not also be half-dissolved — two effects on
+    // the same text at once reads as a rendering fault, not a reveal.
+    expect(cornerReveal(H - ZONE - 220, H, ZONE)).toBe(1);
+    expect(cornerReveal(0, H, ZONE)).toBe(1);
+    expect(cornerReveal(-500, H, ZONE)).toBe(1);
+  });
+
+  it('rises monotonically as the block travels up', () => {
+    const seen = [H, H - 100, H - 250, H - 400, H - 600].map((t) => cornerReveal(t, H, ZONE));
+    for (let i = 1; i < seen.length; i += 1) {
+      expect(seen[i]!).toBeGreaterThanOrEqual(seen[i - 1]!);
+    }
+  });
+
+  it('resolves everything when the face has no height to measure', () => {
+    // A block that never resolves is a block that is never readable.
+    expect(cornerReveal(10, 0, ZONE)).toBe(1);
+    expect(cornerReveal(Number.NaN, H, ZONE)).toBe(1);
   });
 });

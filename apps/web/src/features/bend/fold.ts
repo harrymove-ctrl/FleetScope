@@ -99,3 +99,27 @@ export function faceOffset(scrollY: number, faceTop: number, maxScroll: number):
   if (!Number.isFinite(scrollY) || !Number.isFinite(faceTop)) return 0;
   return Math.min(Math.max(scrollY - faceTop, 0), Math.max(maxScroll, 0));
 }
+
+/**
+ * How resolved a corner block is at a given position in the face.
+ *
+ * A block arrives from below, passes the bottom crease, and is fully readable
+ * once it is clear of it. Reveal is driven from this rather than from an
+ * observer per element for two reasons: the face is drawn three times, so an
+ * observer would have to keep 24 blocks in step by itself, and the two folded
+ * copies are inside a clipped, rotated band where intersection is not what a
+ * reader sees anyway.
+ *
+ * @param top    the block's top, relative to the face's viewport
+ * @param height the face's viewport height
+ * @param zone   the fold zone, so a block resolves clear of the crease
+ * @param run    distance over which it resolves once past the crease
+ */
+export function cornerReveal(top: number, height: number, zone: number, run = 220): number {
+  if (!Number.isFinite(top) || !Number.isFinite(height) || height <= 0) return 1;
+  const end = Math.max(0, height - zone - run);
+  if (top <= end) return 1;
+  if (top >= height) return 0;
+  const x = (height - top) / Math.max(height - end, 1);
+  return x * x * (3 - 2 * x);
+}

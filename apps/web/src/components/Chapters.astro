@@ -52,26 +52,31 @@ const { cards, decorative = false } = Astro.props;
     {
       cards.map((card) => (
         <li class="chapter">
-          <p class="chapter__label">{card.label}</p>
-          {decorative ? (
-            <p class="chapter__title">{card.title}</p>
-          ) : (
-            <h2 class="chapter__title">{card.title}</h2>
-          )}
-          <p class="chapter__note">{card.summary}</p>
-          <p class="chapter__meta">
-            <a
-              class="ap__link chapter__link"
-              href={card.route}
-              tabindex={decorative ? -1 : undefined}
-            >
-              Open <span aria-hidden="true">›</span>
-            </a>
-            <span class="chapter__provenance">
-              {provenanceLabel(card.provenance)}
-              {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
-            </span>
-          </p>
+          <div class="chapter__corner chapter__corner--head">
+            <p class="chapter__label">{card.label}</p>
+            {decorative ? (
+              <p class="chapter__title">{card.title}</p>
+            ) : (
+              <h2 class="chapter__title">{card.title}</h2>
+            )}
+          </div>
+
+          <div class="chapter__corner chapter__corner--tail">
+            <p class="chapter__note">{card.summary}</p>
+            <p class="chapter__meta">
+              <a
+                class="ap__link chapter__link"
+                href={card.route}
+                tabindex={decorative ? -1 : undefined}
+              >
+                Open <span aria-hidden="true">›</span>
+              </a>
+              <span class="chapter__provenance">
+                {provenanceLabel(card.provenance)}
+                {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
+              </span>
+            </p>
+          </div>
         </li>
       ))
     }
@@ -91,6 +96,20 @@ const { cards, decorative = false } = Astro.props;
 
 <style>
   .chapters {
+    /*
+     * The cloudy front. `feTurbulence` mapped into alpha with an offset, so
+     * most of the plate is opaque and the noise only opens wispy holes near
+     * the sweeping edge. Intersected with a gradient below, it gives a
+     * dissolve rather than a wipe.
+     */
+    --chapter-cloud: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'>\
+<filter id='c' x='0' y='0' width='100%25' height='100%25'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.011 0.017' numOctaves='4' seed='9'/>\
+<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 0 0 0 -0.18'/>\
+</filter>\
+<rect width='260' height='260' filter='url(%23c)'/></svg>");
+
     padding: 120px max(24px, calc((100vw - 1400px) / 2));
     /*
      * Contain the fold.
@@ -142,9 +161,74 @@ const { cards, decorative = false } = Astro.props;
     border-top: 1px solid var(--ap-hairline);
   }
 
+  /*
+   * Opposite corners.
+   *
+   * The claim sits top-left and its evidence bottom-right, on a diagonal with
+   * open space between them. That reads as one statement and its footnote
+   * rather than four stacked paragraphs, and it gives the fold's crease
+   * somewhere to land that is not the middle of a sentence.
+   */
   .chapter {
-    padding: 40px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 56px 40px;
+    padding: 72px 0;
     border-bottom: 1px solid var(--ap-hairline);
+  }
+
+  .chapter__corner--head {
+    grid-area: 1 / 1;
+  }
+
+  .chapter__corner--tail {
+    grid-area: 2 / 2;
+    justify-self: end;
+    max-width: 42ch;
+    text-align: right;
+  }
+
+  /*
+   * The reveal.
+   *
+   * `--reveal` is written per corner by `Fold.astro` from the same scroll
+   * position that drives the fold, so a block resolves as it clears the bottom
+   * crease. Driving it from that one number rather than an observer per
+   * element is what keeps all three copies of the face in step — and there are
+   * three copies, so there are 24 of these.
+   *
+   * No transition and no `@property`: the value is rewritten every frame from
+   * the scroll, so the scroll *is* the easing. A transition on top of that
+   * would lag the fold it is supposed to move with.
+   */
+  .chapter__corner {
+    /* Cloudy front: static noise intersected with a sweeping edge. */
+    mask-image: var(--chapter-cloud), linear-gradient(100deg, #000 0 42%, transparent 78%);
+    mask-size:
+      260% 260%,
+      340% 100%;
+    mask-position:
+      0% 0%,
+      calc((1 - var(--reveal, 1)) * 128%) 0;
+    mask-composite: intersect;
+    filter: blur(calc((1 - var(--reveal, 1)) * 10px));
+    opacity: calc(0.15 + var(--reveal, 1) * 0.85);
+    transform: translateY(calc((1 - var(--reveal, 1)) * 16px))
+      scale(calc(1 - (1 - var(--reveal, 1)) * 0.015));
+    will-change: filter, opacity, transform;
+  }
+
+  /*
+   * A mask is expensive and, once a block has resolved, pointless. Dropping it
+   * at rest also restores normal text rendering, which a mask layer subtly
+   * changes.
+   */
+  .chapter__corner[data-resolved] {
+    mask-image: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
+    will-change: auto;
   }
 
   .chapter__label {
@@ -165,8 +249,9 @@ const { cards, decorative = false } = Astro.props;
   }
 
   .chapter__note {
-    margin: 16px 0 0;
+    margin: 0;
     max-width: 38ch;
+    margin-left: auto;
     font-size: var(--ap-body);
     line-height: 1.55;
     color: var(--ap-ink-muted);
@@ -176,6 +261,7 @@ const { cards, decorative = false } = Astro.props;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 24px;
     margin: 20px 0 0;
   }
@@ -197,6 +283,37 @@ const { cards, decorative = false } = Astro.props;
     }
     .chapters__head {
       margin-bottom: 64px;
+    }
+
+    .chapter {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      padding: 48px 0;
+    }
+
+    .chapter__corner--head,
+    .chapter__corner--tail {
+      grid-area: auto;
+      justify-self: stretch;
+      max-width: none;
+      text-align: left;
+    }
+
+    .chapter__note {
+      margin-left: 0;
+    }
+
+    .chapter__meta {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chapter__corner {
+      mask-image: none;
+      filter: none;
+      opacity: 1;
+      transform: none;
     }
   }
 </style>

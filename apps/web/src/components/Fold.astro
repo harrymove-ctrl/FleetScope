@@ -55,6 +55,7 @@ const options = { ...FOLD_DEFAULTS, ...overrides };
   import {
     FOLD_DEFAULTS,
     bandRotation,
+    cornerReveal,
     effectiveZone,
     faceOffset,
     foldAmounts,
@@ -82,6 +83,10 @@ const options = { ...FOLD_DEFAULTS, ...overrides };
     let zone = 0;
     let frame = 0;
 
+    // Each corner block with its offset inside the face, read once. Reading
+    // rects per frame instead would force layout 48 times a frame.
+    let corners: { el: HTMLElement; top: number }[] = [];
+
     // The wrapper's height is what gives the page the scroll distance the face
     // needs. It is the content's natural height, so the face finishes exactly
     // as its last line arrives.
@@ -92,6 +97,15 @@ const options = { ...FOLD_DEFAULTS, ...overrides };
       zone = effectiveZone(options.zone, viewport);
       host.style.setProperty('--fold-zone', `${zone}px`);
       host.style.height = `${viewport + maxScroll}px`;
+
+      corners = [];
+      for (const view of views) {
+        const base = view.getBoundingClientRect().top;
+        for (const el of view.querySelectorAll<HTMLElement>('.chapter__corner')) {
+          corners.push({ el, top: el.getBoundingClientRect().top - base });
+        }
+      }
+
       paint();
     }
 
@@ -103,6 +117,15 @@ const options = { ...FOLD_DEFAULTS, ...overrides };
         top!.style.transform = '';
         bottom!.style.transform = '';
         return;
+      }
+
+      for (const corner of corners) {
+        const r = cornerReveal(corner.top - offset, sticky!.clientHeight, zone);
+        corner.el.style.setProperty('--reveal', r.toFixed(3));
+        // Drop the mask once resolved: it is expensive, and at rest it would
+        // only mottle text it has finished uncovering.
+        if (r >= 0.999) corner.el.setAttribute('data-resolved', '');
+        else corner.el.removeAttribute('data-resolved');
       }
 
       const amounts = foldAmounts(offset, maxScroll, options.ease);
