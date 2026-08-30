@@ -13,20 +13,42 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import FormatMarks from '../components/FormatMarks.astro';
 import '../styles/feature-viewer.css';
 ---
 
 <BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
-  <div class="viewer-page">
+  <div class="viewer-page" data-view-style="terminal">
     <PageHeader
       title="Agent Viewer"
       lede="A Gemini / Antigravity flight deck for local agent sessions. Files stay in your browser and are never uploaded."
     >
       <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> GEMINI SIGNAL</span>
-      <button slot="actions" class="fs-button viewer-action" data-variant="primary" data-load-demo>Load bundled demo</button>
+      <FormatMarks slot="badges" />
+      <button slot="actions" class="fs-button viewer-action" data-variant="primary" data-cli-copy>Copy CLI command</button>
+      <button slot="actions" class="fs-button viewer-action" data-load-demo>Preview example</button>
       <button slot="actions" class="fs-button viewer-action" data-pick-file>Open file…</button>
       <button slot="actions" class="fs-button viewer-action" data-pick-folder>Open folder…</button>
     </PageHeader>
+
+    <section class="viewer-cli-card fs-feature-section" aria-labelledby="viewer-cli-title">
+      <div>
+        <p class="viewer-cli-card__eyebrow">CLI-FIRST SESSION</p>
+        <h2 id="viewer-cli-title">Run Gemini. Watch the JSONL.</h2>
+        <p class="viewer-cli-card__lede">
+          The producer runs in your terminal. FleetScope only reads the session it writes, so the web surface never starts a model or uploads your file.
+        </p>
+      </div>
+      <div class="viewer-cli-card__command" data-cli-command-wrap>
+        <code data-cli-command>cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow</code>
+        <span class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></span>
+      </div>
+      <dl class="viewer-cli-card__facts">
+        <div><dt>Producer</dt><dd>Google ADK 2.8.0</dd></div>
+        <div><dt>Demo model</dt><dd>Vertex AI <code>gemini-3.7-flash</code></dd></div>
+        <div><dt>Input</dt><dd>Local <code>session.jsonl</code></dd></div>
+      </dl>
+    </section>
 
   <input type="file" data-file-input hidden accept=".jsonl,.json" />
   <!-- `webkitdirectory` is how a browser offers folder selection. A session is
@@ -80,6 +102,40 @@ import '../styles/feature-viewer.css';
       </button>
     </section>
 
+    <section class="workflow-board fs-feature-section" aria-labelledby="workflow-board-title" data-workflow-board>
+      <header class="workflow-board__header">
+        <div>
+          <p class="workflow-board__eyebrow">WORKFLOW BOARD</p>
+          <h2 id="workflow-board-title">Every Gemini lane, one calm surface.</h2>
+          <p class="workflow-board__lede">
+            The board is a quick map of the loaded recording. Select a lane to focus the same graph and timeline.
+          </p>
+        </div>
+        <div class="workflow-board__styles" aria-label="Viewer style">
+          <span class="workflow-board__styles-label">Style</span>
+          <button class="fs-button fs-button--sm" type="button" data-view-style="terminal" aria-pressed="true">
+            Terminal
+          </button>
+          <button class="fs-button fs-button--sm" type="button" data-view-style="focus" aria-pressed="false">
+            Focus
+          </button>
+          <button class="fs-button fs-button--sm" type="button" data-view-style="split" aria-pressed="false">
+            Split
+          </button>
+        </div>
+      </header>
+
+      <div class="workflow-board__map" aria-live="polite">
+        <div class="workflow-board__root" data-workflow-root>
+          <p class="fs-muted">Loading workflow…</p>
+        </div>
+        <div class="workflow-board__connector" aria-hidden="true"></div>
+        <div class="workflow-board__lanes" data-workflow-lanes role="list">
+          <p class="fs-muted">Loading lanes…</p>
+        </div>
+      </div>
+    </section>
+
     <section class="viewer-shell fs-viewer__drop" data-dropzone>
       <header class="viewer-shell__header">
         <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
@@ -131,6 +187,11 @@ import '../styles/feature-viewer.css';
             Loading the Agent Viewer…
           </p>
         </div>
+
+        <aside class="viewer-canvas-minimap" data-canvas-minimap aria-label="Workflow minimap" hidden>
+          <p class="viewer-canvas-minimap__title">MAP</p>
+          <div class="viewer-canvas-minimap__nodes" data-minimap-nodes></div>
+        </aside>
 
         <aside class="viewer-shell__inspector" aria-labelledby="inspector-title">
           <h2 id="inspector-title" class="viewer-shell__panel-title">Inspector</h2>
@@ -187,6 +248,7 @@ import '../styles/feature-viewer.css';
     type Snapshot,
   } from '../features/viewer/shell';
   import { agentIdentityEye, agentIdentityVariant } from '../lib/agent-identity';
+  import { workflowLanes, type WorkflowLane } from '../features/viewer/workflows';
   import {
     chaptersFrom,
     localStory,
@@ -200,6 +262,10 @@ import '../styles/feature-viewer.css';
   const dropzone = document.querySelector('[data-dropzone]') as HTMLElement | null;
   const fileInput = document.querySelector('[data-file-input]') as HTMLInputElement | null;
   const folderInput = document.querySelector('[data-folder-input]') as HTMLInputElement | null;
+  const cliCopyEl = document.querySelector('[data-cli-copy]') as HTMLButtonElement | null;
+  const cliCommandEl = document.querySelector('[data-cli-command]') as HTMLElement | null;
+  const cliCopyStatusEl = document.querySelector('[data-cli-copy-status]') as HTMLElement | null;
+  const CLI_COMMAND = 'cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow';
 
   /** Files a session can be made of. Anything else in a folder is ignored. */
   const READABLE = /\.(jsonl|json)$/i;
@@ -230,6 +296,24 @@ import '../styles/feature-viewer.css';
     statusEl.textContent = message;
     statusEl.dataset.bad = String(bad);
   }
+
+  async function copyCliCommand() {
+    try {
+      await navigator.clipboard.writeText(CLI_COMMAND);
+      if (cliCopyStatusEl) cliCopyStatusEl.textContent = 'Copied — run it in your terminal.';
+      if (cliCopyEl) cliCopyEl.textContent = 'CLI command copied';
+    } catch {
+      // Clipboard permissions are optional. The command remains visible and
+      // selectable, so copy failure never hides the only path to the CLI.
+      if (cliCopyStatusEl) cliCopyStatusEl.textContent = 'Select the command above and copy it.';
+    }
+    window.setTimeout(() => {
+      if (cliCopyEl) cliCopyEl.textContent = 'Copy CLI command';
+    }, 2200);
+  }
+
+  if (cliCommandEl) cliCommandEl.textContent = CLI_COMMAND;
+  cliCopyEl?.addEventListener('click', copyCliCommand);
 
   function report(statusJson: string) {
     let parsed: Record<string, unknown>;
@@ -481,6 +565,43 @@ import '../styles/feature-viewer.css';
   const toggleEl = document.querySelector('[data-transport-toggle]') as HTMLButtonElement | null;
   const goLiveEl = document.querySelector('[data-go-live]') as HTMLButtonElement | null;
   const fitEl = document.querySelector('[data-fit-graph]') as HTMLButtonElement | null;
+  const viewerPageEl = document.querySelector('.viewer-page') as HTMLElement | null;
+  const workflowRootEl = document.querySelector('[data-workflow-root]');
+  const workflowLanesEl = document.querySelector('[data-workflow-lanes]');
+  const minimapEl = document.querySelector('[data-canvas-minimap]') as HTMLElement | null;
+  const minimapNodesEl = document.querySelector('[data-minimap-nodes]');
+
+  type ViewStyle = 'terminal' | 'focus' | 'split';
+  const VIEW_STYLES: readonly ViewStyle[] = ['terminal', 'focus', 'split'];
+
+  function applyViewStyle(style: ViewStyle) {
+    if (viewerPageEl === null) return;
+    viewerPageEl.dataset.viewStyle = style;
+    for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-view-style]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.viewStyle === style));
+    }
+    try {
+      window.localStorage.setItem('fleetscope-view-style', style);
+    } catch {
+      // Private browsing can deny storage; the in-memory preference still works.
+    }
+  }
+
+  const initialViewStyle = (() => {
+    try {
+      const stored = window.localStorage.getItem('fleetscope-view-style') as ViewStyle | null;
+      return stored !== null && VIEW_STYLES.includes(stored) ? stored : 'terminal';
+    } catch {
+      return 'terminal';
+    }
+  })();
+  applyViewStyle(initialViewStyle);
+  for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-view-style]')) {
+    button.addEventListener('click', () => {
+      const style = button.dataset.viewStyle as ViewStyle | undefined;
+      if (style !== undefined && VIEW_STYLES.includes(style)) applyViewStyle(style);
+    });
+  }
 
   const snapshot = (): Snapshot | null => {
     if (api === null) return null;
@@ -595,6 +716,126 @@ import '../styles/feature-viewer.css';
       button.addEventListener('click', () => selectAgent(row.id));
       li.append(button);
       railEl.append(li);
+    }
+  }
+
+  function workflowStatusGlyph(lane: WorkflowLane): string {
+    if (lane.statusTone === 'bad') return '!';
+    if (lane.statusTone === 'ok') return '✓';
+    if (lane.statusTone === 'warn') return '·';
+    return '○';
+  }
+
+  function workflowCard(lane: WorkflowLane): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `workflow-lane workflow-lane--${lane.role}`;
+    button.dataset.workflowId = lane.id;
+    button.dataset.tone = lane.statusTone;
+    button.setAttribute('aria-pressed', String(lane.id === selectedAgentId));
+    button.setAttribute('aria-current', String(lane.id === selectedAgentId));
+    button.disabled = !graphNodeIds.has(lane.id);
+    if (button.disabled) button.title = 'This lane has no graph node in the current fold.';
+    button.setAttribute(
+      'aria-label',
+      `${lane.label}, ${lane.statusLabel}, ${lane.eventCount} recorded events`,
+    );
+
+    const top = document.createElement('span');
+    top.className = 'workflow-lane__top';
+    const role = document.createElement('span');
+    role.className = 'workflow-lane__role';
+    role.textContent = lane.role === 'orchestrator' ? 'orchestrator' : 'sub-agent';
+    const status = document.createElement('span');
+    status.className = 'workflow-lane__status';
+    status.textContent = `${workflowStatusGlyph(lane)} ${lane.statusLabel}`;
+    top.append(role, status);
+
+    const label = document.createElement('strong');
+    label.className = 'workflow-lane__label';
+    label.textContent = lane.label;
+
+    const task = document.createElement('span');
+    task.className = 'workflow-lane__task';
+    task.textContent = lane.parentLabel === null ? 'Coordinates the loaded session' : `From ${lane.parentLabel}`;
+
+    const meta = document.createElement('span');
+    meta.className = 'workflow-lane__meta';
+    meta.textContent = `${lane.eventCount} events · ${lane.toolCount} tools${lane.errorCount > 0 ? ` · ${lane.errorCount} errors` : ''}`;
+
+    const activity = document.createElement('span');
+    activity.className = 'workflow-lane__activity';
+    activity.setAttribute('aria-hidden', 'true');
+    if (lane.activity.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'workflow-lane__activity-empty';
+      empty.textContent = '—';
+      activity.append(empty);
+    } else {
+      for (const kind of lane.activity.slice(-12)) {
+        const marker = document.createElement('span');
+        marker.className = `workflow-lane__activity-mark workflow-lane__activity-mark--${kind}`;
+        activity.append(marker);
+      }
+    }
+
+    button.append(top, label, task, meta, activity);
+    if (!button.disabled) button.addEventListener('click', () => selectAgent(lane.id));
+    return button;
+  }
+
+  function updateWorkflowBoardState(): boolean {
+    if (workflowLanesEl === null || workflowRootEl === null) return false;
+    const buttons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button[data-workflow-id]'),
+    );
+    const lanes = workflowLanes(agents, events);
+    if (buttons.length !== lanes.length) return false;
+    if (buttons.some((button, index) => button.dataset.workflowId !== lanes[index]?.id)) return false;
+    for (const button of buttons) {
+      const laneId = button.dataset.workflowId;
+      const selected = laneId !== undefined && laneId === selectedAgentId;
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-current', String(selected));
+    }
+    return true;
+  }
+
+  function renderWorkflowBoard() {
+    if (workflowRootEl === null || workflowLanesEl === null) return;
+    if (updateWorkflowBoardState()) return;
+    const lanes = workflowLanes(agents, events);
+    workflowRootEl.replaceChildren();
+    workflowLanesEl.replaceChildren();
+    if (minimapNodesEl !== null) minimapNodesEl.replaceChildren();
+    if (minimapEl !== null) minimapEl.hidden = lanes.length === 0;
+    if (lanes.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'fs-muted';
+      empty.textContent = 'No recorded agents in this session.';
+      workflowRootEl.append(empty);
+      return;
+    }
+    const root = lanes.find((lane) => lane.role === 'orchestrator');
+    if (root !== undefined) workflowRootEl.append(workflowCard(root));
+    else workflowRootEl.append(workflowCard(lanes[0]!));
+    for (const lane of lanes) {
+      if (lane.id === root?.id) continue;
+      const item = document.createElement('div');
+      item.setAttribute('role', 'listitem');
+      item.append(workflowCard(lane));
+      workflowLanesEl.append(item);
+    }
+    if (minimapNodesEl !== null) {
+      for (const lane of lanes) {
+        const node = document.createElement('span');
+        node.className = 'viewer-canvas-minimap__node';
+        node.dataset.tone = lane.statusTone;
+        node.dataset.workflowId = lane.id;
+        node.title = lane.label;
+        node.setAttribute('aria-hidden', 'true');
+        minimapNodesEl.append(node);
+      }
     }
   }
 
@@ -804,6 +1045,7 @@ import '../styles/feature-viewer.css';
     selectedAgentId = snap.selectedAgentId;
     renderHeader(snap);
     renderRail();
+    renderWorkflowBoard();
     renderTimeline();
     renderInspector();
     renderStory();

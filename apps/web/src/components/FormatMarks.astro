@@ -1,0 +1,59 @@
+---
+/**
+ * The session formats this build can read.
+ *
+ * Vendored under `public/brand/` rather than hotlinked. The page's own claim
+ * is that a session file never leaves the machine, and a mark fetched from a
+ * CDN on load is an outbound request on a surface that promises none.
+ *
+ * These are Google's marks, used to name the formats FleetScope reads. They
+ * are not a claim of endorsement, and the reader for a third format still
+ * ships -- see `adapter/claude_code.rs`, which is a parser, not a badge.
+ */
+const FORMATS = [
+  { src: '/brand/google-gemini.svg', label: 'Gemini' },
+  { src: '/brand/google-antigravity.png', label: 'Antigravity' },
+] as const;
+---
+
+<span class="marks">
+  <span class="marks__lede">reads</span>
+  {
+    FORMATS.map((format) => (
+      <span class="marks__item">
+        <img class="marks__glyph" src={format.src} alt="" width="14" height="14" loading="lazy" />
+        {format.label}
+      </span>
+    ))
+  }
+</span>
+
+<style>
+  .marks {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fd-muted);
+  }
+
+  .marks__lede {
+    color: var(--fd-faint);
+  }
+
+  .marks__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .marks__glyph {
+    display: block;
+    width: 14px;
+    height: 14px;
+  }
+</style>

@@ -1,28 +1,32 @@
 /*
  * Feature-detail surface for /viewer and /dashboard only.
  *
- * Dark mode borrows the restraint of a terminal UI: graphite, thin rules and
- * quiet green/amber/cyan state accents. Light mode uses Apple's two-neutral
- * palette. There is no glass, gradient or nested-card depth on this surface.
+ * Dark mode borrows the restraint of a terminal UI: thin rules, no glass, no
+ * gradient, no nested-card depth. The accents are Gemini's own hues -- taken
+ * from the marque in public/brand/google-gemini.svg, not guessed -- carried at
+ * Google's dark-theme luminance so they clear 4.5:1 on this ground. The
+ * palette was previously a warm green/amber/coral set that read as another
+ * vendor's brand on a surface that reads Gemini and Antigravity sessions.
+ * Light mode keeps Apple's two-neutral ground under Google's light accents.
  * The launch layout never imports BaseLayout, so none of this can reach it.
  */
 
 [data-surface='feature'] {
-  --fd-bg: #070908;
-  --fd-bg-alt: #0c100d;
-  --fd-surface: #0b0e0c;
-  --fd-surface-raised: #111612;
-  --fd-text: #f1f5ef;
-  --fd-muted: #9aa49b;
-  --fd-faint: #727c74;
-  --fd-line: #222a23;
-  --fd-line-strong: #344037;
-  --fd-action: #9bcf95;
-  --fd-action-hover: #b0dfa9;
-  --fd-action-ink: #071008;
-  --fd-cyan: #79bdb4;
-  --fd-amber: #d3aa68;
-  --fd-red: #dc8982;
+  --fd-bg: #06070c;
+  --fd-bg-alt: #0b0d15;
+  --fd-surface: #090b12;
+  --fd-surface-raised: #141828;
+  --fd-text: #eef1fa;
+  --fd-muted: #9ba4c0;
+  --fd-faint: #6f7794;
+  --fd-line: #1e2233;
+  --fd-line-strong: #333b57;
+  --fd-action: #8ab4f8;
+  --fd-action-hover: #a8c7fa;
+  --fd-action-ink: #06070c;
+  --fd-cyan: #c58af9;
+  --fd-amber: #fdd663;
+  --fd-red: #f28b82;
 
   --fs-bg: var(--fd-bg);
   --fs-surface: var(--fd-surface);
@@ -54,12 +58,12 @@
   --fd-faint: #86868b;
   --fd-line: #d2d2d7;
   --fd-line-strong: #b8b8bd;
-  --fd-action: #0071e3;
-  --fd-action-hover: #0077ed;
+  --fd-action: #1a73e8;
+  --fd-action-hover: #1b66c9;
   --fd-action-ink: #ffffff;
-  --fd-cyan: #087f8c;
-  --fd-amber: #9a6400;
-  --fd-red: #b42318;
+  --fd-cyan: #8430ce;
+  --fd-amber: #8a6100;
+  --fd-red: #c5221f;
   color-scheme: light;
 }
 
@@ -74,12 +78,12 @@
     --fd-faint: #86868b;
     --fd-line: #d2d2d7;
     --fd-line-strong: #b8b8bd;
-    --fd-action: #0071e3;
-    --fd-action-hover: #0077ed;
+    --fd-action: #1a73e8;
+    --fd-action-hover: #1b66c9;
     --fd-action-ink: #ffffff;
-    --fd-cyan: #087f8c;
-    --fd-amber: #9a6400;
-    --fd-red: #b42318;
+    --fd-cyan: #8430ce;
+    --fd-amber: #8a6100;
+    --fd-red: #c5221f;
     color-scheme: light;
   }
 }
