@@ -26,7 +26,13 @@
  * component's own designed fallback, not a failure.
  *
  * To see the effect, enable in Chrome:
- *   chrome://flags/#enable-experimental-web-platform-features
+ *   chrome://flags/#canvas-draw-element
+ *
+ * That is the dedicated gate. The broader
+ * #enable-experimental-web-platform-features also turns it on, but it turns on
+ * a great deal else with it. The API is in origin trial for Chrome 148-150 and
+ * no other engine has committed to implementing it, so the unsupported shape
+ * below is the one almost every visitor gets — for a long while yet.
  */
 
 import { createRectCache } from './rect-cache';

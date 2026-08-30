@@ -1125,8 +1125,13 @@ plain object — nothing in the engine was framework specific. Unwrapping it
 removed React, `react-dom`, `@astrojs/react`, the JSX tsconfig and the
 integration in one move.
 
-**Two shapes, both intended.** The effect needs html-in-canvas, which today
-ships only behind `chrome://flags/#enable-experimental-web-platform-features`.
+**Two shapes, both intended.** The effect needs html-in-canvas, gated behind
+`chrome://flags/#canvas-draw-element` (the broader
+`#enable-experimental-web-platform-features` also turns it on, along with much
+else). The API is in origin trial for Chrome 148–150, is projected to ship
+stable late 2026, and no other engine has committed to implementing it. The
+unsupported shape is therefore not an edge case — it is what almost every
+visitor sees, and will be for some time.
 
 | | supported | unsupported |
 | --- | --- | --- |

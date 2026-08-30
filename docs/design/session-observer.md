@@ -79,6 +79,15 @@ For every ADK `Event`:
 Synthetic start/end events make the root and terminal outcome explicit. They do
 not invent child success; child terminal state still comes from ADK events.
 
+Before projection, the ADK adapter canonicalizes the input set: exact duplicate
+records are removed by a stable identity-plus-content key, records are sorted by
+producer timestamp with that key as the tie-breaker, and records without a valid
+timestamp are placed after timestamped evidence in stable-key order using fixed
+epoch-relative offsets. The fallback never reads wall-clock time. Agent
+declarations are discovered from the complete canonical set before spawn events
+are emitted, so a child observed before its transfer acknowledgement cannot
+create a second edge.
+
 The local proof manifest includes the JSONL SHA-256, resource identifiers,
 configured model, observed provider model versions, ADK version, call/event
 counts, session IDs, result, and optional uploaded object metadata.
@@ -99,7 +108,8 @@ falls back to `configuredModel`.
 ## Projection invariants
 
 - Append-only events are the source of truth.
-- Duplicate/reordered input converges under existing event identity/order rules.
+- Exact duplicate or reordered input converges under stable identity/order rules;
+  records that reuse a provider id with different content remain distinct.
 - Explicit ground truth outranks inferred status.
 - A pending tool call prevents an idle/completed inference.
 - Seeking rebuilds the view from an event prefix.

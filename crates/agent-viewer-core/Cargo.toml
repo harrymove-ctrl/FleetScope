@@ -16,7 +16,7 @@ legacy-claude = []
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
 
 # No renderer, no runtime, no filesystem, ON PURPOSE.
 #

@@ -71,8 +71,11 @@ FleetScope should reuse the proven shape, redesigned for Gemini/ADK events:
 4. Content-time (the session playhead) is separate from presentation-time (UI
    animation), so seeking is deterministic.
 5. Ground-truth events outrank inferred liveness or timeout heuristics.
-6. Replay and live delivery fold into the same projection and converge to the
-   same final state regardless of event arrival order.
+6. The ADK adapter canonicalizes exact duplicates and stable-sorts records
+   before discovering agents and emitting edges, so replay and live delivery
+   converge to the same projection regardless of event arrival order. Invalid
+   or missing timestamps use deterministic epoch-relative offsets, never the
+   wall clock.
 
 Zoetrope remains a pinned rendering reference/substrate. FleetScope must not
 reuse its Claude-specific transcript parser as the domain model.
