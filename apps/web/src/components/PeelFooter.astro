@@ -24,7 +24,7 @@ interface Props {
 
 const {
   brand = 'fleet',
-  email = 'lekhacthanhtung.it@gmail.com',
+  email = 'phanhoangvinhhien@gmail.com',
   repo = 'github.com/harryphan/FleetScope',
 } = Astro.props;
 
@@ -44,14 +44,13 @@ const letters = wordmarkLetters(brand);
       <section class="peel__col">
         <p class="peel__pill">where it runs</p>
         <p class="peel__line">On your machine, in your browser.</p>
-        <p class="peel__line">Nothing is uploaded.</p>
         <a class="peel__underline" href="/viewer">Open the viewer</a>
       </section>
 
       <section class="peel__col">
         <p class="peel__pill">say hello</p>
-        <p class="peel__line">{email}</p>
-        <p class="peel__line">{repo}</p>
+        <p class="peel__line peel__line--address">{email}</p>
+        <p class="peel__line peel__line--address">{repo}</p>
         <p class="peel__fine">
           Recorded evidence is bundled with this build. Nothing here calls home.
         </p>
@@ -167,6 +166,17 @@ const letters = wordmarkLetters(brand);
     font-weight: 500;
     line-height: 1.2;
     letter-spacing: -0.02em;
+  }
+
+  /*
+   * An email address and a repo path are one unbreakable token each. At the
+   * display size they overrun the panel and get clipped by its `overflow:
+   * hidden`, so they get their own size and are allowed to break anywhere.
+   */
+  .peel__line--address {
+    max-width: 100%;
+    font-size: clamp(15px, 1.5vw, 20px);
+    overflow-wrap: anywhere;
   }
 
   .peel__underline {
