@@ -4,6 +4,55 @@ This file is the single location for third-party copyright and license
 attribution. Per product decision **D8**, these notices live in repository
 licensing files and do **not** appear in FleetScope product navigation.
 
+## Adapted source
+
+### canvas-ui Bend — the launchpad fold
+
+|             |                                                                  |
+| ----------- | ---------------------------------------------------------------- |
+| Project     | **canvas-ui** — <https://canvasui.dev/docs/components/bend>      |
+| Obtained by | `pnpm dlx shadcn@latest add @canvas-ui/bend-react`               |
+| Vendored in | `apps/web/src/features/bend/engine.ts`, `.../bend/rect-cache.ts` |
+
+**A vendored copy, not an adaptation.** The shader and the fold mathematics are
+canvas-ui's, kept intact. The file differs from upstream in three ways, each
+marked where it occurs: the React wrapper is removed and the engine is used
+directly from `components/Bend.astro`; the `rect-cache` import points at the
+local copy; and `uCover` waits for a capture that produced pixels, so a failing
+capture degrades to plain DOM instead of an opaque black canvas.
+
+### liquid-glass-carousel — the launchpad lens mathematics
+
+|             |                                                                                   |
+| ----------- | --------------------------------------------------------------------------------- |
+| Project     | **liquid-glass-carousel** — a three.js + GSAP liquid-glass carousel engine        |
+| License     | **MIT** — Copyright (c) 2026 Yousuf Soomro                                        |
+| Reached via | NeuroPay, commit `010d0ec187e038e6e57d945f63b57fd21ad373a9`, `packages/carousel/` |
+| Adapted in  | `apps/web/src/features/launch/lens.ts`                                            |
+
+**Adaptation, not a vendored copy.** No file from that project is present in
+this repository and no dependency on it is declared. What is adapted is the
+fragment-shader mathematics of its lens: the elliptical mask, the inward pull
+and tangential fluid rim waves, the weighted multi-sample chromatic dispersion
+with per-channel normalisation, the centre nova, the ring with its aura and
+shimmer, and the bright rim line.
+
+FleetScope's version differs in three ways that matter:
+
+- **It has no clock.** The original advances its shimmer and entry choreography
+  on elapsed time. Every animated term here is a function of scroll position,
+  so the effect responds to the reader and is still when they are.
+- **It refracts one product screenshot** rather than a rendered carousel of ten
+  panels, and is dependency-free WebGL rather than three.js and GSAP.
+- **It uses the dark-page tuning**, not the upstream defaults. The upstream
+  values were built against a white page; the NeuroPay configuration dials glow
+  from 4.2 to 0.9, the ring from 6 to 1.1 and the rim line from 1.4 to 0.32 for
+  a near-black background. FleetScope's launchpad is true black, so the
+  dialled-back set is what is used here.
+
+The MIT copyright notice above is reproduced in the header of `lens.ts`, as the
+license requires.
+
 ## Vendored source
 
 ### Zoetrope — the Fleet Cockpit rendering substrate

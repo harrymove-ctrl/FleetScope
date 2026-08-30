@@ -13,3 +13,4 @@ apps/web/public/wasm/
 
 # Python worker: prettier does not own these.
 apps/adk-worker/
+.pytest_cache/
