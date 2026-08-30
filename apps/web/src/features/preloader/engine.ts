@@ -196,6 +196,13 @@ export interface RealitySplitOptions {
    * every frame repaints all of it.
    */
   dprCap?: number;
+  /**
+   * DEVIATION: clear the field instead of filling it, so the piece composites
+   * over whatever is behind its canvas. The reference always paints
+   * `palette.bg`, which is right for a self-contained card and wrong when the
+   * field is another animation.
+   */
+  clearField?: boolean;
 }
 
 export class RealitySplit {
@@ -921,11 +928,15 @@ export class RealitySplit {
     if (!ctx) return;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-    ctx.fillStyle =
-      this.prevPal && t < FIELD_FADE
-        ? mixHex(this.prevPal.bg, this.pal.bg, smooth(t / FIELD_FADE))
-        : this.pal.bg;
-    ctx.fillRect(0, 0, this.W, this.H);
+    if (this.opts.clearField) {
+      ctx.clearRect(0, 0, this.W, this.H);
+    } else {
+      ctx.fillStyle =
+        this.prevPal && t < FIELD_FADE
+          ? mixHex(this.prevPal.bg, this.pal.bg, smooth(t / FIELD_FADE))
+          : this.pal.bg;
+      ctx.fillRect(0, 0, this.W, this.H);
+    }
     ctx.font = this.font;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
