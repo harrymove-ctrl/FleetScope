@@ -4,7 +4,10 @@ Chat **directly in Antigravity CLI** (rainbow `>`). FleetScope **watches** — i
 not replace the chat. New sessions and later sub-agent conversations on that
 project folder auto-appear under **Local sessions** (Follow newest).
 
-Git: https://github.com/harrymove-ctrl/FleetScope/tree/feat/agent-viewer-cli
+Git: https://github.com/harrymove-ctrl/FleetScope/tree/feat/agent-viewer-cli  
+PR: https://github.com/jasong-03/FleetScope/pull/1  
+Prod (recorded only): https://fleetscope-web-6tes2q7oqa-uc.a.run.app/  
+Talk script + prompts: [TALK.md](./TALK.md)
 
 ---
 
@@ -36,8 +39,8 @@ later sub-agent conversations on that cwd) into:
 `.fleetscope/sessions/agy-repl.*/session.jsonl`
 
 Viewer polls that folder. Graph / agents / timeline update while you chat.
-Spawn more agents in `agy` → new conversation IDs for the same folder → still
-followed.
+Spawn more agents in `agy` → named nodes (`researcher`, `ux_designer`, …) plus
+their child transcripts, not a single `chat` / `invoke_subagent` blob.
 
 On `/viewer` you can **Copy agy chat** for the same command.
 

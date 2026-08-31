@@ -75,6 +75,7 @@ export function localSessionsVitePlugin(root = sessionsRoot()) {
           }
           if (url === '/local-sessions.json' || url === '/local-sessions') {
             res.setHeader('content-type', 'application/json; charset=utf-8');
+            res.setHeader('cache-control', 'no-store');
             res.end(JSON.stringify(listLocalSessions(root)));
             return;
           }

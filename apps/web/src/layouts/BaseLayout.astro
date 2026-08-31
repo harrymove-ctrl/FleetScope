@@ -49,6 +49,7 @@ const path = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content={theme === 'dark' ? 'dark' : 'dark light'} />
     <title>{title} · FleetScope</title>
+    <slot name="head" />
     {
       theme === 'adaptive' && (
         <script is:inline>
