@@ -8,6 +8,10 @@ cd "$(dirname "$0")/.."
 no_tui=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --)
+      # pnpm/npm often forward a literal "--" before script args.
+      shift
+      ;;
     --project)
       [[ $# -ge 2 ]] || { echo "usage: $0 [--project <dir>] [--no-tui]" >&2; exit 2; }
       export FLEETSCOPE_ANTIGRAVITY_PROJECT="$2"

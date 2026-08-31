@@ -402,9 +402,9 @@ import '../styles/feature-viewer.css';
     const root = currentRepoRoot();
     const project = currentProjectPath();
     if (!project) {
-      return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity -- --no-tui`;
+      return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity --no-tui`;
     }
-    return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity -- --no-tui --project ${shellSingleQuote(project)}`;
+    return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity --no-tui --project ${shellSingleQuote(project)}`;
   }
 
   /** Offline watch of the bundled Gemini example — no agy. */
