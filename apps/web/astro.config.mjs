@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'astro/config';
 import { localSessionsVitePlugin } from './src/lib/local-sessions.ts';
+import { localTuiVitePlugin } from './src/lib/local-tui.ts';
 
 const sessionsDir = join(dirname(fileURLToPath(import.meta.url)), '../../.fleetscope/sessions');
 
@@ -39,6 +40,6 @@ export default defineConfig({
     // step) — six days, no build orchestration. Vite must transform them.
     ssr: { noExternal: [/^@fleetscope\//] },
     optimizeDeps: { exclude: ['@fleetscope/fixtures'] },
-    plugins: [localSessionsVitePlugin(sessionsDir)],
+    plugins: [localSessionsVitePlugin(sessionsDir), localTuiVitePlugin(sessionsDir)],
   },
 });

@@ -407,10 +407,10 @@ import '../styles/feature-viewer.css';
     return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity --no-tui --project ${shellSingleQuote(project)}`;
   }
 
-  /** Offline watch of the bundled Gemini example — no agy. */
-  function buildTuiCommand(): string {
+  /** Native TUI for the session this tab is already following. */
+  function buildTuiCommand(sessionId = localFollowId ?? 'antigravity-live-cu'): string {
     const root = currentRepoRoot();
-    return `cd ${shellSingleQuote(root)} && cargo run -p fleetscope-cli --bin fleetscope -- .fleetscope/sessions/antigravity-live-cu --follow --tiny`;
+    return `cd ${shellSingleQuote(root)} && cargo run -p fleetscope-cli --bin fleetscope -- .fleetscope/sessions/${sessionId} --follow --tiny`;
   }
 
   function refreshCommandPreviews(): void {
@@ -515,10 +515,32 @@ import '../styles/feature-viewer.css';
 
   async function copyOpenTui() {
     refreshCommandPreviews();
+    const session = localFollowId ?? 'antigravity-live-cu';
+    const command = buildTuiCommand(session);
+    try {
+      const response = await fetch(`/local-tui/open?session=${encodeURIComponent(session)}`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        say(`Opened native TUI in Terminal · following ${session}`);
+        if (cliCopyStatusEl) {
+          cliCopyStatusEl.textContent = `Terminal launched for ${session}. Command also copied.`;
+        }
+        try {
+          await navigator.clipboard.writeText(command);
+        } catch {
+          /* clipboard optional once Terminal is open */
+        }
+        return;
+      }
+    } catch {
+      /* loopback helper is only on pnpm dev */
+    }
     await copyText(
-      buildTuiCommand(),
-      'TUI command copied — includes cd into FleetScope, follows antigravity-live-cu, --tiny.',
+      command,
+      'Could not spawn Terminal from this tab. Command copied — paste it in Terminal.',
     );
+    say('Open TUI copied the native command. Paste it in Terminal — this tab cannot spawn a TTY.', true);
   }
 
   function setStageMode(on: boolean) {

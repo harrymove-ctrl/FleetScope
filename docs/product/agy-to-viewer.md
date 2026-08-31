@@ -51,6 +51,11 @@ Example-only Gemini JSONL (not Antigravity):
 cd /Users/harryphan/Documents/dev/FleetScope && cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow --tiny
 ```
 
+On 127.0.0.1, **Open TUI** POSTs `/local-tui/open` and launches Terminal.app
+with `fleetscope <session> --follow --tiny` for the session this tab is
+already watching. Hosted Cloud Run cannot spawn a TTY; there the button
+copies the command instead.
+
 ## Browser
 
 `/viewer` on 127.0.0.1:

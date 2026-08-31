@@ -203,6 +203,9 @@ describe('the feature-detail visual surface', () => {
     expect(viewer).toContain('data-cli-copy');
     expect(viewer).toContain('data-open-tui');
     expect(viewer).toContain('Open TUI');
+    expect(viewer).toContain('/local-tui/open');
+    expect(viewer).toContain("method: 'POST'");
+    expect(viewer).toContain('Opened native TUI in Terminal');
     expect(viewer).toContain('fleetscope-cli');
     expect(viewer).toContain('data-agy-project-path');
     expect(viewer).toContain('data-fleetscope-root');

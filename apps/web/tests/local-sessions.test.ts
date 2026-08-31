@@ -7,6 +7,11 @@ import {
   listLocalSessions,
   readLocalSessionJsonl,
 } from '../src/lib/local-sessions';
+import {
+  buildNativeTuiCommand,
+  resolveTuiSessionId,
+  repoRootFromSessions,
+} from '../src/lib/local-tui';
 
 const root = join(process.cwd(), '.fleetscope/sessions');
 
@@ -32,5 +37,22 @@ describe('local session listing', () => {
     expect(isLoopbackAddress('::ffff:127.0.0.1')).toBe(true);
     expect(isLoopbackAddress('8.8.8.8')).toBe(false);
     expect(isLoopbackAddress(undefined)).toBe(false);
+  });
+});
+
+describe('native TUI launch command', () => {
+  it('cds into the repo and follows a validated session id', () => {
+    const command = buildNativeTuiCommand('antigravity-live-cu', root);
+    expect(command).toContain(`cd '${join(process.cwd())}'`);
+    expect(command).toContain('.fleetscope/sessions/antigravity-live-cu --follow --tiny');
+    expect(command).toMatch(/target\/debug\/fleetscope|cargo run -p fleetscope-cli/);
+    expect(command).not.toContain('pnpm demo:google-session -- --run');
+    expect(buildNativeTuiCommand('../etc', root)).toBeNull();
+  });
+
+  it('uses the newest local session when none is named', () => {
+    const id = resolveTuiSessionId(null, root);
+    expect(id).toMatch(/^[A-Za-z0-9._-]+$/);
+    expect(repoRootFromSessions(root)).toBe(join(process.cwd()));
   });
 });
