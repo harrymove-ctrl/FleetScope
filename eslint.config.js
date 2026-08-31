@@ -21,6 +21,11 @@ export default tseslint.config(
       // build artifact, not source, and it targets the browser rather than this
       // project's lint environment.
       'apps/web/public/wasm/**',
+      // The apps/ui Vite bundle, staged into the web app's public tree. Also a
+      // build artifact, and already gitignored, so CI never sees it — but a
+      // local `eslint .` would otherwise report ~1600 findings against minified
+      // output that no one edits.
+      'apps/web/public/ui/**',
       // The Python worker's virtualenv. google-adk ships a prebuilt browser
       // bundle inside site-packages; it is a third-party artifact this repo
       // neither owns nor edits.
