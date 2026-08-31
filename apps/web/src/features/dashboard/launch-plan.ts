@@ -24,6 +24,7 @@ export const GCP_RUN_SERVICE = 'fleetscope-web';
 export const GCP_BUCKET = 'fleetscope-sessions-project-ac0c5f88-868b-46b9-a2e';
 export const GCP_RUN_URL = 'https://fleetscope-web-6tes2q7oqa-uc.a.run.app';
 
+export const CONSOLE_APP_PATH = '/console';
 export const CONSOLE_RUN_URL = `https://console.cloud.google.com/run/detail/${GCP_REGION}/${GCP_RUN_SERVICE}?project=${GCP_PROJECT}`;
 export const CONSOLE_STORAGE_URL = `https://console.cloud.google.com/storage/browser/${GCP_BUCKET}?project=${GCP_PROJECT}`;
 
@@ -72,7 +73,7 @@ export const LAUNCH_PLAN_PHASES = [
 export const DEMO_TALK = [
   {
     say: 'Four Gemini agents inspect Cloud Run and Storage, then decide READY or NOT_READY.',
-    show: 'Google Console · Cloud Run',
+    show: 'Cloud Console /console · Cloud Run',
   },
   {
     say: 'They run on Vertex. Here is the same project in gcloud.',

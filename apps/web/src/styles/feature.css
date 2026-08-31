@@ -1,5 +1,5 @@
 /*
- * Feature-detail surface for /viewer and /dashboard only.
+ * Feature-detail surface for /viewer, /dashboard, and /console.
  *
  * Dark mode borrows the restraint of a terminal UI: thin rules, no glass, no
  * gradient, no nested-card depth. The accents are Gemini's own hues -- taken

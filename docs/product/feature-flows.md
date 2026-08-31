@@ -126,6 +126,19 @@ turn an unobserved model into observed evidence.
 | `thought: true` or secret-shaped field | Remove/redact before the line is persisted |
 | Malformed JSONL in viewer | Refuse with format and line instead of drawing a guessed graph |
 
+## Flow 6 — Judge Cloud Console (no GCP login)
+
+```text
+judge opens /console or GET /cloud/console
+  → recorded Cloud Run hosted revision + ADK services.get probe
+  → recorded Storage buckets.get metadata (no objects)
+  → launch_readiness READY, six calls, two sessions kept distinct
+  → invoke list: curl health, inspect fixture, zero-cost dry-run
+```
+
+This is the interactive Google Cloud surface for people who cannot open
+`console.cloud.google.com`. It does not call Admin APIs at request time.
+
 ## Surface hand-off
 
 | From | Action | To | Truth label |
@@ -134,6 +147,7 @@ turn an unobserved model into observed evidence.
 | Producer terminal | Copy watch command | CLI Agent Viewer | Local live follow |
 | CLI | Inspect file headlessly | `fleetscope inspect` | Observed session |
 | Browser landing | Open Agent Viewer | `/viewer` | Recorded until a growing local source is observed |
+| Dashboard / testing notes | Open judge Cloud Console | `/console` | Recorded Cloud evidence |
 | Live edge | Seek backward | Same viewer timeline | History / replay |
 | Finished session | Open proof manifest | Evidence review | Observed only where provider fields exist |
 

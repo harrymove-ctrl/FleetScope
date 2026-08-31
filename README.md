@@ -81,6 +81,11 @@ CLI command shown at the top, then drop the generated JSONL file or choose its
 session folder. The **Preview example** button is only a no-setup fallback;
 local files are read in the browser and are not uploaded.
 
+Judges who cannot log into Google Cloud should open
+[http://localhost:4321/console](http://localhost:4321/console) (or the hosted
+`/console` route). That page is a read-only Cloud Run / Storage / ADK evidence
+console. It does not require IAM and does not start Vertex.
+
 ## What is implemented
 
 - JSONL/JSON file and folder discovery.
@@ -94,6 +99,8 @@ local files are read in the browser and are not uploaded.
 - Hidden reasoning (`thought: true`) is removed before it reaches the UI.
 - Headless `inspect` output and a stable projection fingerprint.
 - Native CLI and browser share the same projection core.
+- Judge Cloud Console at `/console` and `GET /cloud/console` (recorded Cloud
+  Run, Storage metadata, and the READY decision; no GCP login).
 
 The renderer visualises one graph level. Deeper provider paths are preserved in
 labels and the full tree appears in `inspect`.
@@ -115,12 +122,28 @@ JSONL file/object ──► discovery or file input ──► provider adapter
                                       ViewerSession + projection core
                                       ├── Rust CLI TUI
                                       ├── Astro/WASM browser
-                                      └── fleetscope inspect
+                                      ├── fleetscope inspect
+                                      └── /console + GET /cloud/console
 ```
 
 The projection core is IO-free and provider-neutral. The CLI owns filesystem
 discovery/tailing; the browser owns file/folder input; adapters own producer
-dialects.
+dialects. `/console` serves the same recorded Cloud Run and Storage facts the
+agents probed, so a judge does not need project IAM.
+
+### Folder structure
+
+```text
+apps/adk-worker/     Google ADK SequentialAgent (launch_readiness)
+apps/api/            health, capability, runs, GET /cloud/console
+apps/web/            /dashboard /console /viewer /demo
+crates/fleetscope-cli
+crates/agent-viewer-*
+packages/            shared TS libraries
+examples/            checked-in Gemini and Antigravity inputs
+docs/product/        pitch, feature inventory, Devpost packet
+scripts/             producer, Antigravity bridge, Cloud Run deploy
+```
 
 ## Minimal Google hackathon path
 
@@ -284,6 +307,10 @@ Open <http://127.0.0.1:4321/viewer/>, choose **Preview example**, and verify
 that the agent graph, event timeline, tool calls, and inspector render. The
 example is bundled with the build; it makes no backend or model request.
 
+Open <http://127.0.0.1:4321/console> and click Cloud Run, Cloud Storage, Vertex
+/ ADK, and Invoke. The page is recorded evidence. It must not prompt for a
+Google login and must not start a model.
+
 ### Hosted smoke test
 
 No credentials are required. These endpoints are deployed on Google Cloud
@@ -292,6 +319,7 @@ Run in `us-central1`:
 ```bash
 curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/health
 curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/runs/capability
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/cloud/console
 curl -fsS -o /dev/null \
   https://fleetscope-web-6tes2q7oqa-uc.a.run.app/viewer/
 ```
@@ -322,6 +350,10 @@ and was stopped; do not present that gate as passed.
   adapter contract, state/failure behavior, and hosted proof.
 - [Hackathon checklist](docs/product/hackathon-submission-checklist.md) —
   exact proof gates and current gaps.
+- [Feature inventory](docs/product/feature-inventory.md) — every surface and
+  the command that invokes it.
+- [Devpost additional-info](docs/product/devpost-additional-info.md) —
+  field-by-field ticks and the private testing-instructions paste.
 - [Docs index](docs/README.md) — navigation and historical/superseded docs.
 
 The earlier enterprise CASE-1042 pitch/design/requirements remain in `docs/`

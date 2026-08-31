@@ -102,7 +102,8 @@ identity**: project, service name, region, session id, `modelVersion`.
 - A TUI command that shells out to `gcloud`.
 - An MCP “control Google from the graph” loop for this deadline.
 - Fortified Enterprise Fleet (registry, identity, OTel production data).
-- Keeping Cloud Run up so judges can click the URL.
+- Giving judges IAM on the GCP project. They use FleetScope `/console` and
+  `GET /cloud/console` instead of `console.cloud.google.com`.
 
 ## Acceptance
 

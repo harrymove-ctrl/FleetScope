@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { capabilityRoutes } from './routes/capability.js';
+import { cloudRoutes } from './routes/cloud.js';
 import { descriptorRoutes } from './routes/descriptor.js';
 import { healthRoutes } from './routes/health.js';
 import { liveRoutes } from './routes/live.js';
@@ -15,7 +16,7 @@ import type { FleetScopeConfig } from './config/index.js';
  *
  * Scope, and nothing beyond it:
  *   self-description · health · live capability description · one allowlisted
- *   live proof · bounded run admission
+ *   live proof · bounded run admission · recorded Google Cloud evidence console
  *
  * It serves no Case data: recorded evidence is bundled with the static frontend
  * so the product works with this service switched off entirely.
@@ -44,6 +45,7 @@ export function createApp(
   app.use('*', cors(config));
   app.route('/', healthRoutes(config));
   app.route('/', capabilityRoutes(config));
+  app.route('/', cloudRoutes(config));
   app.route('/', liveRoutes(config, liveDependencies));
   app.route('/', runRoutes(config, runDependencies ?? productionRunDependencies(config)));
 

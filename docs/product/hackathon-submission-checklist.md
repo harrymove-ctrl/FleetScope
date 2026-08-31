@@ -108,7 +108,11 @@ with `launch_readiness` READY/NOT_READY, not with the viewer.
   after the video):
   `https://fleetscope-web-6tes2q7oqa-uc.a.run.app`
 - [ ] Testing credentials/instructions are included if gated.
-- [ ] Architecture diagram is uploaded.
+  Paste [devpost-additional-info.md](devpost-additional-info.md).
+- [ ] Architecture diagram is uploaded:
+  `docs/product/fleetscope-devpost-architecture.png`.
+- [ ] Judge Cloud Console is linked from testing instructions (`/console` and
+  `GET /cloud/console`). Hosted web must be redeployed for `/console` to exist.
 
 ## Team and Devpost fields
 

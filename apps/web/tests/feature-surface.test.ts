@@ -21,11 +21,14 @@ const launchLayout = read('apps/web/src/layouts/LaunchLayout.astro');
 const feature = read('apps/web/src/styles/feature.css');
 const viewerStyles = read('apps/web/src/styles/feature-viewer.css');
 const dashboardStyles = read('apps/web/src/styles/feature-dashboard.css');
+const consoleStyles = read('apps/web/src/styles/feature-console.css');
 
 describe('the feature-detail visual surface', () => {
-  it('is enabled only by Viewer and Dashboard', () => {
+  it('is enabled only by Viewer, Dashboard, and Cloud Console', () => {
+    const consolePage = read('apps/web/src/pages/console.astro');
     expect(viewer).toContain('surface="feature" theme="adaptive"');
     expect(dashboard).toContain('surface="feature" theme="adaptive"');
+    expect(consolePage).toContain('surface="feature" theme="adaptive"');
     expect(index).not.toContain('surface="feature"');
   });
 
@@ -36,7 +39,7 @@ describe('the feature-detail visual surface', () => {
   });
 
   it('keeps every feature rule behind the explicit surface', () => {
-    for (const source of [feature, viewerStyles, dashboardStyles]) {
+    for (const source of [feature, viewerStyles, dashboardStyles, consoleStyles]) {
       const code = source.replace(/\/\*[\s\S]*?\*\//g, '');
       expect(code).toContain("[data-surface='feature']");
       expect(code).not.toMatch(/(^|\n)\s*:root\s*\{/);
@@ -158,6 +161,7 @@ describe('the feature-detail visual surface', () => {
     expect(plan).toContain('Auto-approved');
     expect(plan).not.toContain('data-plan-edit');
     expect(plan).toContain('Open Cloud Run');
+    expect(plan).toContain('Open judge Cloud Console');
     expect(plan).toContain('href="/viewer"');
     expect(dashboard).toContain('DEMO_TALK');
     expect(planData).toContain('LAUNCH_PLAN_CALLS = 6');

@@ -44,6 +44,7 @@ needs to answer:
 | Native/browser projection fingerprint | shared Rust core | Implemented and tested |
 | Fixed Google ADK launch-readiness producer | `demo:google-session` | Implemented; live cloud take pending |
 | Optional post-run Cloud Storage proof | producer `--upload` | Implemented; upload pending |
+| Judge Cloud Console (no GCP login) | `/console` · `GET /cloud/console` | Implemented; hosted redeploy pending |
 
 ## Google demo workflow
 

@@ -21,7 +21,11 @@ Start here:
    40/30/30 rubric, Cloud Run may be deleted after the video.
 8. [Hackathon checklist](product/hackathon-submission-checklist.md) — Gemini,
    Google ADK, Cloud Run/Storage, video, repo, and Devpost gates.
-9. [Architecture overview](architecture.md) — repository package boundaries.
+9. [Feature inventory](product/feature-inventory.md) — every feature and the
+   invoke command for it.
+10. [Devpost additional-info](product/devpost-additional-info.md) — how to fill
+    the judges-only form.
+11. [Architecture overview](architecture.md) — repository package boundaries.
 
 ## Navigation
 

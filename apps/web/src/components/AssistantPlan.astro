@@ -7,6 +7,7 @@
  */
 import TerminalWindow from './TerminalWindow.astro';
 import {
+  CONSOLE_APP_PATH,
   CONSOLE_RUN_URL,
   CONSOLE_STORAGE_URL,
   GCLOUD_DESCRIBE,
@@ -115,6 +116,9 @@ import {
     <section>
       <h3>Google Console</h3>
       <ul class="assistant-plan__console">
+        <li>
+          <a href={CONSOLE_APP_PATH}>Open judge Cloud Console</a>
+        </li>
         <li>
           <a href={CONSOLE_RUN_URL} target="_blank" rel="noreferrer">Open Cloud Run</a>
           <button type="button" data-copy-command={GCLOUD_DESCRIBE}>Copy gcloud</button>

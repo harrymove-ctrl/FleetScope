@@ -64,4 +64,4 @@ Follow folder remains available. It is not the intended close of the demo.
 
 ## Demo operator (copy and talk)
 
-Dashboard is the talk track. Checklist is auto-approved from recorded evidence. Do not edit the plan. Do not Open folder. Copy gcloud / Copy Antigravity / Open viewer. Google Console links open Cloud Run and Storage for the same project.
+Dashboard is the talk track. Checklist is auto-approved from recorded evidence. Do not edit the plan. Do not Open folder. Copy gcloud / Copy Antigravity / Open viewer. **Open judge Cloud Console** (`/console`) is the interactive Google Cloud surface for people who cannot log into the project. The `console.cloud.google.com` links are operator-only.

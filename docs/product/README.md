@@ -20,6 +20,10 @@ understand, and how the public and judge-facing surfaces fit together.
   07:00 GMT+7, judging weights, cost note, track reconsideration.
 - [Hackathon submission checklist](hackathon-submission-checklist.md) — the
   Devpost rubric, current verified/partial/missing status, and final gate.
+- [Feature inventory](feature-inventory.md) — every live surface and how to
+  invoke it, including routes that must not lead the demo.
+- [Devpost additional-info](devpost-additional-info.md) — field-by-field ticks
+  and the private testing-instructions paste.
 - [UI/UX plan](ui-ux-plan.md) — active four-region observer, truth labels,
   interactions, visual direction, and demo choreography.
 

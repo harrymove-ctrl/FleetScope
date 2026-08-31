@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONSOLE_APP_PATH,
   CONSOLE_RUN_URL,
   DEMO_TALK,
   GCLOUD_DESCRIBE,
@@ -19,6 +20,7 @@ describe('launch plan', () => {
     expect(LAUNCH_PLAN_CALLS).toBe(6);
     expect(LAUNCH_PLAN_PHASES.map((phase) => phase.name).join(' ')).toContain('READY');
     expect(LAUNCH_PLAN_PHASES.every((phase) => phase.state === 'approved')).toBe(true);
+    expect(CONSOLE_APP_PATH).toBe('/console');
     expect(CONSOLE_RUN_URL).toContain('console.cloud.google.com/run');
     expect(DEMO_TALK.length).toBe(4);
     expect(LAUNCH_PLAN_TOOLS).toContain('gcloud CLI');

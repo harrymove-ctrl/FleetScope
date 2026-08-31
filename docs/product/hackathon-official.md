@@ -91,7 +91,9 @@ Live and unedited. Test the public link in a private window.
 2. Invert pitch and video so the **decision workflow** is first.
 3. Optional: one more Vertex `--run` if the operator explicitly spends.
 4. Record the four-minute take: `gcloud`/Console + TUI pair.
-5. Fill Devpost. Tear down Cloud Run after the video if cost matters.
+5. Fill Devpost from [devpost-additional-info.md](devpost-additional-info.md).
+   Redeploy Cloud Run so hosted `/console` and `GET /cloud/console` exist.
+   Tear down Cloud Run after the video if cost matters.
 
 `pnpm demo:google-session -- --run` spends real money. Do not start it from
 this document.

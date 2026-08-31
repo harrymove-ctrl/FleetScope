@@ -136,5 +136,5 @@
   <rect x="80" y="918" width="1230" height="128" rx="22" fill="#101a2b" stroke="#2d4764" stroke-width="2"/>
   <text x="120" y="962" class="box-title">Trust boundary</text>
   <text x="120" y="999" class="box-copy">FleetScope observes evidence; it never starts, retries, authorizes, or mutates agent actions.</text>
-  <text x="120" y="1029" class="small">Local files stay local. The hosted demo is recorded-only, needs no credentials, and cannot spend model tokens.</text>
+  <text x="120" y="1029" class="small">Local files stay local. Hosted demo is recorded-only. Judges use /console — no GCP login, no model spend.</text>
 </svg>
