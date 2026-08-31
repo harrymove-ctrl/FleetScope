@@ -3,15 +3,19 @@
 #
 # filehash = false keeps the artifact names stable (cockpit.js / cockpit_bg.wasm)
 # so the mount script can import them without a build-time hash lookup.
+# Trunk CLEANS `dist` on every build, so two frontends cannot target the same
+# directory: the second build erases the first. Each stages into its own private
+# `dist/` (gitignored via `crates/*/dist`) and scripts/build-wasm.sh copies both
+# into apps/web/public/wasm.
 [build]
 target = "index.html"
-dist = "../../apps/web/public/wasm"
+dist = "dist"
 public_url = "/wasm/"
 filehash = false
 release = true
 
 [watch]
-ignore = ["../../apps/web/public/wasm"]
+ignore = ["dist"]
 
 [serve]
 port = 8081

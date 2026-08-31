@@ -1,23 +1,30 @@
 ---
+import ThemeControl from './ThemeControl.astro';
+
 /**
  * Primary navigation.
  *
- * Order follows the product surface hierarchy: Cases → Catalog → Approvals →
- * Cockpit → Audit. Cases is first because that is where a procurement user
- * starts; the Cockpit is an expert surface, not the entry point.
+ * Dashboard is the local developer entry point. Case surfaces remain available
+ * as the later FleetScope platform expands beyond one local session.
  */
 interface Props {
   path: string;
   defaultCaseId: string;
   liveMode: boolean;
+  showThemeControl?: boolean;
 }
-const { path, defaultCaseId, liveMode } = Astro.props;
+
+const { path, defaultCaseId, liveMode, showThemeControl = false } = Astro.props;
 
 const links = [
+  { href: '/dashboard', label: 'Dashboard', section: '/dashboard' },
+  { href: '/console', label: 'Cloud Console', section: '/console' },
+  { href: '/viewer', label: 'Agent Viewer', section: '/viewer' },
+  { href: '/demo', label: 'Demo', section: '/demo' },
   { href: '/cases', label: 'Cases' },
   { href: '/catalog', label: 'Agent Catalog' },
   { href: '/approvals', label: 'Approvals' },
-  { href: `/cockpit/${defaultCaseId}`, label: 'Fleet Cockpit', section: '/cockpit' },
+  { href: `/cockpit/${defaultCaseId}`, label: 'Case Graph', section: '/cockpit' },
   { href: `/audit/${defaultCaseId}`, label: 'Audit', section: '/audit' },
 ];
 
@@ -28,7 +35,7 @@ const isCurrent = (link: { href: string; section?: string }): boolean => {
 ---
 
 <nav class="fs-nav" aria-label="Primary">
-  <a class="fs-nav__brand" href="/cases">
+  <a class="fs-nav__brand" href="/">
     <span class="fs-nav__brand-name">FleetScope</span>
     <span class="fs-nav__brand-sub">Governed Agent Operations</span>
   </a>
@@ -42,6 +49,7 @@ const isCurrent = (link: { href: string; section?: string }): boolean => {
     ))}
   </div>
   <div class="fs-nav__env">
+    {showThemeControl && <ThemeControl />}
     <span class="fs-mode" data-tone={liveMode ? 'info' : 'neutral'} title={liveMode
       ? 'The bounded live-proof endpoint is enabled for this deployment.'
       : 'Recorded path only. Zero cloud calls, zero spend.'}>

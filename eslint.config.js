@@ -9,6 +9,10 @@ export default tseslint.config(
       '**/.astro/**',
       '**/target/**',
       'vendor/**',
+      // Installed agent skills. Third-party files this repo neither owns nor
+      // edits, written for a Node runtime this config does not declare — every
+      // report against them is a false positive about someone else's code.
+      '.agents/**',
       // The libm / critical-section shim, copied verbatim from the vendored
       // upstream. Browser JS with no build step; linting it against this
       // project's Node-flavoured environment reports only false positives.
@@ -17,6 +21,15 @@ export default tseslint.config(
       // build artifact, not source, and it targets the browser rather than this
       // project's lint environment.
       'apps/web/public/wasm/**',
+      // The apps/ui Vite bundle, staged into the web app's public tree. Also a
+      // build artifact, and already gitignored, so CI never sees it — but a
+      // local `eslint .` would otherwise report ~1600 findings against minified
+      // output that no one edits.
+      'apps/web/public/ui/**',
+      // The Python worker's virtualenv. google-adk ships a prebuilt browser
+      // bundle inside site-packages; it is a third-party artifact this repo
+      // neither owns nor edits.
+      'apps/adk-worker/.venv/**',
       'packages/fixtures/cases/**',
       'packages/event-schema/schemas/**',
     ],

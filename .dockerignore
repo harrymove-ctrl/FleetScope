@@ -1,0 +1,24 @@
+# Keep local credentials, build output, and host-installed dependencies out of
+# the Cloud Run build context. The Dockerfile installs production dependencies
+# and the pinned ADK worker inside its own build stages.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.fleetscope
+.astro
+.pytest_cache
+target
+node_modules
+**/node_modules
+apps/adk-worker/.venv
+**/.venv
+dist
+**/dist
+# ...except the built site, which is the entire content of the static image.
+# The API image never copies a dist, so keeping this one costs it nothing.
+!apps/web/dist
+!apps/web/dist/**
+coverage
+*.log

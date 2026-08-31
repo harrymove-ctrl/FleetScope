@@ -1,0 +1,117 @@
+---
+/**
+ * Sends one element to the whole screen.
+ *
+ * Progressive: the button is rendered hidden and a script reveals it only
+ * where `requestFullscreen` exists, so a browser without the API shows no
+ * control rather than a dead one. Safari needs the webkit-prefixed pair, and
+ * an iPhone has neither, which is the case the hidden default covers.
+ */
+interface Props {
+  /** Selector for the element to expand. Resolved at click time. */
+  target: string;
+  label: string;
+  /** Idle caption. Defaults to "Full screen". */
+  idleLabel?: string;
+  /** Active caption. Defaults to "Leave {label}". */
+  activeLabel?: string;
+  /**
+   * Stay hidden until the host sets `data-ready="true"`. Used so Full screen
+   * graph appears after Follow folder, from a real click rather than a timer.
+   */
+  gated?: boolean;
+}
+
+const {
+  target,
+  label,
+  idleLabel = 'Full screen',
+  activeLabel = `Leave ${label}`,
+  gated = false,
+} = Astro.props;
+---
+
+<button
+  class="fsx"
+  type="button"
+  data-fullscreen-toggle
+  data-target={target}
+  data-gated={gated ? 'true' : undefined}
+  aria-pressed="false"
+  hidden
+>
+  <span data-fullscreen-label>{idleLabel}</span>
+</button>
+
+<script is:inline define:vars={{ target, idleLabel, activeLabel, gated }}>
+  (() => {
+    const button = document.querySelector(`[data-fullscreen-toggle][data-target="${target}"]`);
+    if (!button) return;
+
+    const root = document.documentElement;
+    const request = root.requestFullscreen || root.webkitRequestFullscreen;
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!request || !exit) return;
+
+    const text = button.querySelector('[data-fullscreen-label]');
+    const current = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const reveal = () => {
+      if (gated && button.getAttribute('data-ready') !== 'true') return;
+      button.hidden = false;
+    };
+    reveal();
+    if (gated) {
+      const watch = new MutationObserver(reveal);
+      watch.observe(button, { attributes: true, attributeFilter: ['data-ready'] });
+    }
+
+    const sync = () => {
+      const node = document.querySelector(target);
+      const on = node !== null && current() === node;
+      button.setAttribute('aria-pressed', String(on));
+      if (text) text.textContent = on ? activeLabel : idleLabel;
+    };
+
+    button.addEventListener('click', async () => {
+      const node = document.querySelector(target);
+      if (!node) return;
+      try {
+        if (current() === node) await exit.call(document);
+        else await (node.requestFullscreen || node.webkitRequestFullscreen).call(node);
+      } catch {
+        // The API rejects when the gesture is not trusted or the element left
+        // the document. Leaving the page as it was is the correct outcome.
+      }
+      sync();
+    });
+
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    sync();
+  })();
+</script>
+
+<style>
+  .fsx {
+    padding: 6px 12px;
+    border: 1px solid var(--fd-line-strong);
+    border-radius: 999px;
+    background: transparent;
+    font-family: var(--fd-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fd-muted);
+    cursor: pointer;
+  }
+
+  .fsx:hover {
+    border-color: var(--fd-action);
+    color: var(--fd-action);
+  }
+
+  .fsx:focus-visible {
+    outline: 2px solid var(--fd-action);
+    outline-offset: 2px;
+  }
+</style>

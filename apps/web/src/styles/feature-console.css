@@ -1,0 +1,170 @@
+/* Judge Cloud Console. Tokens come from feature.css. */
+
+[data-surface='feature'] .gcp-console {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 0 0 64px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Inter,
+    sans-serif;
+}
+
+[data-surface='feature'] .gcp-console__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+[data-surface='feature'] .gcp-console__kicker {
+  margin: 0 0 8px;
+  color: var(--fd-action);
+  font: 600 12px/1 inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-surface='feature'] .gcp-console h1 {
+  margin: 0 0 8px;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 600;
+}
+
+[data-surface='feature'] .gcp-console__source,
+[data-surface='feature'] .gcp-console__note,
+[data-surface='feature'] .gcp-console__split {
+  color: var(--fd-muted);
+}
+
+[data-surface='feature'] .gcp-console__layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 28px;
+}
+
+[data-surface='feature'] .gcp-console__nav {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+[data-surface='feature'] .gcp-console__nav button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fd-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-surface='feature'] .gcp-console__nav button[aria-current='page'] {
+  border-color: var(--fd-line-strong);
+  background: var(--fd-surface-raised);
+  color: var(--fd-action);
+}
+
+[data-surface='feature'] .gcp-console__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+[data-surface='feature'] .gcp-console__cards button {
+  width: 100%;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--fd-line-strong);
+  border-radius: 12px;
+  background: var(--fd-surface-raised);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-surface='feature'] .gcp-console__cards small {
+  display: block;
+  margin-top: 6px;
+  color: var(--fd-muted);
+}
+
+[data-surface='feature'] .gcp-console__facts {
+  display: grid;
+  gap: 12px;
+}
+
+[data-surface='feature'] .gcp-console__facts div {
+  display: grid;
+  gap: 4px;
+}
+
+[data-surface='feature'] .gcp-console__facts dt {
+  color: var(--fd-faint);
+  font-size: 12px;
+}
+
+[data-surface='feature'] .gcp-console pre {
+  overflow: auto;
+  max-height: 280px;
+  padding: 12px;
+  border: 1px solid var(--fd-line);
+  border-radius: 10px;
+  background: var(--fd-bg-alt);
+  color: var(--fd-muted);
+  font: 12px/1.45 var(--fs-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+[data-surface='feature'] .gcp-console__actions,
+[data-surface='feature'] .gcp-console__invoke li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-surface='feature'] .gcp-console__actions a,
+[data-surface='feature'] .gcp-console__actions button,
+[data-surface='feature'] .gcp-console__invoke button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--fd-line-strong);
+  border-radius: 8px;
+  background: var(--fd-bg-alt);
+  color: var(--fd-text);
+  font: 500 12px/1 inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+[data-surface='feature'] .gcp-console__invoke {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+[data-surface='feature'] .gcp-console__invoke code {
+  flex: 1 1 100%;
+  overflow-x: auto;
+  color: var(--fd-action);
+}
+
+@media (max-width: 720px) {
+  [data-surface='feature'] .gcp-console__layout {
+    grid-template-columns: 1fr;
+  }
+
+  [data-surface='feature'] .gcp-console__nav {
+    grid-auto-flow: column;
+    overflow-x: auto;
+  }
+}

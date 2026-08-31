@@ -14,11 +14,13 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget};
 
 use crate::state::session::AgentStatus;
+use crate::ui::{truncate, wrap};
 
 /// Fixed card dimensions for main / workflow nodes (world units).
-pub const MAIN_NODE_DIMS: (f64, f64) = (30.0, 7.0);
-/// Fixed card dimensions for subagent nodes (world units).
-pub const SUB_NODE_DIMS: (f64, f64) = (26.0, 6.0);
+pub const MAIN_NODE_DIMS: (f64, f64) = (34.0, 10.0);
+/// Fixed card dimensions for subagent nodes (world units). Tall enough for a
+/// name, 2–3 output lines, and an honest activity row (not an empty box).
+pub const SUB_NODE_DIMS: (f64, f64) = (32.0, 10.0);
 
 /// Below this on-screen size a card has no room for any text — it renders at
 /// cell level instead (solid status-colored fill). Semantic zoom: zoomed out,
@@ -38,17 +40,41 @@ pub struct AgentNode {
     /// Truncated description shown under the title.
     pub description: Option<String>,
     pub status: AgentStatus,
-    /// Number of tool calls (for the `⚒ N tools` line).
+    /// Non-spawn tool calls (Read/Bash/…). Spawn fan-out is `spawn_count`.
     pub tool_count: usize,
-    /// Name of the most recent tool call, if any.
+    /// Name of the most recent real (non-spawn) tool call, if any.
     pub last_tool: Option<String>,
+    /// Streamed assistant notes (Antigravity text deltas).
+    pub note_count: usize,
+    /// Fan-out spawns recorded as the `Agent` tool.
+    pub spawn_count: usize,
     pub output_tokens: u64,
     /// Interactive agents (main, forks) word `Running` as "active": we know
     /// there are recent entries, not that a task is executing.
     pub interactive: bool,
 }
 
-use crate::ui::truncate;
+fn activity_row(notes: usize, tools: usize, spawned: usize, last_tool: Option<&str>) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if notes > 0 {
+        parts.push(format!("{notes} msgs"));
+    }
+    if tools > 0 {
+        if let Some(name) = last_tool {
+            parts.push(format!("{tools} tools · {name}"));
+        } else {
+            parts.push(format!("{tools} tools"));
+        }
+    }
+    if spawned > 0 {
+        parts.push(format!("{spawned} spawned"));
+    }
+    if parts.is_empty() {
+        "no output yet".to_string()
+    } else {
+        parts.join(" · ")
+    }
+}
 
 /// Compact human token count, e.g. `1.2k`, `34`, `2.0M`.
 fn fmt_tokens(n: u64) -> String {
@@ -141,21 +167,23 @@ impl NodeContent for AgentNode {
         lines.push(title_line);
 
         if let Some(desc) = self.description.as_ref().filter(|d| !d.is_empty()) {
-            let desc = truncate(desc, inner_w);
-            lines.push(Line::from(Span::styled(desc, bg_style.fg(palette.subtle))));
+            let remain = inner.height.saturating_sub(3) as usize; // title + activity + status
+            let cap = remain.clamp(1, 4);
+            for row in wrap(desc, inner_w, cap) {
+                lines.push(Line::from(Span::styled(row, bg_style.fg(palette.text))));
+            }
         }
 
-        // Tools row: "⚒ N · last_tool".
-        let tools_text = if let Some(last) = self.last_tool.as_ref() {
-            let prefix = format!("⚒ {} · ", self.tool_count);
-            let budget =
-                inner_w.saturating_sub(unicode_width::UnicodeWidthStr::width(prefix.as_str()));
-            format!("{prefix}{}", truncate(last, budget))
-        } else {
-            format!("⚒ {} tools", self.tool_count)
-        };
+        // Honest activity: never "0 tools" when the agent streamed text, and
+        // never call a fan-out spawn a tool.
+        let activity = activity_row(
+            self.note_count,
+            self.tool_count,
+            self.spawn_count,
+            self.last_tool.as_deref(),
+        );
         lines.push(Line::from(Span::styled(
-            tools_text,
+            truncate(&activity, inner_w),
             bg_style.fg(palette.accent),
         )));
 
@@ -232,6 +260,16 @@ mod tests {
         assert_eq!(AgentStatus::Failed.glyph(), '✗');
     }
 
+    #[test]
+    fn activity_row_never_says_zero_tools() {
+        assert_eq!(activity_row(0, 0, 0, None), "no output yet");
+        assert_eq!(activity_row(12, 0, 5, None), "12 msgs · 5 spawned");
+        assert_eq!(
+            activity_row(3, 2, 0, Some("Read")),
+            "3 msgs · 2 tools · Read"
+        );
+    }
+
     fn render_into(area: ratatui::layout::Rect) -> Buffer {
         use rataflow::Theme;
         use rataflow::types::Position;
@@ -242,6 +280,8 @@ mod tests {
             status: AgentStatus::Done,
             tool_count: 3,
             last_tool: Some("Bash".into()),
+            note_count: 0,
+            spawn_count: 0,
             output_tokens: 1200,
             interactive: false,
         };

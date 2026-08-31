@@ -4,6 +4,109 @@ This file is the single location for third-party copyright and license
 attribution. Per product decision **D8**, these notices live in repository
 licensing files and do **not** appear in FleetScope product navigation.
 
+## Adapted source
+
+### WildType — the viewer loader
+
+|             |                                                                    |
+| ----------- | ------------------------------------------------------------------ |
+| Source      | WildType reference algorithm, supplied as framework-free Canvas 2D |
+| Vendored in | `apps/web/src/features/viewer/wild-type/`                          |
+
+The port preserves the dense-array geometry and motion algorithm. Its indexed
+reads carry non-null assertions because this workspace enables
+`noUncheckedIndexedAccess` and the reference does not; the loops and fixed-size
+buffers establish those bounds, so the assertions are type-level only.
+
+### reality-split — the landing preloader
+
+|             |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| Source      | reality-split, supplied as framework-agnostic core logic     |
+| Vendored in | `apps/web/src/features/preloader/params.ts`, `.../engine.ts` |
+
+**A vendored copy.** The reference ships an engine plus a React card; only the
+card needed React, so `Preloader.astro` drives the engine directly.
+
+`params.ts` is fenced into MEASURED and TUNABLE halves, and the fence is load
+bearing: MEASURED came off a 162-frame reference clip and is data, not knobs.
+The eases have fatter tails than any closed form, the seam gaps are three
+different sizes because a human made them, and the drift law was solved from
+two letters' displacement.
+
+Deviations, each marked at its site:
+
+1. non-null assertions on array indexing, for `noUncheckedIndexedAccess`;
+2. `time` and `loopLength` exposed read-only, so the overlay can dismiss on a
+   phase boundary without reaching into private state;
+3. the frame delta is floored at zero. A rAF timestamp can predate the
+   `performance.now()` taken when the loop started, and `next % loop` keeps
+   that sign, leaving the clock slightly negative and every phase test on the
+   wrong branch;
+4. the scale is the lesser of the height and what the width can hold, measured
+   against the **split** row. Every constant is a fraction of one square's
+   side, which suits the reference's card and its seven-letter word; on a
+   full-viewport overlay a longer word hangs off both edges, and the seams add
+   nearly half a side length on top.
+
+### canvas-ui Bend — the shader fold
+
+|             |                                                                  |
+| ----------- | ---------------------------------------------------------------- |
+| Project     | **canvas-ui** — <https://github.com/DavidHDev/canvas-ui>         |
+| Source      | `src/lib/Bend/BendVanilla.ts`, `src/lib/rect-cache.ts`           |
+| Vendored in | `apps/web/src/features/bend/engine.ts`, `.../bend/rect-cache.ts` |
+
+**A verbatim copy.** Upstream publishes this engine alongside React, Preact,
+Solid, Svelte and Vue wrappers; only the wrappers need a framework, so the
+vanilla build is taken as-is and `Bend.astro` supplies its three DOM elements.
+
+Three deviations, each marked where it occurs:
+
+1. the `rect-cache` import points one directory shallower;
+2. `uCover` waits for a capture that produced pixels — upstream derives it from
+   feature detection alone, so a capture that throws leaves an opaque canvas
+   over a page it never drew;
+3. non-null assertions on `uniforms.*` and defaults on the destructured pixel
+   bytes, because this workspace compiles with `noUncheckedIndexedAccess` and
+   upstream does not. Type-level only; no behaviour changes.
+
+The fold on the landing page is **not** this engine — see
+`apps/web/src/features/bend/fold.ts`, which is FleetScope's own CSS
+implementation and carries no third-party code.
+
+### liquid-glass-carousel — the launchpad lens mathematics
+
+|             |                                                                                   |
+| ----------- | --------------------------------------------------------------------------------- |
+| Project     | **liquid-glass-carousel** — a three.js + GSAP liquid-glass carousel engine        |
+| License     | **MIT** — Copyright (c) 2026 Yousuf Soomro                                        |
+| Reached via | NeuroPay, commit `010d0ec187e038e6e57d945f63b57fd21ad373a9`, `packages/carousel/` |
+| Adapted in  | `apps/web/src/features/launch/lens.ts`                                            |
+
+**Adaptation, not a vendored copy.** No file from that project is present in
+this repository and no dependency on it is declared. What is adapted is the
+fragment-shader mathematics of its lens: the elliptical mask, the inward pull
+and tangential fluid rim waves, the weighted multi-sample chromatic dispersion
+with per-channel normalisation, the centre nova, the ring with its aura and
+shimmer, and the bright rim line.
+
+FleetScope's version differs in three ways that matter:
+
+- **It has no clock.** The original advances its shimmer and entry choreography
+  on elapsed time. Every animated term here is a function of scroll position,
+  so the effect responds to the reader and is still when they are.
+- **It refracts one product screenshot** rather than a rendered carousel of ten
+  panels, and is dependency-free WebGL rather than three.js and GSAP.
+- **It uses the dark-page tuning**, not the upstream defaults. The upstream
+  values were built against a white page; the NeuroPay configuration dials glow
+  from 4.2 to 0.9, the ring from 6 to 1.1 and the rim line from 1.4 to 0.32 for
+  a near-black background. FleetScope's launchpad is true black, so the
+  dialled-back set is what is used here.
+
+The MIT copyright notice above is reproduced in the header of `lens.ts`, as the
+license requires.
+
 ## Vendored source
 
 ### Zoetrope — the Fleet Cockpit rendering substrate

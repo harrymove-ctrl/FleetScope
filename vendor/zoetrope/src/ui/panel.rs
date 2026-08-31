@@ -65,6 +65,9 @@ fn era_flags<'a>(
 /// `app.detail_scroll` for the tool-call list scroll offset.
 pub fn render(frame: &mut Frame, area: Rect, app: &mut App, agent_id: &str) {
     let palette = app.flow.theme.palette();
+    // Selection is not a seek: if this agent's latest event is not the
+    // playhead, say so. `[`/`]` still step; picking a node does not.
+    let off_playhead = !playhead_on_agent(app, agent_id);
     // Split the borrows up front: the era cache is written while the session is
     // read, which a whole-`app` borrow would forbid.
     let App {
@@ -123,6 +126,8 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App, agent_id: &str) {
         return;
     };
 
+    let header_rows = if off_playhead { 7 } else { 6 };
+
     // Split: header (fixed), provenance when known (sized to its lines),
     // tools (fill). The prompt is DERIVED from the spawn timestamp's era —
     // same order-independent attribution as the tool-list headers.
@@ -174,13 +179,19 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App, agent_id: &str) {
         0
     };
     let [header_area, prov_area, tools_area] = Layout::vertical([
-        Constraint::Length(6),
+        Constraint::Length(header_rows),
         Constraint::Length(prov_rows),
         Constraint::Fill(1),
     ])
     .areas(inner);
 
-    render_header(frame, header_area, agent, &palette);
+    render_header(
+        frame,
+        header_area,
+        agent,
+        &palette,
+        off_playhead.then_some("playhead is not this agent's latest · [ ] still step"),
+    );
     if provenance.is_some() {
         render_provenance(frame, prov_area, &prov_prompt, &prov_thought, &palette);
     }
@@ -200,7 +211,13 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App, agent_id: &str) {
     );
 }
 
-fn render_header(frame: &mut Frame, area: Rect, agent: &AgentInfo, palette: &rataflow::Palette) {
+fn render_header(
+    frame: &mut Frame,
+    area: Rect,
+    agent: &AgentInfo,
+    palette: &rataflow::Palette,
+    playhead_note: Option<&str>,
+) {
     // Single-source vocabulary + presence colors (shared with cards/inspect).
     let status_text = agent.status_word();
     let status_color = crate::ui::status_color(agent.status, palette);
@@ -209,11 +226,13 @@ fn render_header(frame: &mut Frame, area: Rect, agent: &AgentInfo, palette: &rat
 
     let mut lines: Vec<Line> = Vec::new();
 
-    // Title: agent type, bold.
-    let title = agent
-        .agent_type
-        .as_deref()
-        .unwrap_or(crate::ui::brand::branding().main_agent);
+    // Title: role name, bold. Generic `agent` is not a name.
+    let named = agent.display_name();
+    let title = if named.is_empty() {
+        crate::ui::brand::branding().main_agent
+    } else {
+        named.as_str()
+    };
     lines.push(Line::from(Span::styled(
         title,
         bg.fg(palette.text).add_modifier(Modifier::BOLD),
@@ -232,15 +251,33 @@ fn render_header(frame: &mut Frame, area: Rect, agent: &AgentInfo, palette: &rat
         lines.push(Line::from(Span::styled(timing, bg.fg(palette.muted))));
     }
 
-    // Counts: tools + tokens.
+    // Honest counts: streamed msgs vs real tools vs fan-out spawns.
+    let mut counts = Vec::new();
+    if !agent.notes.is_empty() {
+        counts.push(format!("{} msgs", agent.notes.len()));
+    }
+    let work = agent.work_tool_count();
+    if work > 0 {
+        counts.push(format!("{work} tools"));
+    }
+    let spawned = agent.spawn_count();
+    if spawned > 0 {
+        counts.push(format!("{spawned} spawned"));
+    }
+    if agent.output_tokens > 0 {
+        counts.push(format!("{} tok", agent.output_tokens));
+    }
+    if counts.is_empty() {
+        counts.push("no output yet".into());
+    }
     lines.push(Line::from(Span::styled(
-        format!(
-            "{} tools · {} tok",
-            agent.tool_calls.len(),
-            agent.output_tokens
-        ),
+        counts.join(" · "),
         bg.fg(palette.muted),
     )));
+
+    if let Some(note) = playhead_note {
+        lines.push(Line::from(Span::styled(note, bg.fg(palette.accent))));
+    }
 
     // Description (wrapped) on the remaining rows.
     if let Some(desc) = agent.description.as_ref().filter(|d| !d.is_empty()) {
@@ -318,10 +355,25 @@ fn render_tools(
 ) {
     let bg = Style::default().bg(palette.surface);
 
+    // Spawn fan-out is not a work tool. A lead that only `transferToAgent`s
+    // still streamed a runbook — show that output, not five fake `Agent` rows.
+    let has_output = agent
+        .notes
+        .iter()
+        .any(|n| !crate::state::session::is_bridge_status(n));
+    let title = if has_output && agent.work_tool_count() == 0 {
+        " output "
+    } else if has_output {
+        " activity "
+    } else if agent.work_tool_count() == 0 {
+        " spawned "
+    } else {
+        " tool calls "
+    };
     let block = Block::default()
         .borders(Borders::TOP)
         .border_style(bg.fg(palette.muted))
-        .title(Span::styled(" tool calls ", bg.fg(palette.subtle)))
+        .title(Span::styled(title, bg.fg(palette.subtle)))
         .style(bg);
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -330,19 +382,52 @@ fn render_tools(
         return;
     }
 
-    if agent.tool_calls.is_empty() {
-        frame.render_widget(
-            Paragraph::new(Line::from(Span::styled(
-                "no tool calls",
-                bg.fg(palette.muted),
-            )))
-            .style(bg),
-            inner,
-        );
+    if agent.work_tool_count() == 0 {
+        let width = inner.width as usize;
+        let mut lines: Vec<Line> = Vec::new();
+        for note in agent
+            .notes
+            .iter()
+            .filter(|n| !crate::state::session::is_bridge_status(n))
+        {
+            let row = truncate(note, width.saturating_sub(2));
+            lines.push(Line::from(Span::styled(
+                format!("· {row}"),
+                bg.fg(palette.text),
+            )));
+        }
+        for tc in agent
+            .tool_calls
+            .iter()
+            .filter(|tc| crate::transcript::is_spawn_tool(&tc.name))
+        {
+            lines.push(spawn_line(tc, width, palette));
+        }
+        if lines.is_empty() {
+            frame.render_widget(
+                Paragraph::new(Line::from(Span::styled(
+                    "no output yet",
+                    bg.fg(palette.muted),
+                )))
+                .style(bg),
+                inner,
+            );
+            return;
+        }
+        let total = lines.len().min(u16::MAX as usize) as u16;
+        let (scroll, follow) = resolve_scroll(total, inner.height, *detail_scroll, *detail_follow);
+        *detail_scroll = scroll;
+        *detail_follow = follow;
+        frame.render_widget(Paragraph::new(lines).style(bg).scroll((scroll, 0)), inner);
         return;
     }
 
     let width = inner.width as usize;
+    let output_notes: Vec<&String> = agent
+        .notes
+        .iter()
+        .filter(|n| !crate::state::session::is_bridge_status(n))
+        .collect();
     // Prompt-era group headers: a separator whenever consecutive calls fall
     // under a different user prompt (timestamp-derived, cached — see
     // [`EraCache`]). Skipped when the whole list shares one era — the
@@ -370,6 +455,7 @@ fn render_tools(
         total += wrapped.as_ref().map_or(0, Vec::len) + 1;
         headers.push(wrapped);
     }
+    total += output_notes.len();
 
     // Resolve the scroll + tail state against the real line count, and write both
     // back so the scroll indicator and the next keypress match what's on screen.
@@ -389,6 +475,22 @@ fn render_tools(
     let mut lines: Vec<Line> = Vec::with_capacity(inner.height as usize + 4);
     let mut idx = 0usize;
     let mut first_built: Option<usize> = None;
+    for note in &output_notes {
+        if idx >= view_start && idx < view_end {
+            if first_built.is_none() {
+                first_built = Some(idx);
+            }
+            let row = truncate(note, width.saturating_sub(2));
+            lines.push(Line::from(Span::styled(
+                format!("· {row}"),
+                bg.fg(palette.text),
+            )));
+        }
+        idx += 1;
+        if idx >= view_end {
+            break;
+        }
+    }
     for (tc, wrapped) in agent.tool_calls.iter().zip(&headers) {
         let rows = wrapped.as_ref().map_or(0, Vec::len) + 1;
         if idx + rows > view_start && idx < view_end {
@@ -479,6 +581,9 @@ fn tool_line(
     width: usize,
     palette: &rataflow::Palette,
 ) -> Line<'static> {
+    if crate::transcript::is_spawn_tool(&tc.name) {
+        return spawn_line(tc, width, palette);
+    }
     let bg = Style::default().bg(palette.surface);
     let (glyph, color) = match tc.state {
         ToolState::Pending => ('⏳', palette.accent),
@@ -529,12 +634,51 @@ fn tool_line(
     Line::from(spans)
 }
 
+/// Fan-out row: not a work tool. `❋ spawned · researcher`, never `⚒ Agent`.
+fn spawn_line(
+    tc: &crate::state::session::ToolCallInfo,
+    width: usize,
+    palette: &rataflow::Palette,
+) -> Line<'static> {
+    let bg = Style::default().bg(palette.surface);
+    let who = tc
+        .summary
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.strip_suffix(" agent").unwrap_or(s))
+        .unwrap_or("agent");
+    let text = format!("❋ spawned · {who}");
+    Line::from(Span::styled(truncate(&text, width), bg.fg(palette.accent)))
+}
+
+/// Whether the playhead is currently resting on an event that belongs to
+/// `agent_id`. Selection does not move the playhead, so this is often false.
+fn playhead_on_agent(app: &App, agent_id: &str) -> bool {
+    let idx = app.timeline.fold_target().saturating_sub(1);
+    let Some(item) = app.timeline.items.get(idx) else {
+        return true;
+    };
+    match &item.update {
+        crate::tailer::Update::Entry { source, .. } => match source {
+            crate::tailer::Source::Main => agent_id == crate::state::session::MAIN_ID,
+            crate::tailer::Source::Sub(id) => id == agent_id,
+            crate::tailer::Source::Journal(_) => false,
+        },
+        crate::tailer::Update::SubagentMeta { agent_id: id, .. } => id == agent_id,
+    }
+}
+
 /// Format a timing line from an agent's first/last timestamps.
 fn fmt_timing(agent: &AgentInfo) -> Option<String> {
     match (agent.first_ts, agent.last_ts) {
         (Some(first), Some(last)) => {
             let secs = (last - first).num_seconds().max(0);
-            if secs >= 60 {
+            if secs < 1 {
+                Some(format!(
+                    "⏱ {}",
+                    first.with_timezone(&chrono::Local).format("%H:%M:%S")
+                ))
+            } else if secs >= 60 {
                 Some(format!("⏱ {}m {}s", secs / 60, secs % 60))
             } else {
                 Some(format!("⏱ {secs}s"))
@@ -623,6 +767,14 @@ mod tests {
     }
 
     #[test]
+    fn timing_zero_span_shows_start_clock() {
+        let a = agent_with_ts(Some(1_788_112_643), Some(1_788_112_643));
+        let out = fmt_timing(&a).expect("clock");
+        assert!(!out.contains("0s"), "{out}");
+        assert!(out.starts_with("⏱ "), "{out}");
+    }
+
+    #[test]
     fn timing_duration_over_a_minute() {
         let a = agent_with_ts(Some(0), Some(125));
         assert_eq!(fmt_timing(&a).as_deref(), Some("⏱ 2m 5s"));
@@ -631,7 +783,9 @@ mod tests {
     #[test]
     fn timing_negative_clamped() {
         let a = agent_with_ts(Some(100), Some(50));
-        assert_eq!(fmt_timing(&a).as_deref(), Some("⏱ 0s"));
+        let out = fmt_timing(&a).expect("clock");
+        assert!(!out.contains("0s"), "{out}");
+        assert!(out.starts_with("⏱ "), "{out}");
     }
 
     #[test]

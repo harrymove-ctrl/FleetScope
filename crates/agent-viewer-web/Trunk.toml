@@ -1,0 +1,22 @@
+# Builds the Agent Viewer browser frontend into apps/web/public/wasm/ so the
+# Astro static build serves it without a second hosting surface.
+#
+# filehash = false keeps the artifact names stable (viewer.js / viewer_bg.wasm)
+# so the mount script can import them without a build-time hash lookup.
+# Trunk CLEANS `dist` on every build, so two frontends cannot target the same
+# directory: the second build erases the first. Each stages into its own private
+# `dist/` (gitignored via `crates/*/dist`) and scripts/build-wasm.sh copies both
+# into apps/web/public/wasm.
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/wasm/"
+filehash = false
+release = true
+
+[watch]
+ignore = ["dist"]
+
+[serve]
+port = 8082
+open = false

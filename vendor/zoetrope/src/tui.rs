@@ -30,12 +30,36 @@ const STATUS_TICK: Duration = Duration::from_secs(1);
 /// unbounded channel, ticks at 16 ms, and routes UI events / input each
 /// iteration. Returns when the user quits.
 pub async fn run(
-    mut app: App,
+    app: App,
     // Held for the run only to keep the request channel open: the tailer treats a
     // closed channel as "exit", so dropping this sender would kill tailing. No
     // input path sends on it (auto-switch is internal to the tailer).
+    tail_tx: mpsc::Sender<TailRequest>,
+    ui_rx: mpsc::Receiver<UiEvent>,
+) -> anyhow::Result<()> {
+    run_with(app, tail_tx, ui_rx, ()).await
+}
+
+/// Optional pairing hooks. `zoe` passes `()`; FleetScope writes/polls view.json.
+pub trait TuiHooks {
+    /// After an operator key or click (never on startup, never on a tick).
+    fn on_input(&mut self, app: &App) {
+        let _ = app;
+    }
+    /// Once per frame. Implementations throttle their own I/O.
+    fn on_frame(&mut self, app: &mut App) {
+        let _ = app;
+    }
+}
+
+impl TuiHooks for () {}
+
+/// Like [`run`], with pairing hooks.
+pub async fn run_with<H: TuiHooks>(
+    mut app: App,
     _tail_tx: mpsc::Sender<TailRequest>,
     mut ui_rx: mpsc::Receiver<UiEvent>,
+    mut hooks: H,
 ) -> anyhow::Result<()> {
     let mut terminal = ratatui::init();
     execute!(stdout(), EnableMouseCapture)?;
@@ -111,8 +135,12 @@ pub async fn run(
             _ = tick.tick() => {}
             Some(ev) = ui_rx.recv() => app.handle_ui_event(ev),
             Some(ev) = event_rx.recv() => {
+                let operator = is_operator_input(&ev);
                 if route(&ev, &mut app, &mut pilot, demo) {
                     break Ok(());
+                }
+                if operator {
+                    hooks.on_input(&app);
                 }
             }
         }
@@ -121,14 +149,20 @@ pub async fn run(
         // batches lag behind a single per-frame wakeup.
         let mut quit = false;
         while let Ok(ev) = event_rx.try_recv() {
+            let operator = is_operator_input(&ev);
             if route(&ev, &mut app, &mut pilot, demo) {
                 quit = true;
                 break;
+            }
+            if operator {
+                hooks.on_input(&app);
             }
         }
         while let Ok(ev) = ui_rx.try_recv() {
             app.handle_ui_event(ev);
         }
+
+        hooks.on_frame(&mut app);
 
         if quit || app.should_quit {
             break Ok(());
@@ -184,4 +218,20 @@ fn route(
         return false;
     }
     handler::handle_event(event, app)
+}
+
+/// Keys and explicit pointer gestures — not resize, not hover, not ticks.
+fn is_operator_input(event: &crossterm::event::Event) -> bool {
+    use crossterm::event::{Event, MouseEventKind};
+    match event {
+        Event::Key(_) => true,
+        Event::Mouse(mouse) => matches!(
+            mouse.kind,
+            MouseEventKind::Down(_)
+                | MouseEventKind::Drag(_)
+                | MouseEventKind::ScrollDown
+                | MouseEventKind::ScrollUp
+        ),
+        _ => false,
+    }
 }

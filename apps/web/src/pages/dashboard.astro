@@ -1,0 +1,529 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AssistantPlan from '../components/AssistantPlan.astro';
+import TechWall from '../components/TechWall.astro';
+import { DASHBOARD_STATES, INITIAL_STATE } from '../features/dashboard/state';
+import {
+  DEMO_TALK,
+  SUPPORT_AGY_COMMAND,
+  SUPPORT_CLI_COMMAND,
+  SUPPORT_CLI_STEPS,
+} from '../features/dashboard/launch-plan';
+import '../styles/feature-dashboard.css';
+
+/**
+ * The Dashboard renders a STATE, it does not decide one.
+ *
+ * Every status on this page is either derived by `deriveDashboardState` from a
+ * probe that actually ran, or explicitly marked as something a browser tab
+ * cannot check. Nothing here is a picture of a healthy setup.
+ */
+const initial = DASHBOARD_STATES[INITIAL_STATE];
+---
+
+<BaseLayout title="Dashboard" surface="feature" theme="adaptive">
+  <div class="dashboard-page">
+    <TechWall
+      className="fs-dashboard__wall"
+      facets={6}
+      density={7}
+      sweep={0.8}
+      accentColor="#d946ef"
+      edgeColor="#f0abfc"
+    />
+    <header class="fs-dashboard__bar">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Local session observer</p>
+      </div>
+      <button
+        class="fs-dashboard__command-trigger"
+        type="button"
+        data-control="command-menu"
+        data-command-menu
+        aria-label="Open command menu"
+      >
+        <span>Commands</span>
+        <kbd>⌘K</kbd>
+      </button>
+    </header>
+
+    <section
+      class="fs-dashboard__onboarding"
+      aria-labelledby="welcome-title"
+      data-state-panel
+      data-state={INITIAL_STATE}
+      data-tone={initial.tone}
+    >
+      <div class="fs-dashboard__conversation">
+        <p class="fs-dashboard__state-line">
+          <span class="fs-dashboard__state-dot" aria-hidden="true"></span>
+          <span data-state-eyebrow>Getting started</span>
+        </p>
+        <h2 id="welcome-title" data-state-title>{initial.title}</h2>
+        <p class="fs-dashboard__message" data-state-message>{initial.message}</p>
+
+        <div class="fs-dashboard__prompt" aria-label="Follow the Antigravity session">
+          <span class="fs-dashboard__prompt-mark" aria-hidden="true">›</span>
+          <span class="fs-dashboard__prompt-copy">
+            <strong>Antigravity session</strong>
+            <code data-cli-command>{SUPPORT_AGY_COMMAND}</code>
+          </span>
+          <button
+            class="fs-dashboard__prompt-submit"
+            type="button"
+            data-control="copy-cli"
+            data-prompt-copy
+            data-copy-command={SUPPORT_AGY_COMMAND}
+          >
+            Copy Antigravity
+          </button>
+        </div>
+        <div class="fs-dashboard__prompt fs-dashboard__prompt--quiet" aria-label="Follow the Gemini example">
+          <span class="fs-dashboard__prompt-mark" aria-hidden="true">›</span>
+          <span class="fs-dashboard__prompt-copy">
+            <strong>Example only (gemini-session)</strong>
+            <code>{SUPPORT_CLI_COMMAND}</code>
+          </span>
+          <button
+            class="fs-dashboard__prompt-submit"
+            type="button"
+            data-control="copy-cli"
+            data-copy-command={SUPPORT_CLI_COMMAND}
+          >
+            Copy example
+          </button>
+        </div>
+
+        <ol class="fs-dashboard__talk" aria-label="Demo talk track">
+          {
+            DEMO_TALK.map((beat, index) => (
+              <li>
+                <span class="fs-dashboard__cli-index">{index + 1}</span>
+                <span>
+                  <strong>Say: {beat.say}</strong>
+                  <small>Show: {beat.show}</small>
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+
+        <ol class="fs-dashboard__cli-steps" aria-label="Manual CLI steps">
+          {
+            SUPPORT_CLI_STEPS.map((step, index) => (
+              <li>
+                <span class="fs-dashboard__cli-index">{index + 1}</span>
+                <span>
+                  <strong>{step.title}</strong>
+                  <small>{step.detail}</small>
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+
+        <div class="fs-dashboard__suggestions" aria-label="Other ways to start">
+          <a data-state-primary href="/viewer">{initial.primary.label}</a>
+          <a data-state-secondary href="/viewer" hidden></a>
+          <a href="/viewer#agy-project">New Antigravity folder…</a>
+          <button type="button" data-formats-reveal>Supported inputs</button>
+        </div>
+        <p class="fs-dashboard__upload-feedback" data-upload-feedback role="status" aria-live="polite">
+          Producer writes JSONL. FleetScope only follows. New project folder? Open Agent Viewer → paste
+          path → Copy producer → Follow folder on the printed session_dir.
+        </p>
+        <p class="fs-dashboard__recovery" data-state-recovery hidden></p>
+      </div>
+
+      <AssistantPlan />
+
+      <details class="fs-dashboard__task" data-readiness hidden>
+        <summary>
+          <span>
+            <strong>Viewer readiness</strong>
+            <small>Runtime and session adapters</small>
+          </span>
+          <span class="fs-dashboard__task-summary" data-setup-summary>Checking</span>
+        </summary>
+        <ol>
+          <li data-check="runtime">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Projection runtime</strong><small data-check-detail hidden></small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">·</span> Not checked</span>
+          </li>
+          <li data-check="adapters">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Session adapters</strong><small data-check-detail hidden></small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">·</span> Not checked</span>
+          </li>
+          <li data-check="workspace">
+            <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
+            <span><strong>Your session</strong><small>Follow it from the CLI</small></span>
+            <span data-tone="info" data-check-status><span class="fs-status__glyph">i</span> Your choice</span>
+          </li>
+        </ol>
+        <p class="fs-dashboard__diagnostics fs-mono" data-diagnostics hidden></p>
+        <div class="fs-dashboard__timeout-actions" data-timeout-actions hidden>
+          <button type="button" data-retry-runtime>Retry check</button>
+          <a href="/viewer">Open viewer</a>
+        </div>
+      </details>
+    </section>
+
+    <div class="fs-dashboard__command-menu" data-command-panel hidden>
+      <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="command-title">
+        <div class="fs-row fs-row--between">
+          <h2 id="command-title">Go somewhere</h2>
+          <button class="fs-button fs-button--sm" type="button" data-command-close>Close</button>
+        </div>
+        <a href="/viewer">Open Agent Viewer</a>
+        <a href="/viewer">Preview the bundled run</a>
+        <button type="button" data-command-cli>Copy the CLI command</button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    DASHBOARD_STATES,
+    deriveDashboardState,
+    type Probe,
+  } from '../features/dashboard/state';
+  import { SUPPORT_AGY_COMMAND, SUPPORT_CLI_COMMAND } from '../features/dashboard/launch-plan';
+
+  /**
+   * Probe what this page can actually reach, then render the derived state.
+   *
+   * The runtime check is a real load of the same wasm module the viewer uses.
+   * It is the only status on this page that turns green, and it turns green
+   * because it succeeded, not because it was written that way.
+   */
+  // Mutable locals, immutable snapshot. `Probe` is readonly because it is an
+  // input to a pure derivation, so observations are held here and a fresh one
+  // is built each time the state is derived.
+  let runtimeLoaded: boolean | null = null;
+  let formats: string[] = [];
+  let openedSession = false;
+  let lastLoadRejected: Probe['lastLoadRejected'];
+
+  const currentProbe = (): Probe => ({
+    runtimeLoaded,
+    formats,
+    openedSession,
+    lastLoadRejected,
+  });
+
+  const panelEl = document.querySelector('[data-state-panel]') as HTMLElement | null;
+  const titleEl = document.querySelector('[data-state-title]');
+  const messageEl = document.querySelector('[data-state-message]');
+  const eyebrowEl = document.querySelector('[data-state-eyebrow]');
+  const primaryEl = document.querySelector('[data-state-primary]') as HTMLAnchorElement | null;
+  const secondaryEl = document.querySelector('[data-state-secondary]') as HTMLAnchorElement | null;
+  const recoveryEl = document.querySelector('[data-state-recovery]') as HTMLElement | null;
+  const readinessEl = document.querySelector('[data-readiness]') as HTMLDetailsElement | null;
+
+  const STATE_LABELS = {
+    'first-run': 'Getting started',
+    'checking-runtime': 'Preparing viewer',
+    'cli-missing': 'Runtime check failed',
+    'workspace-required': 'Viewer ready',
+    'adapter-failed': 'Input refused',
+    'no-sessions': 'No input found',
+    ready: 'Viewer ready',
+  } as const;
+
+  function applyAction(el: HTMLAnchorElement | null, action?: { label: string; href?: string }) {
+    if (el === null) return;
+    if (action === undefined) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = action.label;
+    // A command has no destination; it is wired below. Keeping href off means
+    // a command can never navigate away by accident.
+    if (action.href === undefined) el.removeAttribute('href');
+    else el.href = action.href;
+  }
+
+  function render() {
+    const state = deriveDashboardState(currentProbe());
+    const contract = DASHBOARD_STATES[state];
+    panelEl?.setAttribute('data-state', state);
+    panelEl?.setAttribute('data-tone', contract.tone);
+    if (eyebrowEl !== null) eyebrowEl.textContent = STATE_LABELS[state];
+    if (titleEl !== null) titleEl.textContent = contract.title;
+    if (messageEl !== null) messageEl.textContent = contract.message;
+    applyAction(primaryEl, contract.primary);
+    applyAction(secondaryEl, contract.secondary);
+    primaryEl?.setAttribute('aria-disabled', String(state === 'checking-runtime'));
+    if (readinessEl !== null) {
+      const showTask = contract.tone === 'bad' || contract.tone === 'warn';
+      readinessEl.hidden = !showTask;
+      if (showTask) readinessEl.open = true;
+    }
+    if (recoveryEl !== null) {
+      recoveryEl.hidden = contract.recovery === undefined;
+      recoveryEl.textContent = contract.recovery?.label ?? '';
+    }
+
+    // Controls the state does not list are disabled, not hidden: a developer
+    // should see that an action exists and is unavailable right now.
+    for (const node of document.querySelectorAll('[data-control]')) {
+      const id = node.getAttribute('data-control') ?? '';
+      const on = (contract.enabled as readonly string[]).includes(id);
+      node.toggleAttribute('disabled', !on);
+      node.setAttribute('aria-disabled', String(!on));
+    }
+  }
+
+  function setCheck(id: string, tone: string, glyph: string, label: string, detail?: string) {
+    const card = document.querySelector(`[data-check="${id}"]`);
+    const status = card?.querySelector('[data-check-status]');
+    if (status !== null && status !== undefined) {
+      status.setAttribute('data-tone', tone);
+      status.innerHTML = '';
+      const g = document.createElement('span');
+      g.className = 'fs-status__glyph';
+      g.textContent = glyph;
+      status.append(g, ` ${label}`);
+    }
+    const detailEl = card?.querySelector('[data-check-detail]') as HTMLElement | null;
+    if (detailEl !== null && detailEl !== undefined) {
+      detailEl.hidden = detail === undefined;
+      detailEl.textContent = detail ?? '';
+    }
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const cards = Array.from(document.querySelectorAll('[data-check]'));
+    const checkable = cards.filter((card) => card.getAttribute('data-check') !== 'workspace');
+    const verified = checkable.filter(
+      (card) => card.querySelector('[data-check-status]')?.getAttribute('data-tone') === 'ok',
+    );
+    const failed = checkable.some(
+      (card) => card.querySelector('[data-check-status]')?.getAttribute('data-tone') === 'bad',
+    );
+    const pending = checkable.some((card) =>
+      card.querySelector('[data-check-status]')?.textContent?.includes('Checking'),
+    );
+    const summary = document.querySelector('[data-setup-summary]');
+    if (summary !== null) {
+      summary.textContent = failed
+        ? 'Needs attention'
+        : pending
+          ? 'Checking'
+          : verified.length === checkable.length
+            ? 'Ready'
+            : `${verified.length}/${checkable.length} ready`;
+      summary.setAttribute('data-tone', failed ? 'bad' : verified.length === checkable.length ? 'ok' : 'info');
+    }
+  }
+
+  /** Load the runtime the same way the viewer does: from a script the bundler never sees. */
+  function loadRuntime(): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      const scope = globalThis as Record<string, unknown>;
+      const existing = scope['fleetscopeViewer'] as Record<string, unknown> | undefined;
+      if (existing !== undefined) return resolve(existing);
+
+      const done = (event: Event) => {
+        window.removeEventListener('fleetscope:dashboard-glue', done);
+        const detail = (event as CustomEvent).detail as { ok: boolean; message?: string };
+        if (detail.ok) resolve(scope['fleetscopeViewer'] as Record<string, unknown>);
+        else reject(new Error(detail.message ?? 'the runtime did not load'));
+      };
+      window.addEventListener('fleetscope:dashboard-glue', done, { once: true });
+
+      const loader = document.createElement('script');
+      loader.type = 'module';
+      loader.textContent = [
+        "import('/wasm/viewer.js')",
+        '  .then(async (module) => {',
+        '    await module.default();',
+        '    globalThis.fleetscopeViewer = module;',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-glue', { detail: { ok: true } }));",
+        '  })',
+        '  .catch((error) => {',
+        "    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-glue', {",
+        '      detail: { ok: false, message: String((error && error.message) || error) },',
+        '    }));',
+        '  });',
+      ].join('\n');
+      document.head.append(loader);
+    });
+  }
+
+  /** The bound after which an unanswered probe is reported as a timeout. */
+  const RUNTIME_TIMEOUT_MS = 5_000;
+
+  const diagnosticsEl = document.querySelector('[data-diagnostics]') as HTMLElement | null;
+  const timeoutActionsEl = document.querySelector('[data-timeout-actions]') as HTMLElement | null;
+
+  function setDiagnostics(text: string | null, timedOut = false) {
+    if (diagnosticsEl !== null) {
+      diagnosticsEl.hidden = text === null;
+      diagnosticsEl.textContent = text ?? '';
+    }
+    if (timeoutActionsEl !== null) timeoutActionsEl.hidden = !timedOut;
+  }
+
+  /**
+   * Bound the wait.
+   *
+   * Without this the page can sit on "Checking…" indefinitely, which reads as
+   * progress and is indistinguishable from a hang. A timeout is a result, and
+   * it is reported as one — naming the probe, not blaming the CLI.
+   */
+  function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        window.setTimeout(() => reject(new Error(`no result in ${ms} ms`)), ms);
+      }),
+    ]);
+  }
+
+  async function checkRuntime() {
+    runtimeLoaded = null;
+    setCheck('runtime', 'info', '·', 'Checking…');
+    setCheck('adapters', 'info', '·', 'Checking…');
+    setDiagnostics('probe=wasm · result=pending');
+    render();
+
+    try {
+      const runtime = await withTimeout(loadRuntime(), RUNTIME_TIMEOUT_MS);
+      const reported = JSON.parse(
+        (runtime.agent_viewer_formats as () => string)(),
+      ) as { id: string }[];
+      runtimeLoaded = true;
+      formats = reported.map((format) => format.id);
+      setCheck('runtime', 'ok', '✓', 'Loaded');
+      setCheck('adapters', 'ok', '✓', `${reported.length} formats`, formats.join(' · '));
+      const formatsOutput = document.querySelector('[data-formats-output]');
+      if (formatsOutput !== null) formatsOutput.textContent = formats.join(' · ');
+
+      setDiagnostics(`probe=wasm · result=loaded · formats=${formats.length}`);
+      setSupportRuntime(null);
+    } catch (error) {
+      runtimeLoaded = false;
+      const message = error instanceof Error ? error.message : String(error);
+      const timedOut = message.startsWith('no result in');
+      setCheck('runtime', 'bad', '✗', timedOut ? 'Timed out' : 'Did not load', message);
+      setCheck('adapters', 'info', '·', 'Unknown');
+      // The distinction the design insists on: a timeout says the browser got
+      // no answer, not that the runtime is absent. Only one of those is a fact
+      // this page observed.
+      const diagnostic = timedOut
+        ? `probe=wasm · result=timeout (${RUNTIME_TIMEOUT_MS} ms) · the browser received no result`
+        : `probe=wasm · result=failed · ${message}`;
+      setDiagnostics(diagnostic, true);
+      setSupportRuntime(
+        timedOut
+          ? 'The projection runtime did not answer in time. Retry here, or follow the session from your terminal.'
+          : `The projection runtime did not load. ${message}`,
+      );
+    }
+    render();
+    window.dispatchEvent(new CustomEvent('fleetscope:dashboard-ready'));
+  }
+
+  document.querySelector('[data-state-primary]')?.addEventListener('click', (event) => {
+    if (primaryEl?.getAttribute('aria-disabled') === 'true') {
+      event.preventDefault();
+      return;
+    }
+    const contract = DASHBOARD_STATES[deriveDashboardState(currentProbe())];
+    if (contract.primary.href === undefined) {
+      event.preventDefault();
+      void checkRuntime();
+    }
+  });
+
+  const panel = document.querySelector('[data-command-panel]') as HTMLElement | null;
+  const open = () => {
+    if (panel) panel.hidden = false;
+  };
+  const close = () => {
+    if (panel) panel.hidden = true;
+  };
+  document.querySelector('[data-command-menu]')?.addEventListener('click', open);
+  document.querySelector('[data-retry-runtime]')?.addEventListener('click', () => {
+    void checkRuntime();
+  });
+  void checkRuntime();
+  document.querySelector('[data-command-close]')?.addEventListener('click', close);
+  async function copyCommand(button: HTMLButtonElement, value: string) {
+    if (value === '') return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Clipboard permissions are unavailable in some local/browser contexts.
+      // A hidden textarea keeps the affordance useful without a network request.
+      const area = document.createElement('textarea');
+      area.value = value;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.append(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+    }
+    const previous = button.textContent;
+    button.textContent = 'Copied';
+    window.setTimeout(() => {
+      button.textContent = previous;
+    }, 1400);
+  }
+  for (const node of document.querySelectorAll('[data-copy-command]')) {
+    node.addEventListener('click', (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      void copyCommand(button, button.dataset['copyCommand'] ?? '');
+    });
+  }
+  document.querySelector('[data-command-cli]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    void copyCommand(button, SUPPORT_AGY_COMMAND);
+  });
+
+  function revealSupport(topic: string) {
+    const msg = document.querySelector(`[data-support-msg="${topic}"]`) as HTMLElement | null;
+    const panel = document.querySelector('[data-assistant-plan]') as HTMLElement | null;
+    if (msg === null || panel === null) return;
+    msg.hidden = false;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const top = msg.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 12;
+    panel.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  function setSupportRuntime(text: string | null) {
+    const msg = document.querySelector('[data-support-msg="runtime"]') as HTMLElement | null;
+    const copy = document.querySelector('[data-support-runtime]') as HTMLElement | null;
+    if (msg === null) return;
+    if (text === null) {
+      msg.hidden = true;
+      return;
+    }
+    if (copy !== null) copy.textContent = text;
+    revealSupport('runtime');
+  }
+
+  document.querySelector('[data-cli-reveal]')?.addEventListener('click', () => revealSupport('cli'));
+  document.querySelector('[data-formats-reveal]')?.addEventListener('click', () => revealSupport('formats'));
+  panel?.addEventListener('click', (event) => {
+    if (event.target === panel) close();
+  });
+  document.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      open();
+    }
+    if (event.key === 'Escape') close();
+  });
+</script>
+
+<!-- Dashboard composition is isolated in styles/feature-dashboard.css. -->

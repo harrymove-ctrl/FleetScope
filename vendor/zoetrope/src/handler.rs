@@ -108,6 +108,9 @@ fn handle_key(key: &KeyEvent, app: &mut App) -> bool {
         }
         KeyCode::Char('f') | KeyCode::Char('F') => {
             app.camera = Camera::Follow;
+            // Re-enable Follow's inspector: Esc can dismiss it without leaving
+            // Follow, and `f` is the way back to auto-narration.
+            app.follow_inspector = true;
             // `track_activity` → `center_node` owns the readable-zoom bump.
             app.track_activity();
             return false;
@@ -156,23 +159,11 @@ fn handle_key(key: &KeyEvent, app: &mut App) -> bool {
             return false;
         }
 
-        // Close the help overlay, else the detail panel (clear selection).
-        // Without this there is no way out of the panel: pane-clicks
-        // deliberately don't deselect (drag-friendly) and the whitelist
-        // blocks the library's own bindings.
+        // Close help, then info, then the detail panel (clear selection) —
+        // including in Follow, so the inspector cannot cover the graph with
+        // no way out. Follow's camera stays Follow; only the panel dismisses.
         KeyCode::Esc => {
-            if app.show_help {
-                app.show_help = false;
-            } else if app.show_info {
-                app.show_info = false;
-            } else if app.camera != Camera::Follow {
-                // Close the detail panel. In Follow esc is a no-op: the panel is
-                // part of Follow's contract (it auto-narrates the active agent),
-                // and a user selection would have dropped Follow to Manual anyway.
-                app.flow.clear_selection();
-                app.detail_scroll = 0;
-                app.detail_follow = true;
-            }
+            app.dismiss_overlays();
             return false;
         }
 
@@ -376,6 +367,8 @@ mod tests {
                     status: crate::state::session::AgentStatus::Running,
                     tool_count: 0,
                     last_tool: None,
+                    note_count: 0,
+                    spawn_count: 0,
                     output_tokens: 0,
                     interactive: false,
                 },
@@ -429,6 +422,8 @@ mod tests {
                 status: crate::state::session::AgentStatus::Running,
                 tool_count: 0,
                 last_tool: None,
+                note_count: 0,
+                spawn_count: 0,
                 output_tokens: 0,
                 interactive: false,
             },
@@ -447,8 +442,7 @@ mod tests {
         assert!(!app.flow.locked, "'i' must not silently lock the viewport");
     }
 
-    #[test]
-    fn esc_closes_the_detail_panel() {
+    fn selected_app() -> App {
         let mut app = App::new("s".into(), Mode::Live);
         let node = rataflow::Node::new(
             "a",
@@ -460,12 +454,20 @@ mod tests {
                 status: crate::state::session::AgentStatus::Running,
                 tool_count: 0,
                 last_tool: None,
+                note_count: 0,
+                spawn_count: 0,
                 output_tokens: 0,
                 interactive: false,
             },
         );
         app.flow.add_node(node).unwrap();
         app.flow.select_node("a");
+        app
+    }
+
+    #[test]
+    fn esc_closes_the_detail_panel() {
+        let mut app = selected_app();
         assert!(app.selected_agent_id().is_some());
 
         let esc = Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
@@ -473,6 +475,28 @@ mod tests {
         assert!(
             app.selected_agent_id().is_none(),
             "esc must clear selection (close the panel)"
+        );
+    }
+
+    #[test]
+    fn esc_closes_the_detail_panel_even_in_follow() {
+        let mut app = selected_app();
+        app.camera = Camera::Follow;
+        app.follow_inspector = true;
+        let esc = Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        handle_event(&esc, &mut app);
+        assert!(
+            app.selected_agent_id().is_none(),
+            "esc must close the inspector in Follow so the graph is visible"
+        );
+        assert_eq!(
+            app.camera,
+            Camera::Follow,
+            "Follow's camera stays Follow; only the panel dismisses"
+        );
+        assert!(
+            !app.follow_inspector,
+            "Follow must not immediately re-open the panel"
         );
     }
 

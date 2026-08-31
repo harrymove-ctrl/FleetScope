@@ -1,0 +1,412 @@
+---
+/**
+ * The chapter list — the whole content of the launchpad.
+ *
+ * Rendered three times inside `Fold`: once as the live middle band and twice as
+ * inert copies for the folded edges. `decorative` marks those copies, which
+ * must not repeat the page's `h1`, must not put a second copy of every link in
+ * the tab order, and must not duplicate the ids the real one owns.
+ */
+import { provenanceLabel, type LaunchChapter } from '../features/launch/chapters';
+import CrewTrack from './CrewTrack.astro';
+import { BUNDLED_CREW } from '../features/launch/crew';
+
+interface Props {
+  cards: readonly LaunchChapter[];
+  decorative?: boolean;
+}
+
+const { cards, decorative = false } = Astro.props;
+---
+
+<section
+  class="chapters"
+  id={decorative ? undefined : 'chapters'}
+  aria-labelledby={decorative ? undefined : 'chapters-title'}
+>
+  <header class="chapters__head">
+    {
+      decorative ? (
+        <p class="chapters__title" aria-hidden="true">
+          FleetScope
+        </p>
+      ) : (
+        <h1 id="chapters-title" class="chapters__title" data-animate-text>
+          FleetScope
+        </h1>
+      )
+    }
+    <p class="chapters__lede" data-animate-text={decorative ? undefined : true}>
+      Watch agent work become evidence. Follow a local Gemini or Antigravity session, or inspect a
+      bounded recovery record with the evidence behind it.
+    </p>
+    <p class="chapters__actions">
+      <a class="ap__button" href="/viewer" tabindex={decorative ? -1 : undefined}>
+        Open Agent Viewer
+      </a>
+      <a class="ap__link" href="/cockpit/CASE-1042" tabindex={decorative ? -1 : undefined}>
+        See recorded recovery <span aria-hidden="true">›</span>
+      </a>
+    </p>
+  </header>
+
+  <ol class="chapters__list" role="list">
+    {
+      cards.map((card) => (
+        <li class="chapter">
+          <div class="chapter__corner chapter__corner--head">
+            <p class="chapter__label">{card.label}</p>
+            {decorative ? (
+              <p class="chapter__title">{card.title}</p>
+            ) : (
+              <h2 class="chapter__title">{card.title}</h2>
+            )}
+          </div>
+
+          <div class="chapter__corner chapter__corner--tail">
+            <p class="chapter__note">{card.summary}</p>
+            <p class="chapter__detail">{card.detail}</p>
+            <p class="chapter__meta">
+              <a
+                class="ap__link chapter__link"
+                href={card.route}
+                tabindex={decorative ? -1 : undefined}
+              >
+                Open <span aria-hidden="true">›</span>
+              </a>
+              <span class="chapter__provenance">
+                {provenanceLabel(card.provenance)}
+                {card.eventRef && ` · ${card.eventRef.runId} · event ${card.eventRef.sequence}`}
+              </span>
+            </p>
+
+          </div>
+
+          {
+            card.agents && card.agents.length > 0 && (
+              <div class="chapter__crew-cell">
+                <CrewTrack run={BUNDLED_CREW} agents={card.agents} />
+              </div>
+            )
+          }
+        </li>
+      ))
+    }
+  </ol>
+
+  <footer class="chapters__footer">
+    <p class="ap__caption">
+      FleetScope reads agent sessions already on your machine. It never starts an agent and never
+      uploads a transcript.
+    </p>
+    <p class="ap__caption">
+      Recorded evidence is bundled with this build. Third-party attribution in
+      THIRD-PARTY-NOTICES.md.
+    </p>
+  </footer>
+</section>
+
+<script>
+  import { animateText } from '../features/launch/animate-text';
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const host of document.querySelectorAll<HTMLElement>('[data-animate-text]')) {
+    // The fold draws this header three times; only the live copy is animated.
+    if (host.closest('[aria-hidden="true"]')) continue;
+    animateText(host, reduced);
+  }
+</script>
+
+<style>
+  /*
+   * soft-blur-in, per .agents/skills/animate-text specs/soft-blur-in.json.
+   * The units start hidden only once the script has split them, so a page
+   * without JS shows the heading rather than nothing.
+   */
+  [data-at-ready] .at-unit {
+    display: inline-block;
+    white-space: pre;
+    opacity: 0;
+    animation: at-soft-blur-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes at-soft-blur-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(var(--at-blur, 12px));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-at-ready] .at-unit {
+      opacity: 1;
+      animation: none;
+    }
+  }
+
+  .chapters {
+    /*
+     * The cloudy front. `feTurbulence` mapped into alpha with an offset, so
+     * most of the plate is opaque and the noise only opens wispy holes near
+     * the sweeping edge. Intersected with a gradient below, it gives a
+     * dissolve rather than a wipe.
+     */
+    --chapter-cloud: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'>\
+<filter id='c' x='0' y='0' width='100%25' height='100%25'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.011 0.017' numOctaves='4' seed='9'/>\
+<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 0 0 0 -0.18'/>\
+</filter>\
+<rect width='260' height='260' filter='url(%23c)'/></svg>");
+
+    padding: 120px max(24px, calc((100vw - 1400px) / 2));
+    /*
+     * Contain the fold.
+     *
+     * A rotated plane under perspective projects wider than its own box — the
+     * bend widened the document by up to 571px, which is a horizontal
+     * scrollbar. `clip` rather than `hidden`: it does not create a scroll
+     * container, so anchors and any future sticky child still behave. This
+     * conceals no content — every row is fully readable once it reaches the
+     * flat middle, which is the whole point of the effect.
+     */
+    overflow-x: clip;
+  }
+
+  .chapters__head {
+    max-width: 38ch;
+    margin: 0 0 96px;
+  }
+
+  .chapters__title {
+    margin: 0;
+    font-size: var(--ap-display-l);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+  }
+
+  .chapters__lede {
+    margin: 24px 0 0;
+    font-size: var(--ap-body-l);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 32px;
+    margin: 40px 0 0;
+  }
+
+  /* Hairline-separated rows, not a card grid. */
+  .chapters__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ap-hairline);
+  }
+
+  /*
+   * Opposite corners.
+   *
+   * The claim sits top-left and its evidence bottom-right, on a diagonal with
+   * open space between them. That reads as one statement and its footnote
+   * rather than four stacked paragraphs, and it gives the fold's crease
+   * somewhere to land that is not the middle of a sentence.
+   */
+  .chapter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 56px 40px;
+    padding: 72px 0;
+    border-bottom: 1px solid var(--ap-hairline);
+  }
+
+  .chapter__corner--head {
+    grid-area: 1 / 1;
+  }
+
+  /*
+   * The crew sits in the empty cell, not under the copy.
+   *
+   * The fold leaves a 240px bend at each edge, so on a 1000px viewport only
+   * the middle 520px is flat. Hanging 258px of crew below the tail copy pushed
+   * the card to 850px and put its own last two rows inside the bottom bend,
+   * where 12px labels and hairline bars stop being readable. Moving it into
+   * the diagonal's empty corner shortens the card by roughly the height of the
+   * copy it used to sit under, and fills the hole the layout already had.
+   */
+  .chapter__crew-cell {
+    grid-area: 2 / 1;
+    align-self: start;
+    min-width: 0;
+  }
+
+  .chapter__corner--tail {
+    grid-area: 2 / 2;
+    justify-self: end;
+    max-width: 42ch;
+    text-align: right;
+  }
+
+  /*
+   * The reveal.
+   *
+   * `--reveal` is written per corner by `Fold.astro` from the same scroll
+   * position that drives the fold, so a block resolves as it clears the bottom
+   * crease. Driving it from that one number rather than an observer per
+   * element is what keeps all three copies of the face in step — and there are
+   * three copies, so there are 24 of these.
+   *
+   * No transition and no `@property`: the value is rewritten every frame from
+   * the scroll, so the scroll *is* the easing. A transition on top of that
+   * would lag the fold it is supposed to move with.
+   */
+  .chapter__corner {
+    /* Cloudy front: static noise intersected with a sweeping edge. */
+    mask-image: var(--chapter-cloud), linear-gradient(100deg, #000 0 42%, transparent 78%);
+    mask-size:
+      260% 260%,
+      340% 100%;
+    mask-position:
+      0% 0%,
+      calc((1 - var(--reveal, 1)) * 128%) 0;
+    mask-composite: intersect;
+    filter: blur(calc((1 - var(--reveal, 1)) * 10px));
+    opacity: calc(0.15 + var(--reveal, 1) * 0.85);
+    transform: translateY(calc((1 - var(--reveal, 1)) * 16px))
+      scale(calc(1 - (1 - var(--reveal, 1)) * 0.015));
+    will-change: filter, opacity, transform;
+  }
+
+  /*
+   * A mask is expensive and, once a block has resolved, pointless. Dropping it
+   * at rest also restores normal text rendering, which a mask layer subtly
+   * changes.
+   */
+  .chapter__corner[data-resolved] {
+    mask-image: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+
+  .chapter__label {
+    margin: 0 0 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ap-ink-muted);
+  }
+
+  .chapter__title {
+    margin: 0;
+    font-size: var(--ap-display-m);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+
+  .chapter__note {
+    margin: 0;
+    max-width: 38ch;
+    margin-left: auto;
+    font-size: var(--ap-body);
+    line-height: 1.55;
+    color: var(--ap-ink-muted);
+  }
+
+  /* The longer read. Lighter than the summary so the eye takes them in
+     order rather than meeting two paragraphs of equal weight. */
+  .chapter__detail {
+    margin: 14px 0 0 auto;
+    max-width: 46ch;
+    font-size: var(--ap-caption);
+    line-height: 1.65;
+    color: var(--ap-ink-muted);
+    opacity: 0.82;
+  }
+
+  .chapter__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 24px;
+    margin: 20px 0 0;
+  }
+
+  /*
+   * The crew.
+   *
+   * Faces from `AgentIdentity`, seeded by each agent's real id in the bundled
+   * session, so the same agent keeps the same face here, in the agent tree and
+   * in the viewer. They fill the corner block's dead space with something
+   * factual rather than with decoration, and the count beside them is what a
+   * screen reader gets — the faces are `role="img"` with their own labels, not
+   * the only carrier of the information.
+   */
+  .chapter__provenance {
+    font-size: var(--ap-caption);
+    color: var(--ap-ink-muted);
+  }
+
+  .chapters__footer {
+    display: grid;
+    gap: 8px;
+    margin-top: 96px;
+  }
+
+  @media (max-width: 1024px) {
+    .chapters {
+      padding: 96px 24px;
+    }
+    .chapters__head {
+      margin-bottom: 64px;
+    }
+
+    .chapter {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      padding: 48px 0;
+    }
+
+    .chapter__corner--head,
+    .chapter__corner--tail {
+      grid-area: auto;
+      justify-self: stretch;
+      max-width: none;
+      text-align: left;
+    }
+
+    .chapter__note,
+    .chapter__detail {
+      margin-left: 0;
+    }
+
+    .chapter__meta {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chapter__corner {
+      mask-image: none;
+      filter: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

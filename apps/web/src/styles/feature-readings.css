@@ -1,0 +1,358 @@
+/**
+ * Session readings — Antigravity restraint, not Claude/mdx-graphs chrome.
+ *
+ * Keep the seven evidence panels. Drop dashed frames, corner +, and sticker
+ * grids. Use negative space, hairline rules, blue focus, fault red only when
+ * the record failed.
+ */
+
+.readings {
+  --reading-ink: var(--fd-text);
+  --reading-muted: var(--fd-muted);
+  --reading-faint: var(--fd-faint);
+  --reading-line: var(--fd-line);
+  --reading-accent: var(--fd-action);
+  --reading-fault: var(--fd-red);
+  --reading-live: var(--fd-cyan);
+  margin-top: 0;
+}
+
+.readings__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 28px;
+  margin-bottom: clamp(28px, 5vw, 48px);
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--reading-line);
+}
+
+.readings__kicker {
+  margin: 0 0 8px;
+  color: var(--reading-live);
+  font: 500 10px/1 var(--fs-mono, ui-monospace, Menlo, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.readings__head h2 {
+  margin: 0;
+  color: var(--reading-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.6rem, 2.8vw, 2.35rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.readings__lede {
+  margin: 12px 0 0;
+  max-width: 52rem;
+  color: var(--reading-ink);
+  font: 500 13px/1.55 var(--fs-mono, ui-monospace, Menlo, monospace);
+}
+
+.readings__agents {
+  margin: 8px 0 0;
+  max-width: 52rem;
+  color: var(--reading-muted);
+  font: 500 12px/1.5 var(--fs-mono, ui-monospace, Menlo, monospace);
+}
+
+.readings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.readings__stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 4vw, 44px);
+}
+
+.readings__pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(28px, 4vw, 44px);
+}
+
+@media (min-width: 900px) {
+  .readings__pair {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 48px;
+  }
+}
+
+/* Open sections — hairline, not dashed Claude stickers */
+.reading {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  min-width: 0;
+}
+
+.reading::before,
+.reading::after {
+  content: none;
+}
+
+.reading__corner-bl,
+.reading__corner-br {
+  display: none;
+}
+
+.reading__title {
+  position: static;
+  display: block;
+  margin: 0 0 14px;
+  padding: 0;
+  background: transparent;
+  color: var(--reading-muted);
+  font: 500 11px/1 var(--fs-mono, ui-monospace, Menlo, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reading__note {
+  margin: 14px 0 0;
+  max-width: 42rem;
+  color: var(--reading-faint);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.reading__copy {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: pre;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Handoffs — quiet pills on a continuous path */
+.reading--hero {
+  padding-bottom: 4px;
+}
+
+.reading-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reading-flow__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reading-flow__node {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--fd-bg-alt);
+  color: var(--reading-muted);
+  font: 500 13px/1.2 var(--fs-sans, system-ui, -apple-system, sans-serif);
+  letter-spacing: -0.01em;
+}
+
+.reading-flow__node[data-tone='accent'] {
+  border-color: color-mix(in srgb, var(--reading-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--reading-accent) 12%, var(--fd-bg-alt));
+  color: var(--reading-ink);
+}
+
+.reading-flow__node[data-tone='fault'] {
+  border-color: color-mix(in srgb, var(--reading-fault) 40%, transparent);
+  background: color-mix(in srgb, var(--reading-fault) 10%, var(--fd-bg-alt));
+  color: var(--reading-fault);
+}
+
+.reading-flow__edge {
+  width: 36px;
+  height: 0;
+  margin: 0 2px;
+  border-top: 1px solid color-mix(in srgb, var(--reading-muted) 40%, transparent);
+}
+
+/* Who held the run */
+.reading-gantt {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 12px/1.4 var(--fs-mono, ui-monospace, Menlo, monospace);
+}
+
+.reading-gantt__row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.reading-gantt__label {
+  color: var(--reading-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-gantt__track {
+  min-width: 0;
+  overflow-x: auto;
+  color: var(--reading-accent);
+  letter-spacing: 0.04em;
+  white-space: pre;
+  font-variant-emoji: text;
+}
+
+.reading-gantt__row[data-fault='1'] .reading-gantt__track,
+.reading-gantt__track[data-fault='1'] {
+  color: var(--reading-fault);
+}
+
+.reading-gantt__held {
+  color: var(--reading-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-gantt__held[data-fault='1'] {
+  color: var(--reading-fault);
+}
+
+/* Lists */
+.reading-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 13px/1.7 var(--fs-mono, ui-monospace, Menlo, monospace);
+}
+
+.reading-list__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--reading-line) 70%, transparent);
+  color: var(--reading-ink);
+}
+
+.reading-list__row:last-child {
+  border-bottom: 0;
+}
+
+.reading-list__meta {
+  color: var(--reading-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-check__mark {
+  display: inline-block;
+  width: 1.5rem;
+  color: var(--reading-muted);
+}
+
+.reading-check__row[data-done='0'] .reading-check__mark,
+.reading-check__row[data-done='0'] .reading-list__label {
+  color: var(--reading-fault);
+}
+
+/* Event health */
+.reading-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 14px/1 var(--fs-mono, ui-monospace, Menlo, monospace);
+  color: var(--reading-accent);
+}
+
+.reading-health__cell[data-state='down'] {
+  color: var(--reading-fault);
+}
+
+/* Timeline */
+.reading-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 12px/1.75 var(--fs-mono, ui-monospace, Menlo, monospace);
+}
+
+.reading-timeline__row {
+  display: grid;
+  grid-template-columns: 4.2rem 1rem minmax(7rem, 11rem) 1fr;
+  gap: 10px;
+  padding: 2px 0;
+  color: var(--reading-ink);
+}
+
+.reading-timeline__row[data-ok='0'] {
+  color: var(--reading-fault);
+}
+
+.reading-timeline__at,
+.reading-timeline__mark {
+  color: var(--reading-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-timeline__row[data-ok='0'] .reading-timeline__mark {
+  color: var(--reading-fault);
+}
+
+.reading-timeline__agent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readings:fullscreen,
+.readings:-webkit-full-screen {
+  padding: clamp(28px, 5vw, 64px);
+  overflow: auto;
+  background: var(--fd-bg);
+}
+
+.readings:fullscreen .readings__stack,
+.readings:-webkit-full-screen .readings__stack {
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+@media (max-width: 720px) {
+  .reading-gantt__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .reading-timeline__row {
+    grid-template-columns: 3.6rem 1rem 1fr;
+  }
+
+  .reading-timeline__note {
+    grid-column: 2 / -1;
+  }
+}

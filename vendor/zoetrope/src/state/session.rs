@@ -73,9 +73,9 @@ pub struct SessionModel {
 }
 
 /// A notable timeline event for the scrubber's log line: a prompt (era
-/// boundary), an agent spawn, or a tool failure. Surfaced by
-/// [`SessionModel::latest_event_at`] and rendered with an icon matching the
-/// scrubber's marker glyphs (◆ / ❋ / ✗).
+/// boundary), an agent spawn, a tool failure, or streamed assistant output.
+/// Surfaced by [`SessionModel::latest_event_at`] and rendered with an icon
+/// matching the scrubber's marker glyphs (◆ / ❋ / ✗ / ▸).
 #[derive(Debug, Clone)]
 pub struct LogEvent {
     pub ts: DateTime<Utc>,
@@ -89,6 +89,8 @@ pub enum LogKind {
     Prompt,
     Spawn,
     Failure,
+    /// Assistant text (Antigravity `--print` streams). Not a Claude prompt era.
+    Output,
 }
 
 /// One user prompt in the main transcript — an era boundary on the session's
@@ -245,6 +247,12 @@ pub struct AgentInfo {
     /// per-result completion are O(1) instead of scanning every prior call
     /// (which made folding a tool-heavy agent quadratic).
     tool_index: HashMap<String, usize>,
+    /// Last assistant text excerpt. Streamed Antigravity/ADK agents often emit
+    /// only text — without this the card shows "0 tools" and the inspector is
+    /// empty even though the JSONL is full of output.
+    pub last_text: Option<String>,
+    /// Recent assistant text excerpts, oldest first, capped.
+    pub notes: Vec<String>,
     /// Summed `usage.output_tokens`, counted once per assistant turn.
     pub output_tokens: u64,
     pub first_ts: Option<DateTime<Utc>>,
@@ -274,6 +282,8 @@ impl AgentInfo {
             model: None,
             tool_calls: Vec::new(),
             tool_index: HashMap::new(),
+            last_text: None,
+            notes: Vec::new(),
             output_tokens: 0,
             first_ts: None,
             last_ts: None,
@@ -298,6 +308,82 @@ impl AgentInfo {
     /// Most recent tool call name, if any.
     pub fn last_tool(&self) -> Option<&str> {
         self.tool_calls.last().map(|t| t.name.as_str())
+    }
+
+    /// Tool calls that are not spawn/fan-out (`Agent` / `Task` / `Workflow`).
+    pub fn work_tool_count(&self) -> usize {
+        self.tool_calls
+            .iter()
+            .filter(|tc| !crate::transcript::is_spawn_tool(&tc.name))
+            .count()
+    }
+
+    /// Fan-out spawns recorded as the `Agent` tool. Not an Antigravity tool.
+    pub fn spawn_count(&self) -> usize {
+        self.tool_calls
+            .iter()
+            .filter(|tc| crate::transcript::is_spawn_tool(&tc.name))
+            .count()
+    }
+
+    /// Last real (non-spawn) tool name, if any.
+    pub fn last_work_tool(&self) -> Option<&str> {
+        self.tool_calls
+            .iter()
+            .rev()
+            .find(|tc| !crate::transcript::is_spawn_tool(&tc.name))
+            .map(|tc| tc.name.as_str())
+    }
+
+    /// Card/inspector title: the role (`researcher`), never a generic `agent`.
+    pub fn display_name(&self) -> String {
+        if let Some(t) = self
+            .agent_type
+            .as_deref()
+            .filter(|t| !is_generic_agent_kind(t))
+        {
+            return t.to_string();
+        }
+        if let Some(d) = self.description.as_deref()
+            && let Some(leaf) = d
+                .split(['/', '·'])
+                .map(str::trim)
+                .find(|s| !s.is_empty() && !is_generic_agent_kind(s) && s.len() <= 40)
+        {
+            let token = leaf.split_whitespace().next().unwrap_or(leaf);
+            if !token.is_empty() && !is_generic_agent_kind(token) {
+                return token.to_string();
+            }
+        }
+        match self.kind {
+            AgentKind::Main => String::new(),
+            AgentKind::WorkflowGroup => self
+                .agent_type
+                .clone()
+                .unwrap_or_else(|| "workflow".to_string()),
+            AgentKind::Subagent => "subagent".to_string(),
+        }
+    }
+
+    fn push_note(&mut self, text: &str) {
+        let ex = excerpt(text);
+        if ex.is_empty() {
+            return;
+        }
+        if self.notes.last().map(String::as_str) == Some(ex.as_str()) {
+            return;
+        }
+        self.notes.push(ex.clone());
+        const KEEP: usize = 16;
+        if self.notes.len() > KEEP {
+            let drop = self.notes.len() - KEEP;
+            self.notes.drain(..drop);
+        }
+        // Bridge status lines are not the agent's work. Keep them in `notes`
+        // for the inspector, but the card shows the last real output.
+        if !is_bridge_status(&ex) {
+            self.last_text = Some(ex);
+        }
     }
 
     fn touch_ts(&mut self, ts: Option<DateTime<Utc>>) {
@@ -591,10 +677,13 @@ impl SessionModel {
                     .entry(id)
                     .or_insert_with(|| SpawnContext { ts, reasoning });
             }
-            if target == MAIN_ID
-                && let Some(t) = last_text
-            {
-                self.last_main_text = Some(excerpt(t));
+            if let Some(t) = last_text {
+                if let Some(agent) = self.agents.get_mut(target) {
+                    agent.push_note(t);
+                }
+                if target == MAIN_ID {
+                    self.last_main_text = Some(excerpt(t));
+                }
             }
         }
     }
@@ -877,6 +966,13 @@ impl SessionModel {
         };
         let mut changed = false;
         for agent in self.agents.values_mut() {
+            // FleetScope: a Failed status is ground truth from the session
+            // (errorCode / task-notification / errored spawn). Time-derived
+            // liveness must never overwrite it, and a reliably-terminal agent
+            // must never be revived by a recent last_ts.
+            if agent.status == AgentStatus::Failed || agent.terminal {
+                continue;
+            }
             let Some(ts) = agent.last_ts else {
                 continue;
             };
@@ -884,7 +980,7 @@ impl SessionModel {
             // working — stronger than "no transcript line for 120s". Without it,
             // an agent blocked on a long tool (a 2-minute Bash) looks quiet and
             // settles to Done/Idle mid-tool, then snaps back when the result
-            // lands. A reliably-terminal agent short-circuits below, so this
+            // lands. A reliably-terminal agent short-circuits above, so this
             // can't revive a genuinely finished one.
             let active = (reference - ts).num_seconds() <= INTERACTIVE_IDLE_SECS
                 || agent
@@ -897,9 +993,6 @@ impl SessionModel {
                 } else {
                     AgentStatus::Idle
                 }
-            } else if agent.terminal {
-                // A reliably-completed subagent (sync ack / journal) is terminal.
-                agent.status
             } else if active {
                 // Async agent still producing activity — and REVERSIBLE: a long
                 // gap (e.g. a subagent running `cargo test`) that settled it to
@@ -919,6 +1012,9 @@ impl SessionModel {
     /// completion remains unclaimable.
     pub fn end_of_stream(&mut self) {
         for agent in self.agents.values_mut() {
+            if agent.status == AgentStatus::Failed || agent.terminal {
+                continue;
+            }
             if agent.is_interactive() {
                 // Interactive agents (main/forks) never "complete" — the stream
                 // ending just means they went quiet.
@@ -940,6 +1036,21 @@ impl SessionModel {
     /// Total tool calls across all agents.
     pub fn tool_count(&self) -> usize {
         self.agents.values().map(|a| a.tool_calls.len()).sum()
+    }
+
+    /// Streamed assistant notes across all agents (not spawn/tool rows).
+    pub fn note_count(&self) -> usize {
+        self.agents.values().map(|a| a.notes.len()).sum()
+    }
+
+    /// Fan-out spawns across all agents.
+    pub fn spawn_count(&self) -> usize {
+        self.agents.values().map(|a| a.spawn_count()).sum()
+    }
+
+    /// Non-spawn tool calls across all agents.
+    pub fn work_tool_count(&self) -> usize {
+        self.agents.values().map(|a| a.work_tool_count()).sum()
     }
 
     /// Borrow an agent by node id.
@@ -1024,6 +1135,11 @@ impl SessionModel {
                     consider(tc.end_ts.or(tc.ts), LogKind::Failure, text);
                 }
             }
+            // Antigravity sessions often have no Claude prompt eras and no
+            // work tools — the last streamed text is the only honest log line.
+            if let Some(text) = agent.last_text.as_ref().filter(|t| !is_bridge_status(t)) {
+                consider(agent.last_ts, LogKind::Output, text.clone());
+            }
         }
         best
     }
@@ -1062,6 +1178,20 @@ impl SessionModel {
 
 /// One-line excerpt for provenance display: whitespace collapsed, hard cap so
 /// adversarial 38KB lines can't bloat the model.
+pub(crate) fn is_generic_agent_kind(s: &str) -> bool {
+    matches!(
+        s,
+        "agent" | "subagent" | "workflow-subagent" | "transferred"
+    )
+}
+
+pub(crate) fn is_bridge_status(s: &str) -> bool {
+    s.contains("started in Antigravity")
+        || s.contains("report saved locally")
+        || (s.contains("conversation ") && s.contains(" opened"))
+        || s.contains("returned no text")
+}
+
 fn excerpt(s: &str) -> String {
     let one = s.split_whitespace().collect::<Vec<_>>().join(" ");
     if one.chars().count() > 240 {
@@ -1238,6 +1368,68 @@ mod tests {
     }
 
     #[test]
+    fn streamed_output_narrates_when_there_are_no_prompt_eras() {
+        let ts = |s: &str| s.parse::<DateTime<Utc>>().unwrap();
+        let mut m = SessionModel::new("s".into());
+        let main = m.agents.get_mut(MAIN_ID).unwrap();
+        main.last_text = Some("# Demo Runbook: Agent Workbench".into());
+        main.last_ts = Some(ts("2026-06-05T10:00:00Z"));
+        let none = std::collections::BTreeSet::new();
+        let e = m
+            .latest_event_at(Some(ts("2026-06-05T10:01:00Z")), &none)
+            .expect("output event");
+        assert_eq!(e.kind, LogKind::Output);
+        assert!(e.text.contains("Demo Runbook"));
+    }
+
+    #[test]
+    fn agent_spawn_is_not_a_work_tool() {
+        let mut a = AgentInfo::new(AgentKind::Main);
+        a.tool_calls.push(ToolCallInfo {
+            id: "s1".into(),
+            name: "Agent".into(),
+            summary: Some("researcher".into()),
+            ts: None,
+            end_ts: None,
+            state: ToolState::Ok,
+        });
+        a.tool_calls.push(ToolCallInfo {
+            id: "r1".into(),
+            name: "Read".into(),
+            summary: Some("foo.rs".into()),
+            ts: None,
+            end_ts: None,
+            state: ToolState::Ok,
+        });
+        assert_eq!(a.work_tool_count(), 1);
+        assert_eq!(a.spawn_count(), 1);
+        assert_eq!(a.last_work_tool(), Some("Read"));
+    }
+
+    #[test]
+    fn bridge_status_is_not_card_last_text() {
+        let mut a = AgentInfo::new(AgentKind::Main);
+        a.push_note("researcher started in Antigravity");
+        assert!(a.last_text.is_none());
+        assert_eq!(a.notes.len(), 1);
+        a.push_note("# Demo Runbook: Agent Workbench");
+        assert_eq!(
+            a.last_text.as_deref(),
+            Some("# Demo Runbook: Agent Workbench")
+        );
+    }
+
+    #[test]
+    fn display_name_prefers_role_over_generic_agent() {
+        let mut a = AgentInfo::new(AgentKind::Subagent);
+        a.agent_type = Some("agent".into());
+        a.description = Some("researcher · gemini".into());
+        assert_eq!(a.display_name(), "researcher");
+        a.agent_type = Some("qa_planner".into());
+        assert_eq!(a.display_name(), "qa_planner");
+    }
+
+    #[test]
     fn spawn_event_is_timed_by_birth_not_the_call() {
         let ts = |s: &str| s.parse::<DateTime<Utc>>().unwrap();
         let mut m = SessionModel::new("s".into());
@@ -1275,6 +1467,37 @@ mod tests {
         assert_eq!(e.kind, LogKind::Spawn);
         assert_eq!(e.text, "hunt bugs");
         assert_eq!(e.ts, ts("2026-06-05T10:02:00Z"));
+    }
+
+    #[test]
+    fn a_failed_terminal_agent_with_a_recent_last_ts_stays_failed() {
+        // Regression: recompute_liveness used to overwrite Failed (and revive
+        // terminal agents) when last_ts was inside the idle window, so a
+        // finished-in-error child rendered as `running · 0s`.
+        let sub_asst = Update::Entry {
+            source: Source::Sub("sub".into()),
+            entry: entry(
+                r#"{"type":"assistant","uuid":"u","parentUuid":null,"timestamp":"2026-06-05T10:00:00.000Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"b","name":"Bash","input":{}}]}}"#,
+            ),
+        };
+        let notif = Update::Entry {
+            source: Source::Main,
+            entry: entry(
+                r#"{"type":"user","uuid":"n","parentUuid":null,"timestamp":"2026-06-05T10:00:01.000Z","message":{"role":"user","content":"<task-notification>\n<task-id>sub</task-id>\n<status>failed</status>\n<summary>x</summary>\n</task-notification>"}}"#,
+            ),
+        };
+        let mut m = SessionModel::new("s".into());
+        m.apply_update(&sub_asst);
+        m.apply_update(&notif);
+        assert_eq!(m.agent("sub").unwrap().status, AgentStatus::Failed);
+        assert!(m.agent("sub").unwrap().terminal);
+
+        m.recompute_liveness(Some("2026-06-05T10:00:02.000Z".parse().unwrap()));
+        assert_eq!(
+            m.agent("sub").unwrap().status,
+            AgentStatus::Failed,
+            "Failed+terminal must not be overwritten by a recent last_ts"
+        );
     }
 
     #[test]

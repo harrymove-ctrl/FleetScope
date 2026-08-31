@@ -1,7 +1,16 @@
 # 0003 — Static-first, with one bounded live path
 
-Status: accepted · 2026-08-26 · **the live call is now implemented — see the
-amendment at the foot of this file**
+Status: accepted with current proof gate · 2026-08-30
+
+> **Current reconciliation:** The implementation and Gemini 2.5 request
+> described in the 2026-08-26 amendment are a historical local snapshot, not
+> current hackathon evidence. The public/default path remains recorded or
+> local. A separate private submission path must prove Gemini 3.5+, a Google
+> agent framework, Google Cloud, the bounded recovery chain, and restart-safe
+> replay. Until that evidence bundle exists, do not label the deployment live.
+> The current run-oriented contract is `/runs/capability`, `/runs`, and
+> `/runs/:runId/events`; the `/live/decision` behavior below is retained as a
+> dated compatibility snapshot and does not supersede that contract.
 
 ## Context
 
@@ -22,8 +31,9 @@ response.
   free-form prompt endpoint anywhere in the service.
 - `admitLiveRequest` is the single admission gate: live-mode check → allowlist
   check → per-Case call budget, in that order.
-- The Gemini call itself is **not implemented**. With live mode on, an
-  allowlisted step returns `501 not_implemented` rather than a fabricated result.
+- **Historical snapshot (2026-08-26):** the Gemini call itself was not
+  implemented at the time of the original decision. With live mode on, that
+  snapshot returned `501 not_implemented` rather than a fabricated result.
 
 ## Reason
 
@@ -32,14 +42,14 @@ Hono is small, Web-standard, and boots in milliseconds on Cloud Run with
 still an open point in the requirements, and a plausible-looking stub is worse
 than an explicit gap.
 
-## Tradeoff
+## Tradeoff (original snapshot)
 
 The live proof is unfinished until the platform APIs are confirmed. The recorded
 path — which is the demo — is complete and unaffected.
 
 ---
 
-## Amendment — 2026-08-26, the call is implemented
+## Amendment — 2026-08-26, the call was implemented locally
 
 `/live/decision` no longer returns 501. What changed, and what did not:
 
@@ -78,15 +88,17 @@ when FleetScope received it.
 worth keeping; serving the recorded result with no trace would leave the demo
 unable to tell the two apart afterwards.
 
-**Now run against the real endpoint: 3/3, ~USD 0.0007.** Both allowlisted steps
-executed; a third call was refused by the budget before reaching the API; the
-result canonicalized onto the recorded stream at `caseSequence` 60–62 with the
+**Historical local result: 3/3, ~USD 0.0007.** Both allowlisted steps executed;
+a third call was refused by the budget before reaching the API; the result
+canonicalized onto the recorded stream at `caseSequence` 60–62 with the
 recorded prefix byte-identical afterwards. Unit tests still use an injected
 `fetch` that never leaves the process, so the bounded path runs in CI at zero
-cost. Recorded mode remains the default and the official demo path.
+cost. This result does not prove the current Gemini 3.5+/Google-framework/
+Cloud Run submission gate; recorded mode remains the default public path.
 
 **Thinking is disabled** (`thinkingConfig: { thinkingBudget: 0 }`), and that is a
-correctness requirement rather than tuning. Gemini 2.5 thinks by default and
+correctness requirement rather than tuning. Gemini 2.5, the model in this
+historical snapshot, thinks by default and
 thinking tokens count against `maxOutputTokens`: measured on the real request,
 284 of 300 tokens went to thoughts and the answer came back as `{"`. It is also
 right on principle — FleetScope records no hidden reasoning, so paying for

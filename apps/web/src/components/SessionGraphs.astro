@@ -1,0 +1,206 @@
+---
+/**
+ * Session readings — demo-first, glanceable, non-interactive.
+ *
+ * One vertical story of evidence. No clicks required to understand the run.
+ * Glyph vocabulary stays copyable; numbers come only from graphs.ts.
+ */
+import {
+  checkRows,
+  flowSteps,
+  ganttRows,
+  readingCopyBlocks,
+  specRows,
+  timelineRows,
+  treeRows,
+  uptimeCells,
+} from '../features/viewer/graphs';
+import '../styles/feature-readings.css';
+
+const GANTT_WIDTH = 28;
+const flow = flowSteps();
+const gantt = ganttRows(GANTT_WIDTH);
+const timeline = timelineRows();
+const tree = treeRows();
+const check = checkRows();
+const uptime = uptimeCells();
+const spec = specRows();
+const copy = readingCopyBlocks();
+const failedCount = uptime.filter((cell) => cell === 'down').length;
+const unanswered = check.filter((row) => !row.done).length;
+const faultedId = gantt.find((row) => row.faulted)?.label;
+const accentId = faultedId ?? flow.at(-1)?.label;
+const oneLine = [
+  `${flow.length} agents in handoff order`,
+  unanswered === 1 ? '1 call never returned' : `${unanswered} unanswered calls`,
+  failedCount === 1 ? '1 failed event' : `${failedCount} failed events`,
+  spec.find((row) => row.label === 'elapsed')?.value ?? '—',
+].join(' · ');
+const agentNames = gantt.map((row) => row.label).join(' · ');
+---
+
+<section class="readings readings--demo" data-session-graphs aria-labelledby="graphs-title">
+  <header class="readings__head">
+    <div>
+      <p class="readings__kicker">What the record shows</p>
+      <h2 id="graphs-title">One session, seven readings</h2>
+      <p class="readings__lede" data-readings-line>{oneLine}</p>
+      <p class="readings__agents">Agents that ran: {agentNames}</p>
+    </div>
+  </header>
+
+  <div class="readings__stack">
+    <figure class="reading reading--hero" data-graph="flow">
+      <figcaption class="reading__title">handoffs</figcaption>
+      <ol class="reading-flow" aria-label="Handoff chain">
+        {
+          flow.map((step) => (
+            <li class="reading-flow__step">
+              <span
+                class="reading-flow__node"
+                data-tone={step.label === faultedId ? 'fault' : step.label === accentId ? 'accent' : 'muted'}
+              >
+                {step.label}
+              </span>
+              {!step.last && <span class="reading-flow__edge" aria-hidden="true" />}
+            </li>
+          ))
+        }
+      </ol>
+      <p class="reading__note">
+        {faultedId
+          ? `${faultedId} is marked because the record shows a failure on that lane.`
+          : 'Transfer order taken from the session, not inferred.'}
+      </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="handoffs">{copy.handoffs}</pre>
+    </figure>
+
+    <figure class="reading" data-graph="gantt">
+      <figcaption class="reading__title">who held the run</figcaption>      <ul class="reading-gantt" role="list">
+        {
+          gantt.map((row) => {
+            const track =
+              '·'.repeat(row.pad) +
+              (row.faulted ? '▚' : '█').repeat(row.fill) +
+              '·'.repeat(Math.max(0, GANTT_WIDTH - row.pad - row.fill));
+            return (
+              <li
+                class="reading-gantt__row"
+                data-fault={row.faulted ? '1' : '0'}
+                aria-label={`${row.label} held ${row.held.toFixed(1)} seconds${row.faulted ? ', timed out' : ''}`}
+              >
+                <span class="reading-gantt__label">{row.label}</span>
+                <span class="reading-gantt__track" aria-hidden="true" data-fault={row.faulted ? '1' : '0'}>
+                  {track}
+                </span>
+                <span class="reading-gantt__held" data-fault={row.faulted ? '1' : '0'}>
+                  {row.held.toFixed(1).padStart(5)}s{row.faulted ? '  timed out' : ''}
+                </span>
+              </li>
+            );
+          })
+        }
+      </ul>
+      <p class="reading__note">
+        Bars show each recorded holding interval; the hatched lane is the one that timed out.
+      </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="whoHeld">{copy.whoHeld}</pre>
+    </figure>
+
+    <div class="readings__pair">
+      <figure class="reading" data-graph="tree">
+        <figcaption class="reading__title">agent tree</figcaption>        <ul class="reading-list" role="list">
+          {
+            tree.map((row) => (
+              <li class="reading-list__row">
+                <span class="reading-list__label">
+                  {row.glyph ? `${row.glyph} ` : ''}
+                  {row.label}
+                </span>
+                <span class="reading-list__meta">{row.events} events</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">Branches preserve the recorded parent-child handoff path.</p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="agentTree">{copy.agentTree}</pre>
+      </figure>
+
+      <figure class="reading" data-graph="check">
+        <figcaption class="reading__title">calls answered</figcaption>        <ul class="reading-list" role="list">
+          {
+            check.map((row) => (
+              <li class="reading-list__row reading-check__row" data-done={row.done ? '1' : '0'}>
+                <span class="reading-list__label">
+                  <span class="reading-check__mark" aria-hidden="true">[{row.done ? 'x' : ' '}]</span>
+                  {row.label}
+                </span>
+                <span class="reading-list__meta">{row.note}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          {unanswered} of {check.length} recorded calls has no matching result.
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="callsAnswered">{copy.callsAnswered}</pre>
+      </figure>
+    </div>
+
+    <div class="readings__pair">
+      <figure class="reading" data-graph="uptime">
+        <figcaption class="reading__title">event health</figcaption>        <ul class="reading-health" aria-label="Per-event health">
+          {
+            uptime.map((cell) => (
+              <li class="reading-health__cell" data-state={cell}>
+                {cell === 'ok' ? '█' : '▚'}
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          {failedCount} of {uptime.length} events recorded a failure
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="eventHealth">{copy.eventHealth}</pre>
+      </figure>
+
+      <figure class="reading" data-graph="spec">
+        <figcaption class="reading__title">session</figcaption>        <ul class="reading-list" role="list">
+          {
+            spec.map((row) => (
+              <li class="reading-list__row">
+                <span class="reading-list__label">{row.label}</span>
+                <span class="reading-list__meta">{row.value}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="reading__note">
+          Counts come from the recording; cost and token totals are not inferred.
+        </p>
+        <pre class="reading__copy" aria-hidden="true" data-copy-reading="session">{copy.session}</pre>
+      </figure>
+    </div>
+
+    <figure class="reading" data-graph="timeline">
+      <figcaption class="reading__title">timeline</figcaption>      <ol class="reading-timeline">
+        {
+          timeline.map((row) => (
+            <li class="reading-timeline__row" data-ok={row.ok ? '1' : '0'}>
+              <span class="reading-timeline__at">{row.at}</span>
+              <span class="reading-timeline__mark" aria-hidden="true">
+                {row.ok ? '·' : '×'}
+              </span>
+              <span class="reading-timeline__agent">{row.agent}</span>
+              <span class="reading-timeline__note">{row.note}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="reading__note">
+        Every row keeps the event's recorded order, actor, outcome, and timestamp.
+      </p>
+      <pre class="reading__copy" aria-hidden="true" data-copy-reading="timeline">{copy.timeline}</pre>
+    </figure>
+  </div>
+</section>

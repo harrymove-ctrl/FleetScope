@@ -1,7 +1,8 @@
 /**
  * The Zoetrope wire shapes.
  *
- * Zoetrope's parser is a serde model for Claude Code's JSONL transcript format
+ * Zoetrope's parser is a serde model for an external provider's JSONL
+ * transcript format
  * (`vendor/zoetrope/src/transcript.rs`). Speaking that format is what lets
  * FleetScope reuse its fold, its timeline engine and its 182 upstream tests
  * unmodified — the alternative would be forking the parser, which is the one

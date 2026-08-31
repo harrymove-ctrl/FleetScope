@@ -1,255 +1,361 @@
 # FleetScope
 
-FleetScope is an enterprise agent-fleet control plane. A procurement manager
-discovers an approved, versioned agent in the **Agent Catalog**, starts a durable
-multi-week **Case**, and returns days later without losing context. Registry,
-Runtime, Memory Bank, Identity, Gateway, Model Armor, and Observability decisions
-are captured as append-only **Canonical Events**, projected deterministically into
-**Observable Case State**, and surfaced across a Case Workspace, an Approval
-Inbox, an expert **Fleet Cockpit**, and an **Audit** view — so every badge the UI
-shows is backed by recorded evidence rather than an assumption. FleetScope is not
-merely a graph viewer, and the Cockpit is one surface within it, not the product.
+FleetScope is a read-only **Session Observer**: watch your agents work.
+Gemini/ADK writes a JSONL session; FleetScope reads it and lays the session out
+as a graph showing which agents ran and what each one is doing. Follow a
+growing local session or replay a finished one.
+
+The viewer never starts, retries, authorizes, or mutates an agent action. The
+session log is the source of truth.
+
+## Quick start
+
+### CLI
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- \
+  crates/fleetscope-cli/tests/fixtures/gemini-multi-agent --follow
+```
+
+For the copy-paste demo, use the checked-in example folder:
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow
+```
+
+The CLI is the demo entry point. It reads the local `session.jsonl`, renders
+the graph in the terminal, and never starts Gemini. The browser is an optional
+second view of the same file; use `/viewer/` → **Open folder…** when you want
+the graph and Inspector instead of the TUI.
+
+For a cmux three-pane demo (Antigravity plan mode, native TUI, and browser
+Viewer), run:
+
+```bash
+pnpm demo:cmux
+```
+
+The Antigravity pane uses `gemini-3.7-flash-low` by default. The TUI and browser
+panes use the same checked-in recording so the cmux layout is repeatable and
+free. Antigravity's private conversation database is not a supported
+FleetScope input format.
+
+For a real Antigravity CLI fan-out that the native TUI follows live, run:
+
+```bash
+pnpm demo:antigravity
+```
+
+This starts four parallel `agy --print --output-format stream-json` workers and
+a fifth synthesizer against `examples/antigravity-project`. All workers use
+`--mode plan`, so they can read the brief but cannot edit it. The bridge writes
+their real responses incrementally to `.fleetscope/sessions/antigravity-live/`;
+the TUI follows that file. The bridge is an explicit ADK-compatible envelope,
+not a claim that FleetScope can read Antigravity's private conversation store.
+Open `/viewer/`, choose **Follow folder…**, and select the printed session
+directory to watch the same growing run in the browser. The handle is kept only
+in that browser tab and the files are never uploaded.
+
+```text
+fleetscope <path>                    open/replay a session
+fleetscope <path> --follow           park at the live edge and tail the file
+fleetscope <path> --speed 4          replay four times faster
+fleetscope <path> --format <id>      force an adapter
+fleetscope --formats                 list readable formats
+fleetscope inspect <path>            print a headless summary
+```
+
+Viewer keys: `space` play/pause, `[`/`]` step, `g`/`G` start/end, `f` follow,
+`o` overview, `?` help, `q` quit.
+
+### Browser
+
+```bash
+pnpm install
+pnpm build:wasm
+pnpm dev
+```
+
+Open [http://localhost:4321/viewer/](http://localhost:4321/viewer/). Copy the
+CLI command shown at the top, then drop the generated JSONL file or choose its
+session folder. The **Preview example** button is only a no-setup fallback;
+local files are read in the browser and are not uploaded.
+
+Judges who cannot log into Google Cloud should open
+[http://localhost:4321/console](http://localhost:4321/console) (or the hosted
+`/console` route). That page is a read-only Cloud Run / Storage / ADK evidence
+console. It does not require IAM and does not start Vertex.
+
+## What is implemented
+
+- JSONL/JSON file and folder discovery.
+- Google ADK format adapter (`google-adk@1`) for the hackathon demo path.
+- Validation, ordering, de-duplication, tool-call pairing, and safe payload
+  projection.
+- Agent rail and parent/child graph.
+- Event inspector for messages, tools, results, errors, and terminal state.
+- Live follow/tailing in the CLI and replay in the CLI/browser.
+- Play/pause, step, seek, speed, overview, and return-to-live-edge controls.
+- Hidden reasoning (`thought: true`) is removed before it reaches the UI.
+- Headless `inspect` output and a stable projection fingerprint.
+- Native CLI and browser share the same projection core.
+- Judge Cloud Console at `/console` and `GET /cloud/console` (recorded Cloud
+  Run, Storage metadata, and the READY decision; no GCP login).
+
+The renderer visualises one graph level. Deeper provider paths are preserved in
+labels and the full tree appears in `inspect`.
 
 ## Architecture
 
-```mermaid
-graph TD
-  subgraph recorded["Recorded path — the default, needs no backend"]
-    SE[Source Events<br/>duplicated, out of order] --> CZ[Canonicalizer<br/>validate · redact · dedup · order]
-    CZ --> CE[Canonical Events]
-    CE --> CW[Case Workspace]
-    CE --> AP[Approvals]
-    CE --> AU[Audit + evidence export]
-    CE --> PR[Session Projector<br/>pure, versioned]
-    PR --> OCS[Observable Case State<br/>+ state hash]
-    CE --> WD[Incident Detector → Policy Engine → Warden]
-    CE --> SC[Scenario Compiler]
-    SC --> TR[Zoetrope transcripts]
-    SC --> RM[Render Manifest]
-    TR --> WASM[Rust/WASM Fleet Cockpit<br/>vendored Zoetrope]
-    RM --> WASM
-    RM -.->|caseSequence ↔ renderer index| CUR[FleetScope Event Cursor]
-  end
+The judge-ready diagram is available as an uploadable
+[PNG](docs/product/fleetscope-devpost-architecture.png); its editable
+[SVG source](docs/product/fleetscope-devpost-architecture.svg) is checked in
+beside it.
 
-  subgraph live["Optional live path — bounded, off by default"]
-    WEB[Astro frontend] --> API[Bounded API<br/>allowlisted step, never a prompt]
-    API --> GEM[Gemini, one call, schema-checked]
-    GEM --> SE2[Source Events]
-    SE2 --> CZ
-  end
+```text
+Gemini + Google ADK session
+        │
+        ▼
+JSONL file/object ──► discovery or file input ──► provider adapter
+                                                   │
+                                                   ▼
+                                      ViewerSession + projection core
+                                      ├── Rust CLI TUI
+                                      ├── Astro/WASM browser
+                                      ├── fleetscope inspect
+                                      └── /console + GET /cloud/console
 ```
 
-The default, demo, and public path requires **zero backend availability**: the
-static build inlines recorded evidence, so the product works with the network
-disabled after first load.
+The projection core is IO-free and provider-neutral. The CLI owns filesystem
+discovery/tailing; the browser owns file/folder input; adapters own producer
+dialects. `/console` serves the same recorded Cloud Run and Storage facts the
+agents probed, so a judge does not need project IAM.
 
-## Repository map
+### Folder structure
 
-| Path                         | What it is                                                                                                             |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`                   | Astro product shell (static output). Catalog, Cases, Approvals, Cockpit mount, Audit.                                  |
-| `apps/api`                   | One small Hono service: `/health`, `/capability`, one bounded live proof. Optional.                                    |
-| `packages/domain`            | The FleetScope vocabulary. Framework-independent.                                                                      |
-| `packages/event-schema`      | Canonical Event envelope, the closed event-type set, JSONL codec, generated JSON Schema.                               |
-| `packages/projector`         | The versioned **pure** Session Projector and the state-hash contract.                                                  |
-| `packages/fixtures`          | Recorded Case evidence — a product asset, not a test leftover.                                                         |
-| `packages/canonicalizer`     | **The primary redaction boundary.** Validate → redact → dedup → order → Canonical Event.                               |
-| `packages/scenario-compiler` | Canonical Events → renderer transcripts **+ the Render Manifest**, behind `RendererAdapter`.                           |
-| `packages/warden`            | Incident Detector, Policy Engine, and the Intervention lifecycle with at-most-once execution.                          |
-| `packages/platform-adapters` | The seven adapter interfaces, their `recorded / synthetic / live / unavailable` modes, and the capability truth table. |
-| `packages/shared`            | Canonical JSON, SHA-256, `Result`, central config parsing, the live-mode guard.                                        |
-| `crates/fleet-cockpit`       | Rust, **host-testable**: Render Manifest, Event Cursor, scene loading over the vendored renderer.                      |
-| `crates/fleet-cockpit-web`   | Rust, **wasm32-only**, its own workspace: the browser shell and the `fleetscope_*` ABI.                                |
-| `vendor/zoetrope`            | The pinned MIT renderer. See `vendor/VENDOR-PATCHES.md` — it is **patched**, not pristine.                             |
-| `docs/`                      | Product, requirements, design, plans, decisions, reports, `architecture.md`.                                           |
-| `scripts/`                   | `typecheck.sh`, `build-wasm.sh`, `smoke.sh`, `bless-fixtures.ts`, `recorded-run.ts`, `recorded-reliability.ts`.        |
+```text
+apps/adk-worker/     Google ADK SequentialAgent (launch_readiness)
+apps/api/            health, capability, runs, GET /cloud/console
+apps/web/            /dashboard /console /viewer /demo
+crates/fleetscope-cli
+crates/agent-viewer-*
+packages/            shared TS libraries
+examples/            checked-in Gemini and Antigravity inputs
+docs/product/        pitch, feature inventory, Devpost packet
+scripts/             producer, Antigravity bridge, Cloud Run deploy
+```
 
-Dependency rules and per-package responsibilities: **`docs/architecture.md`**.
+## Minimal Google hackathon path
 
-## Prerequisites
+The product does not need a database or an agent-control backend. The fixed
+producer case is `google-cloud-launch-readiness`:
 
-| Tool                     | Version                           | Notes                                                        |
-| ------------------------ | --------------------------------- | ------------------------------------------------------------ |
-| Node                     | **22.x** (verified on 22.18.0)    | `engines` requires `>=22`.                                   |
-| pnpm                     | **11.x** (verified on 11.24.0)    | `corepack enable` installs the pinned version.               |
-| Rust / Cargo             | **1.90.0** verified, 1.82 minimum | `rust-toolchain.toml` pins stable + rustfmt + clippy.        |
-| `wasm32-unknown-unknown` | —                                 | `rustup target add wasm32-unknown-unknown`                   |
-| `trunk`                  | latest                            | **Not installed by default.** `cargo install --locked trunk` |
+1. `cloud_run_probe` calls read-only Cloud Run `services.get`.
+2. `storage_probe` calls read-only Cloud Storage `buckets.get`.
+3. `budget_guard` verifies six model calls, a 180-second timeout, two reads,
+   zero workflow writes, and FleetScope's read-only role.
+4. `launch_reviewer` returns `READY` or `NOT_READY` from those reports.
 
-Only `trunk` is optional: everything except the bundled WASM artifact builds and
-tests without it.
+Google ADK `2.8.0` runs all four as direct children of `launch_readiness` on
+Vertex AI `gemini-3.7-flash`. Every ADK event is redacted and flushed to JSONL
+as it arrives, so the CLI can follow it live. An explicit post-run `--upload`
+may store the finished JSONL and proof manifest in Cloud Storage.
 
-## Local setup
+### Set up the producer
 
 ```bash
-git clone <repo> && cd FleetScope
+uv venv --python 3.12 --allow-existing apps/adk-worker/.venv
+uv pip install --python apps/adk-worker/.venv/bin/python -e 'apps/adk-worker[dev]'
+```
+
+Validate the exact plan at zero cost (no ADC, network, or model call):
+
+```bash
+pnpm demo:google-session -- \
+  --project example-project \
+  --location us-central1 \
+  --service fleetscope \
+  --bucket fleetscope-sessions-demo
+```
+
+For the one real take, use ADC and explicit opt-ins:
+
+```bash
+export GOOGLE_GENAI_USE_VERTEXAI=true
+export GOOGLE_GENAI_USE_ENTERPRISE=true
+export GOOGLE_CLOUD_PROJECT=<project-id>
+export GOOGLE_CLOUD_LOCATION=global
+export FLEETSCOPE_CLOUD_RUN_LOCATION=us-central1
+export FLEETSCOPE_CLOUD_RUN_SERVICE=<service-name>
+export FLEETSCOPE_SESSION_BUCKET=<bucket-name>
+export FLEETSCOPE_ALLOW_MODEL_CALLS=true
+
+pnpm demo:google-session -- --run
+```
+
+The model endpoint and Cloud Run region are deliberately separate:
+`gemini-3.7-flash` uses `global`, `us`, or `eu`, while the read-only Cloud Run
+probe uses the service's regional location such as `us-central1`.
+
+The command prints `session_jsonl=<absolute path>` and the matching
+`fleetscope ... --follow` command before the first provider event. Add
+`--upload` only after the local run is understood and the bucket is ready.
+
+The proof manifest keeps `configuredModel` separate from provider-observed
+`modelVersion`. A configured string is never presented as execution evidence.
+
+Do not add Firestore, Cloud SQL, Pub/Sub, Warden, Model Armor, or multi-week
+Case orchestration to this demo. Those belong to a superseded enterprise
+proposal, not to the Session Observer.
+
+Local tests and recorded fixtures cost USD 0. Use the available Google Cloud
+credit only for one bounded provider-backed take and deployment validation.
+
+### API container smoke (recorded-only)
+
+The Cloud Run image bundles the Node API, the pinned Python ADK worker, and the
+run ledger. It is safe by default: `LIVE_MODE=false`, `workerMode=pure`, and
+the pure worker uses an offline fixture.
+
+```bash
+docker build -f apps/api/Dockerfile -t fleetscope-api:local .
+docker run --rm -p 8080:8080 fleetscope-api:local
+curl -sS http://127.0.0.1:8080/health
+curl -sS http://127.0.0.1:8080/runs/capability
+```
+
+The image must not be switched to ADK/Vertex mode until the frontend and local
+flow are verified. The live deployment requires all of `LIVE_MODE=true`,
+`FLEETSCOPE_RUN_WORKER_MODE=adk`, `FLEETSCOPE_ALLOW_MODEL_CALLS=true`,
+`GOOGLE_GENAI_USE_VERTEXAI=true`, and valid Google Cloud project/region values;
+ADC comes from the operator's local credential or the Cloud Run service
+account, never from a checked-in key.
+
+## Reproducible testing
+
+The commands below reproduce the submission from a clean checkout without
+credentials, paid model calls, or write access to Google Cloud. They exercise
+the checked-in Google ADK recording, the provider adapter, the shared
+projection core, the Rust CLI, and the browser build.
+
+### Prerequisites
+
+- Git.
+- Node.js 22 and `corepack`.
+- Rust 1.88 or newer with `rustup`.
+- Python 3.12 and [`uv`](https://docs.astral.sh/uv/) for the ADK worker tests.
+
+### Clean setup
+
+Until PR [#1](https://github.com/jasong-03/FleetScope/pull/1) is merged, the
+complete submission branch is public on the fork:
+
+```bash
+git clone --branch feat/agent-viewer-cli --single-branch \
+  https://github.com/harrymove-ctrl/FleetScope.git
+cd FleetScope
+
 corepack enable
-pnpm install
+corepack prepare pnpm@11.24.0 --activate
+pnpm install --frozen-lockfile
 
-cp .env.example .env          # optional; every default is already safe
+rustup toolchain install 1.88
+rustup target add wasm32-unknown-unknown --toolchain 1.88
 
-pnpm dev                      # Astro at http://localhost:4321 → /cases
+uv venv --python 3.12 --allow-existing apps/adk-worker/.venv
+uv pip install --python apps/adk-worker/.venv/bin/python \
+  -e 'apps/adk-worker[dev]'
 ```
 
-That is the whole setup for normal development. No cloud project, no credential,
-and no model call is involved.
-
-Other entry points:
+### Deterministic no-cost checks
 
 ```bash
-pnpm dev:web                  # Astro only
-pnpm dev:api                  # bounded API on :8080 (optional)
-
-pnpm build                    # static site
-pnpm build:web
-pnpm build:wasm               # requires trunk
-
-pnpm scenario:compile CASE-1042   # canonical events → Cockpit transcript
-pnpm fixtures:bless               # regenerate blessed hashes AND renderer artifacts
-pnpm schema:emit                  # regenerate JSON Schema from Zod
-
-pnpm recorded:run             # one complete Recorded Case run, as one JSON line
-pnpm reliability              # ten consecutive cold runs, compared field by field
-
-pnpm check                    # format + lint + typecheck + test + build
-pnpm smoke                    # the above plus Rust, the vendored renderer, and WASM
-```
-
-## Recorded mode
-
-`LIVE_MODE=false` is the default and the **safe** default. It fails closed: only
-the literal string `"true"` enables live mode, so a typo or an unset variable both
-mean recorded-only.
-
-In recorded mode:
-
-- `apps/web` renders entirely from `packages/fixtures` inlined at build time;
-- the projector reads canonical events and computes state and hashes locally;
-- `apps/api` is not required at all, and if it is running it refuses every live
-  request with `409 live_mode_disabled` and names the recorded fallback.
-
-Every surface labels its execution mode — _Recorded Case_, _Live proof_,
-_Synthetic system_, _Simulated day boundary_ — so recorded evidence can never be
-mistaken for a live platform result.
-
-## Live mode
-
-Optional, bounded, and off unless deliberately enabled. Turning it on requires
-`LIVE_MODE=true` **plus** `GEMINI_MODEL` and `GEMINI_API_KEY`; the service refuses
-to boot otherwise, naming the missing variable and never a value.
-
-Guardrails, all enforced in code:
-
-- only allowlisted `(caseId, stepId)` pairs are accepted — **there is no
-  free-form prompt endpoint anywhere in the service**;
-- at most `GEMINI_MAX_CALLS_PER_CASE` (default 2) model calls per Case;
-- 2,000 input / 300 output tokens, temperature 0, 15 s timeout by default;
-- Cloud Run runs `min-instances=0`, `max-instances=1`, with no worker.
-
-One call, no retry, and a response that must satisfy a schema or the call counts
-as failed. `/live/decision` returns **Source Events**, never a rendered result:
-the client canonicalizes them onto its stream, projects, compiles and appends, so
-a live result becomes canonical evidence before it reaches an authoritative
-surface. A failure returns `200` with `mode: "recorded"` and records the attempt
-as evidence — FleetScope never fabricates a live success.
-
-**Executed: 3/3 live runs passed against the real Gemini API, ~USD 0.0007 total**
-— about 0.002% of the USD 35 ceiling. Reproduce with
-`bash scripts/live-reliability.sh 3`. Every unit test still injects a `fetch`
-that stays in-process, so the bounded path runs in CI for free.
-See `docs/decisions/0003-bounded-live-path.md`.
-
-If the API reports `API_KEY_INVALID` on a key you know is good, check for a
-`GEMINI_API_KEY` exported in your shell profile: Node's `--env-file` does not
-override an already-set variable, so an ambient value silently shadows `.env`.
-
-### Running the live proof from the UI
-
-The Cockpit carries a **Run Live Proof** control. It reads `GET /capability` and
-stays disabled unless the API reports `liveMode: true` _and_ lists the step —
-frontend configuration is never treated as evidence of a capability.
-
-Because the static site and the API are separate origins, the browser call needs
-an explicit CORS grant. `WEB_ORIGINS` is an exact-match allowlist and is **empty
-by default**: with no entry the service sends no CORS header at all.
-
-```bash
-LIVE_MODE=true WEB_ORIGINS=http://localhost:4321 \
-GEMINI_MODEL=gemini-2.5-flash GEMINI_API_KEY=…    npx tsx apps/api/src/server.ts
-
-PUBLIC_API_BASE_URL=http://localhost:8080 PUBLIC_LIVE_MODE=true pnpm build:web
-```
-
-The browser canonicalizes the returned Source Events onto its own stream,
-projects, compiles and appends — refusing the append outright if the recorded
-prefix would recompile differently. The raw model response is never rendered.
-
-Never boot the normal UI with credentials. It does not need them.
-
-## Testing
-
-```bash
-pnpm test                     # all TypeScript tests
-pnpm test:unit                # domain, schema, config, compiler, api guards
-pnpm test:replay              # projector determinism + CASE-1042 fixture proofs
-pnpm typecheck                # every package + astro check
-pnpm lint
-pnpm format:check
-
-cargo test                    # FleetScope Rust, incl. the real Zoetrope integration
+pnpm check
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
-cargo clippy --all-targets -- -D warnings
-
-# The vendored renderer, on its own terms — must stay green after every patch.
-cargo test  --manifest-path vendor/zoetrope/Cargo.toml
-cargo check --manifest-path vendor/zoetrope/Cargo.toml --no-default-features
-
-# The wasm-only browser crate (its own workspace).
-cargo check --manifest-path crates/fleet-cockpit-web/Cargo.toml \
-            --target wasm32-unknown-unknown
-
-pnpm smoke                    # everything above, with explicit PASS/FAIL/SKIP
-pnpm reliability              # ten cold Recorded Case runs, compared field by field
-
-# Real Chromium against the built site. Requires `pnpm build:web` first.
-pnpm qa:browser               # 82 checks: every route at 1440x900, 1280x720, 1180x800
-FLEETSCOPE_QA_SHOTS=/tmp/shots pnpm qa:browser    # also writes screenshots
-FLEETSCOPE_QA_LIVE=true pnpm qa:browser           # +6 checks; spends one real model call
+cargo test --manifest-path vendor/zoetrope/Cargo.toml
+cargo clippy --manifest-path vendor/zoetrope/Cargo.toml \
+  --all-targets -- -D warnings
+cargo fmt --manifest-path vendor/zoetrope/Cargo.toml -- --check
+PYTHONPATH=apps/adk-worker/src \
+  apps/adk-worker/.venv/bin/python -m pytest apps/adk-worker/tests
+pnpm build:wasm
+git diff --check
 ```
 
-`pnpm qa:browser` covers what no unit test can: that the WASM renderer
-instantiated, that clicking an evidence row moved the renderer to the **manifest
-range** for that Canonical Event (not a ratio), that historical mode says nothing
-is executing, that the evidence export verifies in the browser, that primary
-navigation is keyboard reachable, and that no route gives the BODY a horizontal
-scrollbar at any supported size.
+Inspect the checked-in multi-agent session headlessly:
 
-| Suite                                                 |                                                        Tests |
-| ----------------------------------------------------- | -----------------------------------------------------------: |
-| TypeScript (`pnpm test`)                              |                                      **271** across 15 files |
-| FleetScope Rust (`cargo test`)                        |            **53** — 9 lib, 12 cursor, 23 scene, 9 transcript |
-| Vendored Zoetrope (`cargo test` in `vendor/zoetrope`) | **190** — 182 lib + 8 bin, unchanged by FleetScope's patches |
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- \
+  inspect examples/gemini-session
+```
 
-`pnpm test:replay` is the load-bearing one: it proves that the same canonical
-prefix and projector version yield the same Observable Case State hash, and that
-the fixture upholds the product invariants (blocked input never used downstream,
-intervention states never collapsed, every badge traceable to an event).
+Expected result: the command identifies the Google ADK format, reports the
+recorded agents and events, and prints a stable projection fingerprint. To
+exercise the interactive TUI instead, remove `inspect` and add `--follow`.
 
-`crates/fleet-cockpit/tests/scene.rs` is the other: it folds the real compiled
-CASE-1042 through the real vendored renderer **on the host**, so "the Cockpit
-renders what FleetScope says it does" is checked by `cargo test` rather than
-discovered in a browser.
+Build and preview the browser viewer:
 
-## Licensing
+```bash
+pnpm --filter @fleetscope/web build
+pnpm --filter @fleetscope/web exec astro preview \
+  --host 127.0.0.1 --port 4321
+```
 
-FleetScope is MIT licensed — see `LICENSE`.
+Open <http://127.0.0.1:4321/viewer/>, choose **Preview example**, and verify
+that the agent graph, event timeline, tool calls, and inspector render. The
+example is bundled with the build; it makes no backend or model request.
 
-Third-party attribution lives in **`THIRD-PARTY-NOTICES.md`**, and only there:
-per product decision D8, notices stay in repository licensing files and do not
-appear in product navigation.
+Open <http://127.0.0.1:4321/console> and click Cloud Run, Cloud Storage, Vertex
+/ ADK, and Invoke. The page is recorded evidence. It must not prompt for a
+Google login and must not start a model.
 
-The Fleet Cockpit renders on **Zoetrope** (MIT, © 2026 Furkan Kalaycioglu),
-vendored at `vendor/zoetrope/` and pinned to
-`077707da679955c0402c39ca992bf56cdc6b0264`. It is **not unmodified** — FleetScope
-carries a small patchset, recorded in full in **`vendor/VENDOR-PATCHES.md`**.
-Upstream's own suite (182 library + 8 binary tests) passes unchanged after it.
+### Hosted smoke test
+
+No credentials are required. These endpoints are deployed on Google Cloud
+Run in `us-central1`:
+
+```bash
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/health
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/runs/capability
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/cloud/console
+curl -fsS -o /dev/null \
+  https://fleetscope-web-6tes2q7oqa-uc.a.run.app/viewer/
+```
+
+The first two commands must return JSON with HTTP 200; the last command must
+exit successfully. The hosted API deliberately runs in recorded-only mode, so
+judging it cannot spend model tokens. The provider-backed evidence was produced
+separately with Google ADK `2.8.0`, Vertex AI `gemini-3.7-flash`, read-only
+Cloud Run `services.get`, and Cloud Storage `buckets.get`; the bounded live-run
+procedure is documented in [Minimal Google hackathon path](#minimal-google-hackathon-path).
+
+## Verification
+
+Current local status (2026-08-30): TypeScript/Astro checks, the full Vitest
+suite, Rust workspace tests, Python worker tests, WASM check and build,
+formatting, lint, docs links, and launchpad browser QA (all five viewports)
+pass. Deep viewer Playwright QA still needs a normal desktop run:
+the escalated process opened browser IPC but produced no output for 90 seconds
+and was stopped; do not present that gate as passed.
+
+## Docs
+
+- [Session Observer product brief](docs/product/session-observer.md) — idea,
+  feature map, UI/UX, pitch, and four-minute demo script.
+- [Session Observer requirements](docs/requirements/session-observer.md) — what
+  must be true, success measures, non-goals, and open points.
+- [Session Observer design](docs/design/session-observer.md) — architecture,
+  adapter contract, state/failure behavior, and hosted proof.
+- [Hackathon checklist](docs/product/hackathon-submission-checklist.md) —
+  exact proof gates and current gaps.
+- [Feature inventory](docs/product/feature-inventory.md) — every surface and
+  the command that invokes it.
+- [Devpost additional-info](docs/product/devpost-additional-info.md) —
+  field-by-field ticks and the private testing-instructions paste.
+- [Docs index](docs/README.md) — navigation and historical/superseded docs.
+
+The earlier enterprise CASE-1042 pitch/design/requirements remain in `docs/`
+for traceability and are explicitly marked deprecated/superseded. Do not use
+them to script the current demo.

@@ -1,0 +1,14 @@
+# Builds the bounded API image.
+#
+# The Dockerfile lives at apps/api/Dockerfile but its build context is the
+# repository root: it copies the pnpm workspace manifests and several
+# packages/* alongside apps/api. `gcloud run deploy --source` looks for a
+# Dockerfile at the context root and would not find it, so the build is
+# described here instead of moving the Dockerfile away from the app it builds.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'apps/api/Dockerfile', '-t', '${_IMAGE}', '.']
+images:
+  - '${_IMAGE}'
+options:
+  logging: CLOUD_LOGGING_ONLY

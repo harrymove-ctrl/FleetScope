@@ -1,0 +1,209 @@
+---
+/**
+ * First-run assistant on Dashboard: a plan card, not a preloader.
+ *
+ * Shows the launch-readiness job (steps, tools, call budget) and how to run
+ * Agent Viewer plus gcloud. It never starts Vertex from the browser.
+ */
+import TerminalWindow from './TerminalWindow.astro';
+import {
+  CONSOLE_APP_PATH,
+  CONSOLE_RUN_URL,
+  CONSOLE_STORAGE_URL,
+  GCLOUD_DESCRIBE,
+  GCLOUD_STORAGE,
+  LAUNCH_PLAN_CALLS,
+  LAUNCH_PLAN_GOAL,
+  LAUNCH_PLAN_PHASES,
+  LAUNCH_PLAN_STEPS,
+  LAUNCH_PLAN_TIMEOUT,
+  LAUNCH_PLAN_TITLE,
+  LAUNCH_PLAN_TOOLS,
+  PRODUCER_DRY_RUN,
+  SUPPORT_AGY_COMMAND,
+  SUPPORT_CLI,
+  SUPPORT_CLI_COMMAND,
+  SUPPORT_CLI_STEPS,
+  SUPPORT_FORMATS,
+  SUPPORT_PRIVACY,
+} from '../features/dashboard/launch-plan';
+---
+
+<section class="assistant-plan" data-assistant-plan aria-labelledby="assistant-plan-title">
+  <p class="assistant-plan__kicker">Assistant · Gemini ADK</p>
+
+  <div class="assistant-plan__chat" data-assistant-chat aria-live="polite">
+    <article class="assistant-plan__msg" data-support-msg="privacy">
+      <p class="assistant-plan__msg-role">Gemini ADK support</p>
+      <h3>Privacy boundary</h3>
+      <p>{SUPPORT_PRIVACY}</p>
+    </article>
+
+    <article class="assistant-plan__msg" data-support-msg="cli">
+      <p class="assistant-plan__msg-role">Gemini ADK support</p>
+      <h3>Use the CLI</h3>
+      <p>{SUPPORT_CLI}</p>
+      <ol class="assistant-plan__steps">
+        {
+          SUPPORT_CLI_STEPS.map((step, index) => (
+            <li>
+              <span>{index + 1}</span>
+              <span>
+                <strong>{step.title}</strong>
+                {step.detail}
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+      <TerminalWindow title="Antigravity session" class="fs-dashboard__terminal">
+        <span slot="actions">
+          <button
+            type="button"
+            class="fs-button fs-button--sm fs-terminal-window__copy"
+            data-copy-command={SUPPORT_AGY_COMMAND}
+          >
+            Copy
+          </button>
+        </span>
+        <code class="fs-dashboard__command">{SUPPORT_AGY_COMMAND}</code>
+      </TerminalWindow>
+      <TerminalWindow title="example only · gemini-session" class="fs-dashboard__terminal">
+        <span slot="actions">
+          <button
+            type="button"
+            class="fs-button fs-button--sm fs-terminal-window__copy"
+            data-copy-command={SUPPORT_CLI_COMMAND}
+          >
+            Copy
+          </button>
+        </span>
+        <code class="fs-dashboard__command">{SUPPORT_CLI_COMMAND}</code>
+      </TerminalWindow>
+    </article>
+
+    <article class="assistant-plan__msg" data-support-msg="formats" hidden>
+      <p class="assistant-plan__msg-role">Gemini ADK support</p>
+      <h3>Supported inputs</h3>
+      <ul class="fs-dashboard__sources">
+        {SUPPORT_FORMATS.map((item) => (
+          <li><code>{item.id}</code><span>{item.note}</span></li>
+        ))}
+      </ul>
+      <p class="fs-mono" data-formats-output>Checking adapters…</p>
+    </article>
+
+    <article class="assistant-plan__msg" data-support-msg="runtime" hidden>
+      <p class="assistant-plan__msg-role">Gemini ADK support</p>
+      <h3>Viewer readiness</h3>
+      <p data-support-runtime>The projection runtime has not been checked yet.</p>
+    </article>
+  </div>
+
+  <header class="assistant-plan__head">
+    <h2 id="assistant-plan-title">{LAUNCH_PLAN_TITLE}</h2>
+    <span class="assistant-plan__count" data-plan-approved>Auto-approved</span>
+  </header>
+
+  <div class="assistant-plan__body">
+    <section>
+      <h3>Goal</h3>
+      <div class="assistant-plan__goal">
+        <p data-plan-goal>{LAUNCH_PLAN_GOAL}</p>
+      </div>
+    </section>
+
+    <section>
+      <h3>Google Console</h3>
+      <ul class="assistant-plan__console">
+        <li>
+          <a href={CONSOLE_APP_PATH}>Open judge Cloud Console</a>
+        </li>
+        <li>
+          <a href={CONSOLE_RUN_URL} target="_blank" rel="noreferrer">Open Cloud Run</a>
+          <button type="button" data-copy-command={GCLOUD_DESCRIBE}>Copy gcloud</button>
+        </li>
+        <li>
+          <a href={CONSOLE_STORAGE_URL} target="_blank" rel="noreferrer">Open Storage</a>
+          <button type="button" data-copy-command={GCLOUD_STORAGE}>Copy bucket</button>
+        </li>
+      </ul>
+    </section>
+
+    <dl class="assistant-plan__stats">
+      <div>
+        <dt>Steps</dt>
+        <dd>{LAUNCH_PLAN_STEPS}</dd>
+      </div>
+      <div>
+        <dt>Est. time</dt>
+        <dd>{LAUNCH_PLAN_TIMEOUT}</dd>
+      </div>
+      <div>
+        <dt>Vertex budget</dt>
+        <dd>{LAUNCH_PLAN_CALLS} calls</dd>
+      </div>
+    </dl>
+
+    <section>
+      <h3>Tools</h3>
+      <ul class="assistant-plan__tools">
+        {LAUNCH_PLAN_TOOLS.map((tool) => <li>{tool}</li>)}
+      </ul>
+    </section>
+
+    <section>
+      <h3>Breakdown</h3>
+      <ol class="assistant-plan__phases">
+        {
+          LAUNCH_PLAN_PHASES.map((phase, index) => (
+            <li data-phase-state={phase.state}>
+              <span class="assistant-plan__index" aria-hidden="true">✓</span>
+              <span>
+                <span class="assistant-plan__phase-name">{phase.name}</span>
+                <small class="assistant-plan__phase-evidence">{phase.evidence}</small>
+              </span>
+              <span class="assistant-plan__phase-meta">approved</span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </div>
+
+  <footer class="assistant-plan__foot">
+    <p data-plan-status>Auto-approved from recorded evidence. This tab does not start Vertex. Copy and talk.</p>
+    <button type="button" data-plan-copy-gcloud>Copy gcloud</button>
+    <a class="assistant-plan__run" href="/viewer" data-plan-run>Open viewer</a>
+  </footer>
+
+  <pre class="assistant-plan__commands" hidden>
+{GCLOUD_DESCRIBE}
+
+# Terminal 2, after the producer prints watch_command=
+{PRODUCER_DRY_RUN}
+  </pre>
+</section>
+
+<script>
+  import { GCLOUD_DESCRIBE } from '../features/dashboard/launch-plan';
+
+  const root = document.querySelector('[data-assistant-plan]');
+  if (root) {
+    const statusEl = root.querySelector('[data-plan-status]') as HTMLElement;
+    const copyBtn = root.querySelector('[data-plan-copy-gcloud]') as HTMLButtonElement;
+
+    copyBtn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(GCLOUD_DESCRIBE);
+        copyBtn.textContent = 'Copied gcloud';
+        statusEl.textContent = 'Paste in Terminal. Same Cloud Run service the agents inspect.';
+      } catch {
+        statusEl.textContent = 'Copy failed. The command is on the page.';
+      }
+      window.setTimeout(() => {
+        copyBtn.textContent = 'Copy gcloud';
+      }, 1600);
+    });
+  }
+</script>

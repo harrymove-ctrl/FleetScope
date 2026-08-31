@@ -1,74 +1,57 @@
-# FleetScope product documentation
+# FleetScope documentation
 
-Status: draft working set
+**Current product:** the read-only Session Observer — JSONL in, graph,
+inspector, live follow, and replay out.
 
-FleetScope is an enterprise agent-fleet control plane for discovering approved
+Start here:
 
-agents and operating durable, policy-enforced business Cases. Its Fleet Cockpit
+1. [Idea and pitch](product/idea-and-pitch.md) — current idea, Taskmaster fit,
+   verbal pitch, and deck outline.
+2. [Pitch and video script](product/pitch-and-video-script.md) — the spoken
+   script for the deck and the demo video, with verified commands.
+3. [Session Observer product brief](product/session-observer.md) — feature map,
+   Google workflow, truth contract, and four-minute demo.
+4. [Session Observer requirements](requirements/session-observer.md) — problem,
+   scope, success measures, non-goals, and open points.
+5. [Session Observer design](design/session-observer.md) — adapters, projection,
+   live/replay state, failure behavior, and minimal hosted proof.
+6. [Google runtime runbook](design/hackathon-runtime.md) — zero-cost validation,
+   real run, live follow, and cloud evidence capture.
+7. [Official hackathon facts](product/hackathon-official.md) — deadline,
+   40/30/30 rubric, Cloud Run may be deleted after the video.
+8. [Hackathon checklist](product/hackathon-submission-checklist.md) — Gemini,
+   Google ADK, Cloud Run/Storage, video, repo, and Devpost gates.
+9. [Feature inventory](product/feature-inventory.md) — every feature and the
+   invoke command for it.
+10. [Devpost additional-info](product/devpost-additional-info.md) — how to fill
+    the judges-only form.
+11. [Architecture overview](architecture.md) — repository package boundaries.
 
-makes Registry, Runtime, Memory, Identity, Gateway, Model Armor, observability,
+## Navigation
 
-and bounded Warden actions visible and auditable.
+- [Product](product/README.md) — what FleetScope promises and how it demos.
+- [Requirements](requirements/README.md) — what must be true.
+- [Design](design/README.md) — how each surface is shaped.
+- [Decisions](decisions/README.md) — ADRs, including the superseded enterprise
+  runtime and the accepted Session Observer boundary.
+- [Plans](plans/README.md) — remaining sequence and validation gates.
 
-## Read this set
+## Scope rule
 
-1. [Product plan](product/[product-plan.md](http://product-plan.md)) — positioning, users, outcomes,
+The superseded CASE-1042 enterprise story — Case, Warden, Model Armor, ERP,
+Firestore, Pub/Sub, Agent Catalog, Fleet Cockpit — was removed from this tree on
+2026-08-31. It survives in git history and nowhere else, because a document that
+exists only to say it is deprecated still costs a reader the time to find that
+out. Do not reintroduce it to expand the Session Observer demo.
 
-   assumptions, competition, launch, and product decisions.
+The only ADR that still records that story is
+[0006](decisions/0006-cloud-agent-runtime-and-ledger.md), kept because ADRs are
+superseded rather than deleted.
 
-2. [UI/UX plan](product/[ui-ux-plan.md](http://ui-ux-plan.md)) — Agent Catalog, Case Workspace,
+## Verification rule
 
-   approvals, Fleet Cockpit, visual system, and demo flow.
-
-3. [Context intake](product/[context-intake.md](http://context-intake.md)) — the facts and artifacts still
-
-   needed to turn the draft into an evidence-backed active plan.
-
-4. [Requirements entry point](requirements/[fleetscope.md](http://fleetscope.md)) — product contract,
-
-   scope, success criteria, and capability map.
-
-5. [Glossary](requirements/[glossary.md](http://glossary.md)) — normative names and boundaries.
-
-6. [System design](design/[system.md](http://system.md)) — components, event protocol, Warden
-
-   control loop, security, and failure handling.
-
-7. [USD 35 demo design](design/[budget-demo.md](http://budget-demo.md)) — browser visualization reuse,
-
-   static-first architecture, scenario compiler, credit guardrails, and slices.
-
-8. [Six-day delivery plan](plans/[six-day-delivery.md](http://six-day-delivery.md)) — work breakdown,
-
-   milestones, owners, gates, and cuts.
-
-9. [Demo and validation plan](plans/[demo-validation.md](http://demo-validation.md)) — the proof the team
-
-   must capture for judges and for internal acceptance.
-
-10. [Zoetrope audit and implementation plan](plans/zoetrope-audit-and-implementation-plan.md) —
-
-    the renderer decision, and the four points where the plan was wrong.
-
-11. [Implementation report, 2026-08-26](reports/fleetscope-end-to-end-implementation-2026-08-26.md) —
-
-    **what was actually built, with real command output.** Read this before
-
-    trusting any status claim in the plans above.
-
-12. [UI completion report, 2026-08-26](reports/fleetscope-ui-completion-2026-08-26.md) —
-
-    the product-UI audit, what was changed route by route, the browser QA and
-
-    accessibility results, and the executed live-proof-from-the-UI evidence.
-
-13. [Decisions](decisions/) — 0001 tooling · 0002 renderer boundary (resolved) ·
-
-    0003 bounded live path · 0004 render manifest · 0005 redaction boundaries.
-
-The requirements use **MUST**, **SHOULD**, and **MAY** as normative terms.
-
-MUST is required for the MVP to conform; SHOULD is the default unless a
-
-documented tradeoff is accepted; MAY is optional.
-
+A local fixture, configured model string, dependency, screenshot, or green unit
+test is not Google Cloud execution proof. The live hackathon label requires the
+same session ID tied to provider-owned Gemini `modelVersion`, real Google ADK
+events, and visible Cloud Run deployment evidence. Cloud Storage upload is an
+optional matching artifact, not a substitute for the running backend proof.

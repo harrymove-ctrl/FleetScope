@@ -7,7 +7,7 @@ import {
 } from '@fleetscope/scenario-compiler';
 
 /**
- * The JS/TS boundary around the Fleet Cockpit WASM module.
+ * The JS/TS boundary around the Agent Viewer WASM module.
  *
  * WHY THIS FILE EXISTS: nothing else in the frontend may touch raw generated
  * WASM bindings. The generated API changes shape whenever the Rust ABI does;
@@ -77,7 +77,7 @@ export interface CockpitAdapter {
 }
 
 const UNAVAILABLE_REASON =
-  'The Fleet Cockpit renderer did not load. Recorded evidence is still complete in the evidence rail, the Case Workspace and the Audit view.';
+  'The Agent Viewer renderer did not load. Recorded evidence is still complete in the evidence rail, the Case Workspace and the Audit view.';
 
 /**
  * A no-op adapter used when the renderer is absent. It never throws: a missing

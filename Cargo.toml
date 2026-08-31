@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/fleet-cockpit"]
+members = [
+  "crates/agent-viewer-core",
+  "crates/agent-viewer-render",
+  "crates/fleet-cockpit",
+  "crates/fleetscope-cli",
+]
 
 # `vendor/zoetrope` carries its own `[workspace]` table and its own lockfile; a
 # path dependency needs no membership. `crates/fleet-cockpit-web` can only be

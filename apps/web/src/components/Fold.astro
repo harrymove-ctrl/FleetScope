@@ -1,0 +1,220 @@
+---
+/**
+ * The fold — the page scrolling on the face of a cube.
+ *
+ * The face is a viewport-tall sticky panel inside a tall wrapper, so the page's
+ * own scroll drives it. It is drawn three times: a top band, a flat middle, and
+ * a bottom band. Each copy is clipped to its band and the two end bands are
+ * rotated about the crease.
+ *
+ * Why three copies rather than one folded element: `clip-path` cuts pixels and
+ * the transform applies afterwards, so a heading straddling the crease is split
+ * down its middle and each half rotates with its own band. Folding real
+ * elements cannot do that — a row is atomic, so the crease can only ever fall
+ * between rows.
+ *
+ * The middle band holds the real content and is the only copy in the
+ * accessibility tree; the two end bands are inert, aria-hidden duplicates. Links
+ * inside a fold are therefore reachable in the flat middle, where they are
+ * readable, and not in the bands, where they are edge-on.
+ *
+ * This runs everywhere. canvas-ui's shader version renders a rounded crease and
+ * pointer tilt but needs `chrome://flags/#canvas-draw-element`, which is in
+ * origin trial and which no other engine has committed to — so it cannot be
+ * what the page depends on.
+ */
+import { FOLD_DEFAULTS, type FoldOptions } from '../features/bend/fold';
+
+interface Props extends Partial<FoldOptions> {
+  class?: string;
+}
+
+const { class: className, ...overrides } = Astro.props;
+const options = { ...FOLD_DEFAULTS, ...overrides };
+---
+
+<div class:list={['fold', className]} data-fold data-fold-options={JSON.stringify(options)}>
+  <div class="fold__sticky">
+    <div class="fold__stage" style={`--fold-perspective: ${options.perspective}px;`}>
+      <div class="fold__band fold__band--top" data-fold-band="top" aria-hidden="true">
+        <div class="fold__view" data-fold-view><slot name="copy-top" /></div>
+      </div>
+
+      <div class="fold__band fold__band--mid" data-fold-band="mid">
+        <div class="fold__view" data-fold-view><slot /></div>
+      </div>
+
+      <div class="fold__band fold__band--bottom" data-fold-band="bottom" aria-hidden="true">
+        <div class="fold__view" data-fold-view><slot name="copy-bottom" /></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import {
+    FOLD_DEFAULTS,
+    bandRotation,
+    cornerReveal,
+    effectiveZone,
+    faceOffset,
+    foldAmounts,
+    type FoldOptions,
+  } from '../features/bend/fold';
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  for (const host of document.querySelectorAll<HTMLElement>('[data-fold]')) {
+    const sticky = host.querySelector<HTMLElement>('.fold__sticky');
+    const views = [...host.querySelectorAll<HTMLElement>('[data-fold-view]')];
+    const top = host.querySelector<HTMLElement>('[data-fold-band="top"]');
+    const bottom = host.querySelector<HTMLElement>('[data-fold-band="bottom"]');
+    const mid = host.querySelector<HTMLElement>('[data-fold-band="mid"]');
+    if (!sticky || !mid || !top || !bottom || views.length !== 3) continue;
+
+    let options: FoldOptions = FOLD_DEFAULTS;
+    try {
+      options = { ...FOLD_DEFAULTS, ...JSON.parse(host.dataset['foldOptions'] ?? '{}') };
+    } catch {
+      options = FOLD_DEFAULTS;
+    }
+
+    let maxScroll = 0;
+    let zone = 0;
+    let frame = 0;
+
+    // Each corner block with its offset inside the face, read once. Reading
+    // rects per frame instead would force layout 48 times a frame.
+    let corners: { el: HTMLElement; top: number }[] = [];
+
+    // The wrapper's height is what gives the page the scroll distance the face
+    // needs. It is the content's natural height, so the face finishes exactly
+    // as its last line arrives.
+    function measure(): void {
+      const viewport = sticky!.clientHeight;
+      const content = mid!.querySelector<HTMLElement>('[data-fold-view]')?.scrollHeight ?? 0;
+      maxScroll = Math.max(0, content - viewport);
+      zone = effectiveZone(options.zone, viewport);
+      host.style.setProperty('--fold-zone', `${zone}px`);
+      host.style.height = `${viewport + maxScroll}px`;
+
+      corners = [];
+      for (const view of views) {
+        const base = view.getBoundingClientRect().top;
+        for (const el of view.querySelectorAll<HTMLElement>('.chapter__corner')) {
+          corners.push({ el, top: el.getBoundingClientRect().top - base });
+        }
+      }
+
+      paint();
+    }
+
+    function paint(): void {
+      const offset = faceOffset(window.scrollY, host.offsetTop, maxScroll);
+      for (const view of views) view.style.transform = `translate3d(0, ${-offset}px, 0)`;
+
+      if (reduced.matches) {
+        top!.style.transform = '';
+        bottom!.style.transform = '';
+        return;
+      }
+
+      for (const corner of corners) {
+        const r = cornerReveal(corner.top - offset, sticky!.clientHeight, zone);
+        corner.el.style.setProperty('--reveal', r.toFixed(3));
+        // Drop the mask once resolved: it is expensive, and at rest it would
+        // only mottle text it has finished uncovering.
+        if (r >= 0.999) corner.el.setAttribute('data-resolved', '');
+        else corner.el.removeAttribute('data-resolved');
+      }
+
+      const amounts = foldAmounts(offset, maxScroll, options.ease);
+      const topDeg = bandRotation('top', amounts.top, options.angle, options.direction);
+      const botDeg = bandRotation('bottom', amounts.bottom, options.angle, options.direction);
+      top!.style.transform = `rotateX(${topDeg}deg)`;
+      bottom!.style.transform = `rotateX(${botDeg}deg)`;
+    }
+
+    function schedule(): void {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        paint();
+      });
+    }
+
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', measure, { passive: true });
+    reduced.addEventListener('change', paint);
+    // Late-arriving webfonts and images change the content's height, and a face
+    // measured before them ends its scroll in the wrong place.
+    if (document.fonts?.ready) void document.fonts.ready.then(measure);
+    new ResizeObserver(measure).observe(mid);
+    measure();
+  }
+</script>
+
+<style>
+  .fold {
+    position: relative;
+  }
+
+  .fold__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: clip;
+  }
+
+  .fold__stage {
+    position: relative;
+    height: 100%;
+    perspective: var(--fold-perspective, 700px);
+    perspective-origin: 50% 50%;
+  }
+
+  .fold__band {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+
+  /*
+   * Each band shows only its own slice of the same face. The crease is the clip
+   * boundary, and because clipping happens before the transform, a line of text
+   * across it is cut in half rather than assigned to one side.
+   */
+  .fold__band--top {
+    clip-path: inset(0 0 calc(100% - var(--fold-zone, 0px)) 0);
+    transform-origin: 50% var(--fold-zone, 0px);
+  }
+
+  .fold__band--mid {
+    clip-path: inset(var(--fold-zone, 0px) 0 var(--fold-zone, 0px) 0);
+  }
+
+  .fold__band--bottom {
+    clip-path: inset(calc(100% - var(--fold-zone, 0px)) 0 0 0);
+    transform-origin: 50% calc(100% - var(--fold-zone, 0px));
+  }
+
+  /* The bands are duplicates; only the middle one accepts a pointer. */
+  .fold__band--top,
+  .fold__band--bottom {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .fold__view {
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fold__band--top,
+    .fold__band--bottom {
+      transform: none !important;
+    }
+  }
+</style>

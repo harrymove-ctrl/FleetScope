@@ -1,0 +1,301 @@
+---
+/**
+ * Judge-facing Google Cloud evidence console.
+ *
+ * This is not IAM into the GCP project. Judges click recorded Cloud Run,
+ * Storage, and ADK session facts. The page never starts Vertex.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { webConfig } from '../lib/config';
+import { CLOUD_CONSOLE_EVIDENCE } from '../features/console/evidence';
+import '../styles/feature-console.css';
+
+const config = webConfig();
+const evidence = CLOUD_CONSOLE_EVIDENCE;
+const { hosted, probes, session, vertexTake, invoke, project, bounds } = evidence;
+---
+
+<BaseLayout title="Cloud Console" wide surface="feature" theme="adaptive">
+  <div
+    class="gcp-console"
+    data-gcp-console
+    data-api-base={config.apiBaseUrl ?? ''}
+    data-hosted-api={hosted.api.url}
+  >
+    <header class="gcp-console__bar">
+      <div>
+        <p class="gcp-console__kicker">Google Cloud · recorded evidence</p>
+        <h1>Cloud Console</h1>
+        <p>
+          Project <code>{project.id}</code> · {project.region} · decision
+          <strong>{session.decision}</strong>
+        </p>
+      </div>
+      <p class="gcp-console__source" data-console-source>Bundled snapshot · {evidence.observedAt}</p>
+    </header>
+
+    <p class="gcp-console__note">{bounds.note}</p>
+
+    <div class="gcp-console__layout">
+      <nav class="gcp-console__nav" aria-label="Cloud resources">
+        <button type="button" data-console-tab="overview" aria-current="page">Overview</button>
+        <button type="button" data-console-tab="run">Cloud Run</button>
+        <button type="button" data-console-tab="storage">Cloud Storage</button>
+        <button type="button" data-console-tab="session">Vertex / ADK</button>
+        <button type="button" data-console-tab="invoke">Invoke</button>
+      </nav>
+
+      <div class="gcp-console__panels">
+        <section data-console-panel="overview">
+          <h2>Launch-readiness on this project</h2>
+          <ul class="gcp-console__cards">
+            <li>
+              <button type="button" data-console-tab="run">
+                <strong>{hosted.web.service}</strong>
+                <small>Hosted viewer · {hosted.web.revision}</small>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-console-tab="run">
+                <strong>{hosted.api.service}</strong>
+                <small>Hosted API · liveMode {String(hosted.api.liveMode)}</small>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-console-tab="storage">
+                <strong>{probes.storage.bucket}</strong>
+                <small>{probes.storage.location} · {probes.storage.storageClass}</small>
+              </button>
+            </li>
+            <li>
+              <button type="button" data-console-tab="session">
+                <strong>{session.decision}</strong>
+                <small>{session.producer} · {session.modelCalls} calls</small>
+              </button>
+            </li>
+          </ul>
+          <p>
+            Open the public services without a Google login:
+            <a href={hosted.web.url} target="_blank" rel="noreferrer">{hosted.web.url}</a>
+            ·
+            <a href={`${hosted.api.url}/health`} target="_blank" rel="noreferrer">API /health</a>
+          </p>
+        </section>
+
+        <section data-console-panel="run" hidden>
+          <h2>Cloud Run</h2>
+          <dl class="gcp-console__facts">
+            <div>
+              <dt>Hosted web</dt>
+              <dd><a href={hosted.web.url}>{hosted.web.url}</a></dd>
+            </div>
+            <div>
+              <dt>Revision</dt>
+              <dd><code>{hosted.web.revision}</code></dd>
+            </div>
+            <div>
+              <dt>Hosted API</dt>
+              <dd><a href={hosted.api.url}>{hosted.api.url}</a></dd>
+            </div>
+            <div>
+              <dt>API revision</dt>
+              <dd><code>{hosted.api.revision}</code></dd>
+            </div>
+            <div>
+              <dt>Agent probe</dt>
+              <dd>
+                <code>{probes.cloudRun.operation}</code> on <code>{probes.cloudRun.service}</code>
+                · ready {String(probes.cloudRun.ready)} · {probes.cloudRun.latestReadyRevision}
+              </dd>
+            </div>
+          </dl>
+          <p class="gcp-console__split">
+            The hosted proof (`fleetscope-web`) and the ADK `services.get` target
+            (`fleetscope`) are named separately on purpose. Do not collapse them.
+          </p>
+          <pre data-console-json="run"></pre>
+          <div class="gcp-console__actions">
+            <button type="button" data-copy={invoke.gcloudRun}>Copy gcloud describe</button>
+            <a href={hosted.web.url} target="_blank" rel="noreferrer">Open hosted web</a>
+          </div>
+        </section>
+
+        <section data-console-panel="storage" hidden>
+          <h2>Cloud Storage</h2>
+          <dl class="gcp-console__facts">
+            <div>
+              <dt>Bucket</dt>
+              <dd><code>{probes.storage.bucket}</code></dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>{probes.storage.location}</dd>
+            </div>
+            <div>
+              <dt>Class</dt>
+              <dd>{probes.storage.storageClass}</dd>
+            </div>
+            <div>
+              <dt>Uniform access</dt>
+              <dd>{String(probes.storage.uniformAccess)}</dd>
+            </div>
+            <div>
+              <dt>Operation</dt>
+              <dd><code>{probes.storage.operation}</code> · metadata only</dd>
+            </div>
+          </dl>
+          <p>Object listing and object download are out of contract. Bucket generation is not claimed.</p>
+          <pre data-console-json="storage"></pre>
+          <div class="gcp-console__actions">
+            <button type="button" data-copy={invoke.gcloudStorage}>Copy bucket describe</button>
+          </div>
+        </section>
+
+        <section data-console-panel="session" hidden>
+          <h2>Vertex / Google ADK</h2>
+          <dl class="gcp-console__facts">
+            <div>
+              <dt>Producer</dt>
+              <dd>{session.producer}</dd>
+            </div>
+            <div>
+              <dt>Observed model</dt>
+              <dd><code>{session.observedModel}</code></dd>
+            </div>
+            <div>
+              <dt>Bundled session</dt>
+              <dd><code>{session.invocationId}</code></dd>
+            </div>
+            <div>
+              <dt>Vertex take</dt>
+              <dd><code>{vertexTake.invocationId}</code></dd>
+            </div>
+            <div>
+              <dt>Agents</dt>
+              <dd>{session.agents.join(' → ')}</dd>
+            </div>
+            <div>
+              <dt>Budget</dt>
+              <dd>{session.modelCalls} calls · {session.timeoutSeconds}s · {session.cloudReads} reads · {session.cloudWritesDuringWorkflow} workflow writes</dd>
+            </div>
+          </dl>
+          <p>{vertexTake.note}</p>
+          <pre data-console-json="session"></pre>
+          <div class="gcp-console__actions">
+            <a href="/viewer">Open Agent Viewer</a>
+            <a href="/demo">Open session readings</a>
+          </div>
+        </section>
+
+        <section data-console-panel="invoke" hidden>
+          <h2>How to invoke</h2>
+          <ol class="gcp-console__invoke">
+            <li>
+              <strong>Hosted, no credentials</strong>
+              <code data-copy-target>{invoke.health}</code>
+              <button type="button" data-copy={invoke.health}>Copy</button>
+            </li>
+            <li>
+              <strong>This console as JSON</strong>
+              <code data-copy-target>{invoke.console}</code>
+              <button type="button" data-copy={invoke.console}>Copy</button>
+            </li>
+            <li>
+              <strong>Headless inspect of the bundled ADK session</strong>
+              <code data-copy-target>{invoke.inspectFixture}</code>
+              <button type="button" data-copy={invoke.inspectFixture}>Copy</button>
+            </li>
+            <li>
+              <strong>Zero-cost producer dry-run</strong>
+              <code data-copy-target>{invoke.dryRun}</code>
+              <button type="button" data-copy={invoke.dryRun}>Copy</button>
+            </li>
+            <li>
+              <strong>Follow the checked-in Gemini example</strong>
+              <code data-copy-target>{invoke.followExample}</code>
+              <button type="button" data-copy={invoke.followExample}>Copy</button>
+            </li>
+          </ol>
+          <p>
+            The producer spend flag starts Vertex. Do not run it from this page.
+            Field-by-field Devpost answers live in
+            <code>docs/product/devpost-additional-info.md</code>.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { CLOUD_CONSOLE_EVIDENCE } from '../features/console/evidence';
+  import { webConfig } from '../lib/config';
+
+  const root = document.querySelector('[data-gcp-console]');
+  if (root instanceof HTMLElement) {
+    const evidence = CLOUD_CONSOLE_EVIDENCE;
+    const slices: Record<string, unknown> = {
+      run: { hosted: evidence.hosted, probe: evidence.probes.cloudRun },
+      storage: { probe: evidence.probes.storage },
+      session: { session: evidence.session, vertexTake: evidence.vertexTake },
+    };
+
+    const show = (id: string) => {
+      root.querySelectorAll('[data-console-tab]').forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.toggleAttribute('aria-current', node.dataset.consoleTab === id);
+        }
+      });
+      root.querySelectorAll('[data-console-panel]').forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.hidden = node.dataset.consolePanel !== id;
+        }
+      });
+    };
+
+    root.querySelectorAll('[data-console-tab]').forEach((node) => {
+      node.addEventListener('click', () => {
+        const id = (node as HTMLElement).dataset.consoleTab;
+        if (id) show(id);
+      });
+    });
+
+    root.querySelectorAll('[data-console-json]').forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const key = node.dataset.consoleJson ?? '';
+      node.textContent = JSON.stringify(slices[key] ?? evidence, null, 2);
+    });
+
+    root.querySelectorAll('[data-copy]').forEach((node) => {
+      node.addEventListener('click', async () => {
+        const value = (node as HTMLElement).dataset.copy ?? '';
+        try {
+          await navigator.clipboard.writeText(value);
+          node.textContent = 'Copied';
+        } catch {
+          node.textContent = 'Copy failed';
+        }
+        window.setTimeout(() => {
+          if (node instanceof HTMLElement && node.dataset.copy) {
+            node.textContent = node.dataset.copy.startsWith('http') ? 'Copy' : node.textContent;
+          }
+        }, 1200);
+      });
+    });
+
+    const source = root.querySelector('[data-console-source]');
+    const apiBase = webConfig().apiBaseUrl;
+    if (apiBase && source) {
+      void fetch(`${apiBase.replace(/\/$/, '')}/cloud/console`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+        .then((body: { schema?: string; mode?: string }) => {
+          if (body.schema === evidence.schema) {
+            source.textContent = `API ${apiBase} · ${body.mode ?? 'recorded'}`;
+          }
+        })
+        .catch(() => {
+          source.textContent = `Bundled snapshot · API unreachable`;
+        });
+    }
+  }
+</script>

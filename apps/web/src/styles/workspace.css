@@ -1,0 +1,107 @@
+/*
+ * Agent Workspace tokens.
+ *
+ * Scoped to `.aw` and imported by the workspace route only, so it cannot reach
+ * any other page. Two rules keep that true and both are greppable: this file
+ * contains no `:root`, and it never declares a `--fs-` name. It may read them
+ * freely. See docs/design/agent-workspace/08-visual-system.md section 1.
+ *
+ * Only 13 tokens are here because only 13 values are missing from
+ * apps/web/src/styles/global.css. Aliasing the rest would create a second name
+ * for one value and a second place for it to drift.
+ */
+.aw {
+  /* Hues global.css does not have. Blue is --fs-accent and is not redeclared.
+     Contrast on --fs-bg: cyan 9.72, violet 7.01, orange 8.18, all AA.
+     Blue and violet are indistinguishable under deuteranopia, so every hue is
+     accompanied by its word and the CTA is the only filled element. */
+  --aw-cyan: #5cc8d8;
+  --aw-violet: #a78bfa;
+  --aw-orange: #e8975c;
+
+  /* Chip tints. Alpha 1f matches the existing --fs-*-bg convention. */
+  --aw-cyan-bg: #5cc8d81f;
+  --aw-violet-bg: #a78bfa1f;
+  --aw-orange-bg: #e8975c1f;
+
+  /* The scale stops at --fs-space-6 (32px), which is smaller than the 36px
+     outcome type. A gap smaller than the thing it separates does not separate. */
+  --aw-space-7: 48px;
+  --aw-space-8: 64px;
+
+  /* Measure. Sized against the longest real sentence in state.ts. After C9
+     drops `authoritative` that sentence is 121 characters, and it sits at the
+     21px step rather than 36px, where 46ch lands it in the three lines 05 drew.
+     The 34ch in the first draft was derived for the same sentence at 36px. */
+  --aw-measure-sentence: 46ch;
+  --aw-measure-body: 62ch;
+
+  /* Expert only. Story Mode has no motion at all. 200ms is half the 400ms poll
+     interval in client.ts, so no animation can be interrupted by a repaint. */
+  --aw-motion-fast: 120ms;
+  --aw-motion-state: 200ms;
+  --aw-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Applications of the three hues.
+ *
+ * Each is bound to exactly one meaning, and each is accompanied by its word at
+ * the call site — blue and violet are indistinguishable under deuteranopia, so
+ * hue alone never carries a state.
+ */
+
+/* Live, at run level. Never while no canonical event exists (D40). */
+.aw [data-live='true'] {
+  color: var(--aw-cyan);
+  background: var(--aw-cyan-bg);
+}
+
+/* The Warden acted: an intervention event exists. */
+.aw [data-intervention='true'] {
+  color: var(--aw-violet);
+  background: var(--aw-violet-bg);
+}
+
+/* Controlled Fault, and nothing else. */
+.aw [data-controlled-fault='true'] {
+  color: var(--aw-orange);
+  background: var(--aw-orange-bg);
+}
+
+/* The measure caps. The outcome sentence is the one line the reader must not
+   lose their place in; body prose is allowed to run wider. */
+.aw .live__sentence {
+  max-width: var(--aw-measure-sentence);
+}
+
+.aw .live__awaiting,
+.aw .live__beats,
+.aw .live__blocked,
+.aw .live__replay-note {
+  max-width: var(--aw-measure-body);
+}
+
+/* The two steps the global scale is missing. The outcome sentence is 36px, and
+   a 32px gap under it does not separate. */
+.aw .live__sentence {
+  margin-block: var(--aw-space-7) var(--aw-space-6, 32px);
+}
+
+.aw .live__facts {
+  margin-block-start: var(--aw-space-8);
+}
+
+/* Expert only; Story Mode has no motion. Half the 400ms poll interval, so a
+   repaint can never interrupt a transition mid-flight. */
+.aw[data-mode='expert'] .live__beats li {
+  transition:
+    color var(--aw-motion-state) var(--aw-ease),
+    background-color var(--aw-motion-state) var(--aw-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw[data-mode='expert'] .live__beats li {
+    transition: none;
+  }
+}

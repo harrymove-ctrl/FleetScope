@@ -525,8 +525,8 @@ fn seeking_after_an_append_still_resolves_through_the_manifest() {
 
 #[test]
 fn the_orchestrator_node_is_not_labelled_with_an_unrelated_product() {
-    // Upstream titles the main node "claude", which is right for a Claude Code
-    // session visualizer and wrong on a governed enterprise audit surface.
+    // Upstream titles the main node with its own provider default, which is
+    // wrong on a governed enterprise audit surface.
     let cockpit = cockpit();
     let flow = &cockpit.app().flow;
 

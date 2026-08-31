@@ -30,11 +30,11 @@ const REPLAY_SPEED: f64 = 8.0;
 
 /// The product naming the renderer draws.
 ///
-/// Upstream's defaults are its own — the `zoetrope` wordmark and `claude` as the
-/// main node's title. Both are correct for a Claude Code session visualizer and
-/// wrong on a governed enterprise surface: a Fleet Cockpit that labels the
-/// orchestrating agent "claude" is naming an unrelated product in an audit
-/// context. FleetScope sets its own before the first frame.
+/// Upstream's defaults are its own wordmark and provider-specific main-node
+/// title. Those defaults are wrong on a governed enterprise surface: a Fleet
+/// Cockpit that labels the orchestrating agent with an unrelated provider name
+/// is misleading in an audit context. FleetScope sets its own before the first
+/// frame.
 const FLEETSCOPE_BRANDING: Branding = Branding {
     product: "FleetScope",
     main_agent: "orchestrator",

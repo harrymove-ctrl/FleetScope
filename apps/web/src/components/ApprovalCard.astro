@@ -1,0 +1,117 @@
+---
+/**
+ * Human-in-the-loop Approval Card (beui-inspired).
+ *
+ * FleetScope has no write path in this build: interactive modes are local UI
+ * rehearsals that collapse into a recorded result. Recorded mode shows a
+ * decided card with no controls.
+ */
+import type { ApprovalCardQuestion, ApprovalCardStatus } from '../features/approval/types';
+import { statusLabel } from '../features/approval/types';
+import '../styles/approval-card.css';
+
+interface Props {
+  mode?: 'review' | 'questions' | 'recorded';
+  title?: string;
+  description?: string;
+  status?: ApprovalCardStatus;
+  result?: string;
+  questions?: readonly ApprovalCardQuestion[];
+  /** Shown inside the body (review facts). */
+  facts?: ReadonlyArray<{ readonly label: string; readonly value: string }>;
+  approveLabel?: string;
+  note?: string;
+  class?: string;
+}
+
+const {
+  mode = 'review',
+  title = 'Approval required',
+  description,
+  status = 'pending',
+  result,
+  questions = [],
+  facts = [],
+  approveLabel = 'Approve',
+  note,
+  class: className,
+} = Astro.props;
+
+const initialStatus: ApprovalCardStatus =
+  mode === 'recorded' ? (status === 'pending' ? 'approved' : status) : status;
+---
+
+<article
+  class:list={['ac', className]}
+  data-approval-card
+  data-mode={mode}
+  data-status={initialStatus}
+  data-questions={mode === 'questions' ? JSON.stringify(questions) : undefined}
+>
+  <header class="ac__head">
+    <div>
+      <p class="ac__eyebrow">Human in the loop</p>
+      <h3 class="ac__title" data-ac-title>{title}</h3>
+      {description && <p class="ac__description" data-ac-description>{description}</p>}
+    </div>
+    <span class="ac__badge" data-ac-badge>{statusLabel(initialStatus)}</span>
+  </header>
+
+  {
+    mode === 'questions' ? (
+      <div class="ac__body" data-ac-questions>
+        <div class="ac__progress" data-ac-progress aria-hidden="true"></div>
+        <p class="ac__description" data-ac-q-desc hidden></p>
+        <div class="ac__options" data-ac-options></div>
+        <input class="ac__custom" data-ac-custom type="text" hidden />
+      </div>
+    ) : facts.length > 0 ? (
+      <div class="ac__body">
+        <dl class="ac__kv">
+          {facts.map((fact) => (
+            <div>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    ) : (
+      <slot />
+    )
+  }
+
+  {
+    mode !== 'recorded' && (
+      <div class="ac__actions" data-ac-actions>
+        {mode === 'review' ? (
+          <>
+            <button class="ac__btn" type="button" data-ac-action="reject" data-variant="danger">
+              Reject
+            </button>
+            <button class="ac__btn" type="button" data-ac-action="changes">
+              Request changes
+            </button>
+            <button class="ac__btn" type="button" data-ac-action="approve" data-variant="primary">
+              {approveLabel}
+            </button>
+          </>
+        ) : (
+          <>
+            <button class="ac__btn" type="button" data-ac-action="back" disabled>
+              Back
+            </button>
+            <button class="ac__btn" type="button" data-ac-action="continue" data-variant="primary" disabled>
+              Continue
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  {note && <p class="ac__note">{note}</p>}
+  <p class="ac__result" data-ac-result hidden={mode !== 'recorded' || !result}>{result}</p>
+</article>
+
+
