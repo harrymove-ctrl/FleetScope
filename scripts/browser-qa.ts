@@ -1191,8 +1191,8 @@ async function main(): Promise<void> {
     await page.waitForSelector('#agent-viewer-canvas canvas', { timeout: 20_000 });
     check(
       'dashboard: Open Agent Viewer loads the bundled launch-readiness graph',
-      (await page.locator('[data-status]').innerText()).length > 0,
-      await page.locator('[data-status]').innerText(),
+      (await page.locator('[data-viewer-status]').innerText()).length > 0,
+      await page.locator('[data-viewer-status]').innerText(),
     );
     check(
       'viewer: WASM renderer instantiated',
@@ -1206,7 +1206,7 @@ async function main(): Promise<void> {
     );
     check(
       'viewer: demo fingerprint is stable',
-      (await page.locator('[data-status]').innerText()).includes('30c89a4ccc85fcbf'),
+      (await page.locator('[data-viewer-status]').innerText()).includes('30c89a4ccc85fcbf'),
     );
 
     // ── Story Mode ───────────────────────────────────────────────────────

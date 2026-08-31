@@ -9,8 +9,8 @@ html:has(.viewer-page--stage),
 body:has(.viewer-page--stage) {
   height: 100%;
   overflow: hidden;
-  background: #06070c;
-  color-scheme: dark;
+  background: #ffffff;
+  color-scheme: light;
 }
 
 body:has(.viewer-page--stage) .fs-nav,
@@ -31,25 +31,24 @@ body:has(.viewer-page--stage) .fs-main--wide {
 }
 
 [data-surface='feature'] .viewer-page--stage {
-  /* Graph is always #06070c. Adaptive/light tokens would paint white pills
-   * and a Google-blue fill over it — pin Gemini dark for the HUD. */
-  --fd-bg: #06070c;
-  --fd-bg-alt: #0b0d15;
-  --fd-surface: #090b12;
-  --fd-surface-raised: #141828;
-  --fd-text: #eef1fa;
-  --fd-muted: #9ba4c0;
-  --fd-faint: #6f7794;
-  --fd-line: #1e2233;
-  --fd-line-strong: #333b57;
-  --fd-action: #8ab4f8;
-  --fd-action-hover: #a8c7fa;
-  --fd-action-ink: #06070c;
-  --fd-cyan: #c58af9;
-  --fs-surface-raised: #141828;
-  --fs-info: #8ab4f8;
-  --fs-info-bg: color-mix(in srgb, #8ab4f8 14%, transparent);
-  --fs-neutral-bg: color-mix(in srgb, #06070c 72%, transparent);
+  /* Poster TUI is white. HUD chips stay readable on that canvas. */
+  --fd-bg: #ffffff;
+  --fd-bg-alt: #f4f4f4;
+  --fd-surface: #ffffff;
+  --fd-surface-raised: #f7f7f7;
+  --fd-text: #111111;
+  --fd-muted: #444444;
+  --fd-faint: #777777;
+  --fd-line: #111111;
+  --fd-line-strong: #000000;
+  --fd-action: #111111;
+  --fd-action-hover: #333333;
+  --fd-action-ink: #ffffff;
+  --fd-cyan: #111111;
+  --fs-surface-raised: #f7f7f7;
+  --fs-info: #111111;
+  --fs-info-bg: color-mix(in srgb, #111111 8%, transparent);
+  --fs-neutral-bg: color-mix(in srgb, #ffffff 72%, transparent);
   width: 100%;
   max-width: none;
   height: 100dvh;
@@ -84,6 +83,7 @@ body:has(.viewer-page--stage) .fs-main--wide {
 }
 
 [data-surface='feature'] .viewer-page--stage .viewer-cli-card,
+[data-surface='feature'] .viewer-page--stage .viewer-sessions,
 [data-surface='feature'] .viewer-page--stage .story,
 [data-surface='feature'] .viewer-page--stage .workflow-board,
 [data-surface='feature'] .viewer-page--stage .viewer-summary,
@@ -108,7 +108,7 @@ body:has(.viewer-page--stage) .fs-main--wide {
   flex-direction: column;
   overflow: hidden;
   border: 0;
-  background: #06070c;
+  background: #ffffff;
 }
 
 [data-surface='feature'] .viewer-page--stage .viewer-shell__header {
@@ -137,11 +137,22 @@ body:has(.viewer-page--stage) .fs-main--wide {
 
 [data-surface='feature'] .viewer-page--stage .fs-viewer__canvas,
 [data-surface='feature'] .viewer-page--stage .viewer-page .fs-viewer__canvas {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
   width: 100%;
   height: 100dvh;
   min-height: 100dvh;
   border: 0;
-  background: #06070c;
+  background: #ffffff;
+}
+
+[data-surface='feature'] .viewer-page--stage .fs-viewer__canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
 }
 
 /* Demo-first reading order: put the live graph/TUI surface before the
@@ -915,10 +926,10 @@ body:has(.viewer-page--stage) .fs-main--wide {
   height: 100%;
   max-width: none;
   margin: 0;
-  padding: 12px 16px 16px;
+  padding: 0;
   overflow: hidden;
   border: 0;
-  background: var(--fd-bg);
+  background: #ffffff;
   color: var(--fd-text);
 }
 
@@ -997,8 +1008,16 @@ body:has(.viewer-page--stage) .fs-main--wide {
   .viewer-page[data-view-style='focus']
   .viewer-shell:-webkit-full-screen
   .fs-viewer__canvas {
+  display: flex;
   height: 100%;
   min-height: 0;
+}
+
+[data-surface='feature'] .viewer-shell:fullscreen .fs-viewer__canvas canvas,
+[data-surface='feature'] .viewer-shell:-webkit-full-screen .fs-viewer__canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
 }
 
 [data-surface='feature'] .viewer-shell:fullscreen .viewer-shell__timeline,
@@ -1088,8 +1107,8 @@ body:has(.viewer-page--stage) .fs-main--wide {
 }
 
 [data-surface='feature'] .viewer-page[data-view-style='focus'] .fs-viewer__canvas {
-  height: min(72vh, 760px);
-  min-height: 600px;
+  height: min(86dvh, calc(100dvh - 96px));
+  min-height: 640px;
 }
 
 [data-surface='feature'] .viewer-shell__rail,
@@ -1189,22 +1208,27 @@ body:has(.viewer-page--stage) .fs-main--wide {
 
 [data-surface='feature'] .fs-viewer__canvas,
 [data-surface='feature'] .viewer-page .fs-viewer__canvas {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
   min-width: 0;
-  min-height: 520px;
-  height: 64vh;
+  min-height: min(82dvh, 980px);
+  height: min(82dvh, calc(100dvh - 120px));
   overflow: hidden;
   position: relative;
   border: 0;
   border-radius: 0;
-  background: #06070c;
+  background: #ffffff;
   box-shadow: none;
 }
 
 [data-surface='feature'] .fs-viewer__canvas canvas {
   display: block;
-  max-width: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  object-fit: contain;
+  background: #ffffff;
 }
 
 [data-surface='feature'] .viewer-canvas-minimap {
@@ -1324,7 +1348,7 @@ body:has(.viewer-page--stage) .fs-main--wide {
   padding: 20px;
   border: 1px solid var(--fd-line);
   border-radius: 0;
-  background: #06070c;
+  background: #ffffff;
   color: #dfe9e1;
   font-size: 0.8rem;
   line-height: 1.5;
@@ -1434,13 +1458,13 @@ body:has(.viewer-page--stage) .fs-main--wide {
 
   [data-surface='feature'] .fs-viewer__canvas,
   [data-surface='feature'] .viewer-page .fs-viewer__canvas {
-    min-height: 520px;
-    height: min(72dvh, calc(100dvh - 180px));
+    min-height: 70dvh;
+    height: min(80dvh, calc(100dvh - 120px));
   }
 
   [data-surface='feature'] .viewer-page[data-view-style='focus'] .fs-viewer__canvas {
-    min-height: 520px;
-    height: min(76dvh, calc(100dvh - 160px));
+    min-height: 74dvh;
+    height: min(86dvh, calc(100dvh - 88px));
   }
 }
 
@@ -1678,7 +1702,7 @@ body:has(.viewer-page--stage) .fs-main--wide {
 [data-surface='feature'] .fs-viewer__canvas {
   border: 1px solid var(--fd-line);
   border-radius: 16px;
-  background: #101522;
+  background: #ffffff;
   overflow: hidden;
 }
 
@@ -1745,13 +1769,20 @@ body:has(.viewer-page--stage) .fs-main--wide {
 [data-surface='feature'] .viewer-page--stage .fs-viewer__canvas {
   position: absolute;
   inset: 0;
+  display: flex;
   width: 100%;
   height: 100%;
   min-height: 0;
   max-height: none;
   border: 0;
   border-radius: 0;
-  background: #06070c;
+  background: #ffffff;
+}
+
+[data-surface='feature'] .viewer-page--stage .fs-viewer__canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
 }
 
 /*
@@ -1765,10 +1796,10 @@ body:has(.viewer-page--stage) .fs-main--wide {
   -webkit-appearance: none;
   min-height: 32px;
   padding: 6px 12px;
-  border: 1px solid color-mix(in srgb, #8ab4f8 22%, #1e2233);
+  border: 1px solid #111111;
   border-radius: 8px;
-  background: color-mix(in srgb, #06070c 78%, transparent);
-  color: #c5cbe0;
+  background: #ffffff;
+  color: #111111;
   box-shadow: none;
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
@@ -1780,29 +1811,29 @@ body:has(.viewer-page--stage) .fs-main--wide {
 [data-surface='feature'] .viewer-page--stage .fs-status {
   min-height: 28px;
   padding: 4px 10px;
-  color: #9ba4c0;
+  color: #444444;
 }
 
 [data-surface='feature'] .viewer-page--stage .fs-status[data-tone='info'] {
-  color: #8ab4f8;
-  border-color: color-mix(in srgb, #8ab4f8 28%, #1e2233);
-  background: color-mix(in srgb, #8ab4f8 10%, #06070c);
+  color: #111111;
+  border-color: #111111;
+  background: #ffffff;
 }
 
 [data-surface='feature'] .viewer-page--stage .fs-status[data-tone='ok'] {
-  color: #8ab4f8;
+  color: #111111;
 }
 
 [data-surface='feature'] .viewer-page--stage .fs-mono.fs-faint,
 [data-surface='feature'] .viewer-page--stage [data-position] {
-  color: #6f7794;
+  color: #666666;
 }
 
 [data-surface='feature'] .viewer-page--stage .fs-button:hover:not(:disabled),
 [data-surface='feature'] .viewer-page--stage .fsx:hover {
-  border-color: color-mix(in srgb, #8ab4f8 55%, #333b57);
-  background: color-mix(in srgb, #8ab4f8 12%, #0b0d15);
-  color: #8ab4f8;
+  border-color: #000000;
+  background: #f4f4f4;
+  color: #111111;
   filter: none;
   transform: none;
 }
@@ -1810,7 +1841,7 @@ body:has(.viewer-page--stage) .fs-main--wide {
 [data-surface='feature'] .viewer-page--stage .fs-button:disabled,
 [data-surface='feature'] .viewer-page--stage .fs-button[aria-disabled='true'] {
   border-color: #1e2233;
-  background: color-mix(in srgb, #06070c 82%, transparent);
+  background: color-mix(in srgb, #ffffff 82%, transparent);
   color: #6f7794;
   opacity: 0.72;
 }

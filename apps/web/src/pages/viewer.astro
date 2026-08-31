@@ -20,11 +20,20 @@ import '../styles/feature-viewer.css';
 ---
 
 <BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
+  <link slot="head" rel="modulepreload" href="/wasm/viewer.js" />
+  <link
+    slot="head"
+    rel="preload"
+    href="/wasm/viewer_bg.wasm"
+    as="fetch"
+    type="application/wasm"
+    crossorigin="anonymous"
+  />
   <!--
     Operator flight deck (default). Do NOT add viewer-page--stage here:
     that class hides CLI, story, lanes, rail, inspector, and timeline —
     leaving a graph-only canvas with almost no interaction. Stage mode is
-    opt-in via data-stage-toggle / Full screen graph.
+    opt-in via data-stage-toggle / Full screen TUI.
   -->
   <div class="viewer-page" data-view-style="terminal" data-viewer-mode="operator">
     <PageHeader
@@ -48,15 +57,15 @@ import '../styles/feature-viewer.css';
         type="button"
         data-stage-toggle
         aria-pressed="false"
-        title="Hide chrome and focus the graph (same as immersive stage)"
+        title="Fill the screen with the TUI. Esc leaves full screen."
       >
-        Focus graph
+        Full screen TUI
       </button>
       <FullscreenToggle
         slot="actions"
         target="[data-dropzone]"
         label="graph"
-        idleLabel="Full screen graph"
+        idleLabel="Full screen TUI"
         activeLabel="Exit full screen"
       />
     </PageHeader>
@@ -242,7 +251,11 @@ import '../styles/feature-viewer.css';
 
     <section class="viewer-shell fs-viewer__drop" data-dropzone>
       <header class="viewer-shell__header">
-        <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
+        <!-- Not `data-status`: ApprovalCard puts that on its own root, and this
+             page renders one above the shell. The bare selector matched the
+             card instead, so `say()` overwrote a whole approval card with the
+             session line and this meta sat on "Loading the viewer…" forever. -->
+        <div class="fs-viewer__meta" data-viewer-status role="status" aria-live="polite">
           Loading the viewer…
         </div>
         <div class="viewer-shell__transport">
@@ -332,6 +345,71 @@ import '../styles/feature-viewer.css';
 
 <!-- Viewer composition is isolated in styles/feature-viewer.css. -->
 
+<!--
+  Independent of the WASM module. If the viewer script throws (TDZ, glue),
+  this still fills Local sessions so the page cannot sit on “Looking…” forever.
+-->
+<script is:inline>
+  (function bootLocalSessionList() {
+    const list = document.querySelector('[data-local-sessions]');
+    const status = document.querySelector('[data-viewer-status]');
+    if (list) {
+      const ctrl = new AbortController();
+      window.setTimeout(function () {
+        ctrl.abort();
+      }, 4000);
+      fetch('/local-sessions.json', { cache: 'no-store', signal: ctrl.signal })
+        .then(function (response) {
+          return response.ok ? response.json() : [];
+        })
+        .then(function (rows) {
+          if (!list || list.getAttribute('data-session-ready') === 'true') return;
+          if (!Array.isArray(rows) || rows.length === 0) {
+            list.innerHTML =
+              '<li class="fs-muted">No local session.jsonl yet. Start agy chat or a producer.</li>';
+            return;
+          }
+          list.innerHTML = rows
+            .map(function (row) {
+              const bytes = Number(row.bytes) || 0;
+              const kb = bytes < 1024 ? bytes + ' B' : Math.round(bytes / 1024) + ' KB';
+              const id = String(row.id || '');
+              return (
+                '<li><button type="button" class="viewer-sessions__item" data-session-id="' +
+                id.replace(/"/g, '') +
+                '"><span class="viewer-sessions__id">' +
+                id.replace(/</g, '') +
+                '</span><span class="viewer-sessions__meta">' +
+                kb +
+                '</span></button></li>'
+              );
+            })
+            .join('');
+        })
+        .catch(function () {
+          if (!list || list.getAttribute('data-session-ready') === 'true') return;
+          list.innerHTML =
+            '<li class="fs-muted">Could not list local sessions. Confirm pnpm dev:web is on 127.0.0.1:4321.</li>';
+        });
+    }
+    window.setTimeout(function () {
+      if (!status) return;
+      const text = status.textContent || '';
+      if (text.indexOf('Loading the viewer') === -1) return;
+      status.textContent =
+        'Renderer still starting — use Local sessions above. Hard-refresh this tab if the graph stays blank.';
+    }, 2500);
+    window.addEventListener('error', function (event) {
+      if (!status) return;
+      const text = status.textContent || '';
+      if (text.indexOf('Loading the viewer') === -1 && text.indexOf('still starting') === -1) return;
+      status.textContent =
+        'Viewer script error: ' + (event.message || 'unknown') + '. Local sessions should still list.';
+      status.setAttribute('data-bad', 'true');
+    });
+  })();
+</script>
+
 <script>
   import {
     agentRows,
@@ -375,7 +453,7 @@ import '../styles/feature-viewer.css';
     type ViewState,
   } from '../features/viewer/follow';
 
-  const statusEl = document.querySelector('[data-status]') as HTMLElement | null;
+  const statusEl = document.querySelector('[data-viewer-status]') as HTMLElement | null;
   const summaryEl = document.querySelector('[data-summary]') as HTMLElement | null;
   const fallbackEl = document.querySelector('[data-fallback]') as HTMLElement | null;
   const dropzone = document.querySelector('[data-dropzone]') as HTMLElement | null;
@@ -442,9 +520,10 @@ import '../styles/feature-viewer.css';
   }
 
   /** Native TUI for the session this tab is already following. */
-  function buildTuiCommand(sessionId = localFollowId ?? 'antigravity-live-cu'): string {
+  function buildTuiCommand(sessionId?: string): string {
+    const id = sessionId ?? localFollowId ?? 'antigravity-live-cu';
     const root = currentRepoRoot();
-    return `cd ${shellSingleQuote(root)} && cargo run -p fleetscope-cli --bin fleetscope -- .fleetscope/sessions/${sessionId} --follow --tiny`;
+    return `cd ${shellSingleQuote(root)} && cargo run -p fleetscope-cli --bin fleetscope -- .fleetscope/sessions/${id} --follow --tiny`;
   }
 
   function refreshCommandPreviews(): void {
@@ -514,6 +593,11 @@ import '../styles/feature-viewer.css';
   };
 
   let api: Api | null = null;
+  // Declared before refreshCommandPreviews() runs. A default-param read of
+  // localFollowId later in this script is a TDZ crash — list + WASM never boot.
+  let localFollowTimer = 0;
+  let localFollowId: string | null = null;
+  let localFollowBytes = -1;
 
   function say(message: string, bad = false) {
     if (!statusEl) return;
@@ -586,14 +670,39 @@ import '../styles/feature-viewer.css';
     say('Open TUI copied the native command. Paste it in Terminal — this tab cannot spawn a TTY.', true);
   }
 
+  function fullscreenElement(): Element | null {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    return document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+  }
+
+  function requestShellFullscreen(on: boolean) {
+    const node = dropzone as (HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    }) | null;
+    const current = fullscreenElement();
+    const exit = document.exitFullscreen
+      ?? (document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen;
+    try {
+      if (on && node && current !== node) {
+        const enter = node.requestFullscreen ?? node.webkitRequestFullscreen;
+        void enter?.call(node);
+      } else if (!on && current && exit) {
+        void exit.call(document);
+      }
+    } catch {
+      /* Fullscreen is optional; stage CSS still enlarges the TUI. */
+    }
+  }
+
   function setStageMode(on: boolean) {
     if (!pageRoot) return;
     pageRoot.classList.toggle('viewer-page--stage', on);
     for (const button of document.querySelectorAll('[data-stage-toggle]')) {
       button.setAttribute('aria-pressed', String(on));
-      button.textContent = on ? 'Exit focus' : 'Focus graph';
+      button.textContent = on ? 'Exit full screen' : 'Full screen TUI';
     }
     if (on) api?.agent_viewer_fit_graph();
+    requestShellFullscreen(on);
   }
 
   try {
@@ -631,13 +740,12 @@ import '../styles/feature-viewer.css';
     void copyAgyReplCommand();
   });
   followNewestEl?.addEventListener('change', () => {
-    const mod = api;
-    if (!mod || !followNewest()) return;
+    if (!api || !followNewest()) return;
     void fetchLocalSessions().then((listed) => {
       const newest = listed[0];
       if (!newest) return;
-      void loadLocalSession(mod, newest).then((ok) => {
-        if (ok) scheduleLocalPoll(mod);
+      void loadLocalSession(api, newest).then((ok) => {
+        if (ok) scheduleLocalPoll(api);
         renderLocalSessionList(listed);
       });
     });
@@ -750,10 +858,6 @@ import '../styles/feature-viewer.css';
     window.clearTimeout(followedFolderTimer);
   }
 
-  let localFollowTimer = 0;
-  let localFollowId: string | null = null;
-  let localFollowBytes = -1;
-
   function stopLocalFollow() {
     localFollowId = null;
     localFollowBytes = -1;
@@ -770,7 +874,7 @@ import '../styles/feature-viewer.css';
 
   async function fetchLocalSessions(): Promise<LocalSessionRow[]> {
     try {
-      const response = await fetch('/local-sessions.json');
+      const response = await fetch('/local-sessions.json', { cache: 'no-store' });
       if (!response.ok) return [];
       const rows = (await response.json()) as LocalSessionRow[];
       return Array.isArray(rows) ? rows : [];
@@ -801,6 +905,7 @@ import '../styles/feature-viewer.css';
 
   function renderLocalSessionList(rows: readonly LocalSessionRow[]): void {
     if (!localSessionsEl) return;
+    localSessionsEl.setAttribute('data-session-ready', 'true');
     if (rows.length === 0) {
       localSessionsEl.innerHTML = '<li class="fs-muted">No local session.jsonl yet. Start agy chat or a producer.</li>';
       return;
@@ -816,11 +921,10 @@ import '../styles/feature-viewer.css';
       button.innerHTML = `<span class="viewer-sessions__id">${row.id}</span><span class="viewer-sessions__meta">${kb}</span>`;
       button.addEventListener('click', () => {
         if (followNewestEl) followNewestEl.checked = false;
-        const mod = api;
-        if (!mod) return;
-        void loadLocalSession(mod, row).then((ok) => {
+        if (!api) return;
+        void loadLocalSession(api, row).then((ok) => {
           if (ok) {
-            scheduleLocalPoll(mod);
+            scheduleLocalPoll(api);
             void fetchLocalSessions().then(renderLocalSessionList);
           }
         });
@@ -850,9 +954,8 @@ import '../styles/feature-viewer.css';
   async function attachLocalSessions(mod: Api): Promise<boolean> {
     const listed = await fetchLocalSessions();
     renderLocalSessionList(listed);
-    const first = listed[0];
-    if (!first) return false;
-    const ok = await loadLocalSession(mod, first);
+    if (listed.length === 0) return false;
+    const ok = await loadLocalSession(mod, listed[0]);
     if (ok) scheduleLocalPoll(mod);
     return ok;
   }
@@ -1208,14 +1311,14 @@ import '../styles/feature-viewer.css';
         resolve();
       };
       const check = (): void => {
-        if ((!document.hidden && host.clientWidth > 0) || performance.now() - started > 5000) {
+        if ((!document.hidden && host.clientWidth > 0) || performance.now() - started > 400) {
           finish();
           return;
         }
         requestAnimationFrame(check);
       };
       document.addEventListener('visibilitychange', check);
-      timer = window.setTimeout(check, 5100);
+      timer = window.setTimeout(check, 450);
       requestAnimationFrame(check);
     });
   }
@@ -1261,8 +1364,8 @@ import '../styles/feature-viewer.css';
 
   async function boot() {
     try {
-      await waitForMeasuredHost('agent-viewer-canvas');
-      await loadGlue();
+      const glueReady = loadGlue();
+      await Promise.all([waitForMeasuredHost('agent-viewer-canvas'), glueReady]);
       const module = (globalThis as { fleetscopeViewer?: Api }).fleetscopeViewer;
       // Assert the ABI by name, so a partial load fails here rather than at the
       // first call site with an unhelpful "not a function".
@@ -2137,13 +2240,15 @@ import '../styles/feature-viewer.css';
     });
   }
 
-  const fullscreenTarget = () =>
-    (document as Document & { webkitFullscreenElement?: Element | null }).fullscreenElement ??
-    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
-    null;
-
   const syncWorkspaceFullscreen = () => {
-    const on = dropzone !== null && fullscreenTarget() === dropzone;
+    const on = dropzone !== null && fullscreenElement() === dropzone;
+    if (pageRoot) {
+      pageRoot.classList.toggle('viewer-page--stage', on);
+      for (const button of document.querySelectorAll('[data-stage-toggle]')) {
+        button.setAttribute('aria-pressed', String(on));
+        button.textContent = on ? 'Exit full screen' : 'Full screen TUI';
+      }
+    }
     const timeline = document.querySelector('.viewer-shell__timeline') as HTMLElement | null;
     const expertToggle = document.querySelector('[data-expert-toggle]') as HTMLButtonElement | null;
     const expertOpen = expertToggle?.getAttribute('aria-expanded') === 'true';
@@ -2152,6 +2257,9 @@ import '../styles/feature-viewer.css';
   };
   document.addEventListener('fullscreenchange', syncWorkspaceFullscreen);
   document.addEventListener('webkitfullscreenchange', syncWorkspaceFullscreen);
+
+  // List sessions immediately — do not wait for WASM/canvas.
+  void fetchLocalSessions().then(renderLocalSessionList);
 
   void boot();
 </script>

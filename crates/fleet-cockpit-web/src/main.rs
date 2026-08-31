@@ -101,7 +101,7 @@ fn main() -> io::Result<()> {
         WebGl2BackendOptions::new()
             .grid_id(CONTAINER)
             .font_atlas_config(FontAtlasConfig::dynamic(MONO, 16.0))
-            .canvas_padding_color(ratatui::style::Color::Indexed(233)),
+            .canvas_padding_color(ratatui::style::Color::Indexed(255)),
     )?;
     let mut terminal = ratatui::Terminal::new(backend)?;
 

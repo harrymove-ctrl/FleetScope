@@ -119,6 +119,17 @@ away from doing so.
 
 **Why a wrapper could not do it.** The session model and card/panel widgets live inside the vendored renderer. Emitting fake `tool_use` blocks from FleetScope would lie about tools.
 
+## Patch 4 — poster (light) TUI palette
+
+**Files:** `vendor/zoetrope/src/state/graph.rs`
+
+**What changed.** `new_flow()` used a dark Gemini canvas (`#06070c`). The operator TUI
+now starts from `Theme::Light`: white canvas, black card borders, dark ink.
+Accent is black (not Zoetrope gold). Success/error stay green/red.
+
+**Why a wrapper could not do it.** Canvas and card colors are painted inside
+rataflow from `Flow.theme` constructed in `graph.rs`.
+
 ## What FleetScope did NOT patch
 
 Recorded so the decisions are not re-litigated:

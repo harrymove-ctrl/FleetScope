@@ -1,9 +1,7 @@
 ---
 /**
- * Judge/video poster for the bundled Agent Viewer recording.
- *
- * Zero interaction by design: no buttons, no fullscreen, no Follow, no WASM,
- * no model start. Scroll to read. Site nav is the only way to leave.
+ * Judge/video poster: live local TUI (loopback JSONL) plus the bundled
+ * recorded readings. No WASM, no model start. Site nav is the only way to leave.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SessionGraphs from '../components/SessionGraphs.astro';
@@ -17,11 +15,23 @@ const statusLine = sessionStatusLine();
     <header class="demo-poster__bar">
       <p class="demo-poster__kicker">
         <span class="demo-poster__orb" aria-hidden="true"></span>
-        Gemini · Antigravity · recorded session
+        Gemini · Antigravity · live TUI + recorded fixture
       </p>
       <h1>Session readings</h1>
       <p class="demo-poster__status" data-demo-line>{statusLine}</p>
+      <p class="demo-poster__status">
+        The boxed TUI below is the newest local <code>agy</code> session (loopback
+        JSONL). The seven glyph readings under it are a <strong>bundled recorded
+        fixture</strong> (coordinator / flight_search) — they are not the live
+        four-subagent run. Live graph: <a href="/viewer">/viewer</a>.
+      </p>
     </header>
+
+    <section class="live-tui" aria-labelledby="live-tui-title">
+      <h2 id="live-tui-title">Live TUI (this machine)</h2>
+      <p class="live-tui__lede" data-live-tui-status>Looking for .fleetscope/sessions…</p>
+      <div class="live-tui__graph" data-live-tui-graph></div>
+    </section>
 
     <SessionGraphs />
 
@@ -100,4 +110,103 @@ const statusLine = sessionStatusLine();
   .demo-poster :is(button, [data-fullscreen-toggle], summary) {
     display: none !important;
   }
+
+  .live-tui {
+    margin: 0 0 clamp(48px, 8vw, 88px);
+    padding: 18px;
+    border: 1px solid #111;
+    background: #fff;
+    color: #111;
+    font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .live-tui h2 {
+    margin: 0 0 8px;
+    font: 600 14px/1.2 inherit;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .live-tui__lede,
+  .live-tui__meta,
+  .live-tui__empty {
+    margin: 0 0 16px;
+    color: #444;
+  }
+
+  .live-tui__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .live-tui__card {
+    flex: 1 1 220px;
+    max-width: 340px;
+    padding: 10px 12px;
+    border: 1px solid #111;
+    background: #fff;
+  }
+
+  .live-tui__card h3 {
+    margin: 0 0 8px;
+    font: 700 13px/1.2 inherit;
+  }
+
+  .live-tui__card p {
+    margin: 0 0 8px;
+  }
+
+  .live-tui__stats {
+    color: #444;
+    font-size: 12px;
+  }
+
+  .live-tui__card ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: #333;
+    font-size: 12px;
+  }
 </style>
+
+<script>
+  import { parseAdkSession, renderLiveTuiHtml } from '../features/viewer/live-tui';
+
+  const status = document.querySelector('[data-live-tui-status]');
+  const graph = document.querySelector('[data-live-tui-graph]');
+
+  async function bootLiveTui() {
+    if (!status || !graph) return;
+    try {
+      const listed = await fetch('/local-sessions.json', { cache: 'no-store' });
+      if (!listed.ok) {
+        status.textContent =
+          'Local sessions are loopback-only. Open this page on 127.0.0.1:4321 while pnpm dev:web is running. Hosted Cloud Run has no live agy JSONL.';
+        return;
+      }
+      const rows = (await listed.json()) as Array<{ id: string }>;
+      const newest = rows[0];
+      if (!newest) {
+        status.textContent =
+          'No local session.jsonl yet. Run pnpm demo:agy, chat at >, then refresh. The seven readings below stay the bundled fixture.';
+        return;
+      }
+      const body = await fetch(`/local-sessions/${encodeURIComponent(newest.id)}/session.jsonl`);
+      if (!body.ok) {
+        status.textContent = `Could not read ${newest.id}.`;
+        return;
+      }
+      const cards = parseAdkSession(await body.text());
+      status.textContent = `Newest local session · ${newest.id}`;
+      graph.innerHTML = renderLiveTuiHtml(newest.id, cards);
+    } catch {
+      status.textContent =
+        'Could not list local sessions. /demo never starts agy; it only reads JSONL already on disk.';
+    }
+  }
+
+  void bootLiveTui();
+</script>

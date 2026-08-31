@@ -171,9 +171,7 @@ describe('the feature-detail visual surface', () => {
     expect(dashboardStyles).toContain('text-align: center');
     expect(plan).toContain('Assistant · Gemini ADK');
     expect(plan).toContain('data-assistant-chat');
-    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(
-      plan.indexOf('id="assistant-plan-title"'),
-    );
+    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(plan.indexOf('id="assistant-plan-title"'));
     expect(plan).toContain('data-support-msg="privacy"');
     expect(plan).toContain('data-support-msg="cli"');
     expect(plan).toContain('data-support-msg="formats"');
@@ -198,7 +196,7 @@ describe('the feature-detail visual surface', () => {
     expect(viewer).toContain('data-viewer-mode="operator"');
     expect(viewer).toContain('data-dropzone');
     expect(viewer).toContain('Follow folder…');
-    expect(viewer).toContain('Full screen graph');
+    expect(viewer).toContain('Full screen TUI');
     expect(viewer).toContain('data-workflow-board');
     expect(viewer).toContain('href="/demo"');
     expect(viewer).not.toContain('<SessionGraphs');
@@ -221,6 +219,14 @@ describe('the feature-detail visual surface', () => {
     expect(viewer).toContain('--no-tui');
     expect(viewer).toContain('data-local-sessions');
     expect(viewer).toContain('data-follow-newest');
+    // TDZ on localFollowId used to freeze “Looking for local sessions…” forever.
+    const declareFollowId = viewer.indexOf('let localFollowId');
+    const firstPreview = viewer.indexOf('refreshCommandPreviews();');
+    expect(declareFollowId).toBeGreaterThan(-1);
+    expect(firstPreview).toBeGreaterThan(declareFollowId);
+    expect(viewer).not.toMatch(/function buildTuiCommand\(sessionId = localFollowId/);
+    expect(viewer).toContain('bootLocalSessionList');
+    expect(viewer).toContain('is:inline');
     expect(viewer).toContain('pnpm demo:agy');
     expect(viewer).toContain('data-copy-agy-repl');
     expect(viewer).toContain('Follow folder…');
@@ -249,6 +255,8 @@ describe('the feature-detail visual surface', () => {
     expect(demo).toContain('sessionStatusLine');
     expect(demo).toContain('data-demo-poster');
     expect(demo).toContain('data-interactive="false"');
+    expect(demo).toContain('data-live-tui-graph');
+    expect(demo).toContain('bundled recorded');
     expect(demo).not.toContain('data-dropzone');
     expect(demo).not.toContain('Follow folder');
     expect(demo).not.toContain('agent_viewer');

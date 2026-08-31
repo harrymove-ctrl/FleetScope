@@ -84,15 +84,15 @@ const CARD_ASPECT = 900 / 1160;
  */
 export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   {
-    id: 'viewer',
+    id: 'readings',
     label: 'FleetScope',
     title: 'Watch agent work become evidence',
     summary:
-      'A local Gemini or Antigravity session, read as Session readings. The file never leaves this machine.',
+      'One session, read as seven readings: the handoff order, who held the run, and the one call with no result behind it.',
     detail:
-      'Open the judge poster first: one status line and seven readings from the recorded run. It cannot start an agent, cannot retry a call, and never uploads the file. The interactive flight deck lives at /viewer when you need live follow.',
+      'The zero-click poster. Four agents in handoff order, the lane that timed out, the call that never returned, and the event health of the whole run. It cannot start an agent, cannot retry a call, and never uploads the file. The interactive flight deck is /viewer.',
     route: '/demo',
-    src: '/product/viewer.png',
+    src: '/product/demo.png',
     aspect: CARD_ASPECT,
     agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'bundled',
@@ -101,11 +101,11 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   {
     id: 'dashboard',
     label: '01 — Setup',
-    title: 'What this browser can actually check',
+    title: 'Point it at a session you already have',
     summary:
-      'The runtime and the formats it loaded are probed. Installing the CLI and picking a session are marked manual, never inferred.',
+      'The watch command is copy-and-paste. FleetScope follows the JSONL a producer writes; it never starts one.',
     detail:
-      'It reports only what this browser can be asked directly: the runtime it is on and the session formats it can parse. Anything it cannot verify from here — whether the CLI is installed, which session you mean — is listed as a step for you, not guessed at and shown as a status.',
+      'Copy the command, run it beside whatever is producing the session, then open Agent Viewer on the same file. There is no write path into the run from here: this tab reads the JSONL the producer wrote, holds no key, and starts no model.',
     route: '/dashboard',
     src: '/product/dashboard.png',
     aspect: CARD_ASPECT,
@@ -113,9 +113,23 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     accent: 'cyan',
   },
   {
+    id: 'console',
+    label: '02 — Decide',
+    title: 'A launch-readiness verdict without a Google login',
+    summary:
+      'Recorded Cloud Run, Storage and ADK facts: the producer, the model observed on the events, and the budget the workflow was held to.',
+    detail:
+      'The launch_readiness record as the project holds it — ADK producer, observed model, the agent chain from launch_readiness down to launch_reviewer, and a budget of six calls in 180 seconds. Nothing on this page calls Vertex, gcloud or the Cloud Admin APIs, so it opens without project IAM.',
+    route: '/console',
+    src: '/product/console.png',
+    aspect: CARD_ASPECT,
+    provenance: 'recorded',
+    accent: 'cyan',
+  },
+  {
     id: 'observe',
-    label: '02 — Observe',
-    title: 'Four agents, twenty events, one graph',
+    label: '03 — Observe',
+    title: 'Five agents, one graph, one Rust core',
     summary:
       'Detection, parsing and the fold are one Rust core. The terminal and this browser run the same projection.',
     detail:
@@ -123,13 +137,12 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     route: '/viewer',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
-    agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],
     provenance: 'bundled',
     accent: 'violet',
   },
   {
     id: 'cases',
-    label: '03 — Cases',
+    label: '04 — Cases',
     title: 'Every run that has been recorded',
     summary: 'A Case is a run plus the evidence behind it. Open one to follow what happened.',
     detail:
@@ -142,7 +155,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   },
   {
     id: 'govern',
-    label: '04 — Govern',
+    label: '05 — Govern',
     title: 'Every claim points at an event',
     summary:
       'The recorded recovery, with each governance step linked to the canonical event that evidences it.',
@@ -158,11 +171,12 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   },
   {
     id: 'approvals',
-    label: '05 — Approvals',
+    label: '06 — Approvals',
     title: 'Decisions that needed a person',
-    summary: 'An approval is event-backed or it is not shown. There is no implied consent here.',
+    summary:
+      'One gate, one action, one target: the agent that hit its ceiling, and exactly what it is asking for.',
     detail:
-      'An approval appears only when a canonical event records a person making it. Silence, a timeout, or a default is not consent, and none of them will render here as one.',
+      'A gate names the agent, the limit it reached and the specific ask — two more model calls for this run, not a raised quota. An approval appears only when a canonical event records a person making it, and silence, a timeout or a default is not consent.',
     route: '/approvals',
     src: '/product/approvals.png',
     aspect: CARD_ASPECT,
@@ -171,7 +185,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   },
   {
     id: 'catalog',
-    label: '06 — Catalog',
+    label: '07 — Catalog',
     title: 'Which agent version may be launched',
     summary: 'A catalog entry records an approved version. It is not proof that anything ran.',
     detail:
@@ -184,7 +198,7 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
   },
   {
     id: 'audit',
-    label: '07 — Audit',
+    label: '08 — Audit',
     title: 'Reconstruct the whole record',
     summary:
       'A read-only projection of every canonical event in the Case. Replay causes no side effects.',

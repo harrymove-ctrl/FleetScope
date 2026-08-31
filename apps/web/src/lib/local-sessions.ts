@@ -58,15 +58,11 @@ export function localSessionsVitePlugin(root = sessionsRoot()) {
     name: 'fleetscope-local-sessions',
     configureServer(server: { middlewares: { use: (fn: unknown) => void } }) {
       server.middlewares.use(
-        (
-          req: { url?: string; socket: { remoteAddress?: string } },
-          res: {
-            statusCode: number;
-            setHeader: (k: string, v: string) => void;
-            end: (s?: string) => void;
-          },
-          next: () => void,
-        ) => {
+        (req: { url?: string; socket: { remoteAddress?: string } }, res: {
+          statusCode: number;
+          setHeader: (k: string, v: string) => void;
+          end: (s?: string) => void;
+        }, next: () => void) => {
           const url = (req.url ?? '').split('?')[0] ?? '';
           if (!url.startsWith('/local-sessions')) {
             next();
@@ -79,6 +75,7 @@ export function localSessionsVitePlugin(root = sessionsRoot()) {
           }
           if (url === '/local-sessions.json' || url === '/local-sessions') {
             res.setHeader('content-type', 'application/json; charset=utf-8');
+            res.setHeader('cache-control', 'no-store');
             res.end(JSON.stringify(listLocalSessions(root)));
             return;
           }

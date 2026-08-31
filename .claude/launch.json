@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@fleetscope/web", "dev", "--port", "59541"],
       "port": 59541
+    },
+    {
+      "name": "web-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@fleetscope/web", "preview", "--port", "59542"],
+      "port": 59542
     }
   ]
 }

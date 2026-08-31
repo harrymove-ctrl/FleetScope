@@ -23,14 +23,15 @@ pub type AgentFlow = Flow<AgentNode, AgentEdge>;
 /// (detail panel persists), `with_min_zoom(0.1)` (Sugiyama trees outgrow the
 /// default fit-view limit). Hidden source/target handles for a clean look.
 pub fn new_flow() -> AgentFlow {
-    // FleetScope identity (not Zoetrope gold 178). Yellow selection is banned
-    // on this surface. Accent is Gemini blue (#8ab4f8 ≈ xterm 111): selection,
-    // done medals, sparkline, wordmark. Live stays green (`success`); failed
-    // stays red. Canvas tracks the feature ground `#06070c` (xterm 232).
-    let mut palette = Theme::Dark.palette();
-    palette.canvas_bg = Color::Indexed(232);
-    palette.surface = Color::Indexed(234);
-    palette.accent = Color::Indexed(111);
+    // Poster TUI (zoetrope light): white canvas, black card borders, dark
+    // ink. Yellow/gold selection stays banned. Live is green; failed is red.
+    let mut palette = Theme::Light.palette();
+    palette.canvas_bg = Color::Indexed(255);
+    palette.surface = Color::Indexed(231);
+    palette.muted = Color::Indexed(238);
+    palette.subtle = Color::Indexed(250);
+    palette.accent = Color::Indexed(16);
+    palette.text = Color::Indexed(16);
     let mut flow = Flow::new()
         .with_theme(Theme::Custom(palette))
         .with_deselect_on_pane_click(false)
