@@ -22,7 +22,8 @@ export default defineConfig({
     // Allow Astro (4321) to iframe this lab during local verify.
     cors: true,
     headers: {
-      'Content-Security-Policy': "frame-ancestors 'self' http://127.0.0.1:4321 http://localhost:4321",
+      'Content-Security-Policy':
+        "frame-ancestors 'self' http://127.0.0.1:4321 http://localhost:4321",
     },
   },
 });

@@ -24,10 +24,7 @@ export function resolveTuiSessionId(
   return listLocalSessions(root)[0]?.id ?? 'antigravity-live-cu';
 }
 
-export function buildNativeTuiCommand(
-  sessionId: string,
-  root = sessionsRoot(),
-): string | null {
+export function buildNativeTuiCommand(sessionId: string, root = sessionsRoot()): string | null {
   if (!SESSION_ID.test(sessionId)) return null;
   const repo = repoRootFromSessions(root);
   const sessionPath = `.fleetscope/sessions/${sessionId}`;
@@ -48,7 +45,8 @@ export function launchNativeTui(
   sessionId: string,
   root = sessionsRoot(),
   launcher: TuiLauncher = launchInTerminalApp,
-): { ok: true; command: string; sessionId: string } | { ok: false; error: string; command: string } {
+):
+  { ok: true; command: string; sessionId: string } | { ok: false; error: string; command: string } {
   const command = buildNativeTuiCommand(sessionId, root);
   if (command === null) {
     return { ok: false, error: 'invalid_session', command: '' };

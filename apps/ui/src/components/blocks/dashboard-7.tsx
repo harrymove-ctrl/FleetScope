@@ -1,42 +1,41 @@
-"use client";
+'use client';
 
-import { useId, useRef, useState, type KeyboardEvent } from "react";
-import { Plug } from "lucide-react";
+import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { Plug } from 'lucide-react';
 
-const cx = (...c: (string | false | null | undefined)[]) =>
-  c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
-type View = "ready" | "loading" | "empty";
+type View = 'ready' | 'loading' | 'empty';
 
 const VIEWS: { key: View; label: string }[] = [
-  { key: "ready", label: "Ready" },
-  { key: "loading", label: "Loading" },
-  { key: "empty", label: "Empty" },
+  { key: 'ready', label: 'Ready' },
+  { key: 'loading', label: 'Loading' },
+  { key: 'empty', label: 'Empty' },
 ];
 
 const Y_MAX = 160;
 const Y_TICKS = [160, 120, 80, 40, 0];
 
 const MRR = [109, 112, 118, 121, 127, 131, 136, 140, 144, 148];
-const X_LABELS = ["Jun", "Sep", "Dec", "Mar"];
+const X_LABELS = ['Jun', 'Sep', 'Dec', 'Mar'];
 
 const STATS = [
   {
-    label: "New business",
-    value: "$9.1K",
-    delta: "+12.4%",
+    label: 'New business',
+    value: '$9.1K',
+    delta: '+12.4%',
     positive: true,
   },
   {
-    label: "Expansion",
-    value: "$3.6K",
-    delta: "+4.8%",
+    label: 'Expansion',
+    value: '$3.6K',
+    delta: '+4.8%',
     positive: true,
   },
   {
-    label: "Churn",
-    value: "$8.5K",
-    delta: "+6.1%",
+    label: 'Churn',
+    value: '$8.5K',
+    delta: '+6.1%',
     positive: false,
   },
 ];
@@ -46,19 +45,16 @@ function linePath(values: number[]) {
   return values
     .map(
       (v, i) =>
-        `${i === 0 ? "M" : "L"}${(i * step).toFixed(2)} ${(
-          100 -
-          (v / Y_MAX) * 100
-        ).toFixed(2)}`,
+        `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(2)} ${(100 - (v / Y_MAX) * 100).toFixed(2)}`,
     )
-    .join(" ");
+    .join(' ');
 }
 
 function Bar({ className }: { className: string }) {
   return (
     <span
       className={cx(
-        "block rounded-[var(--rb-r-sm,6px)] bg-neutral-200 dark:bg-neutral-800",
+        'block rounded-[var(--rb-r-sm,6px)] bg-neutral-200 dark:bg-neutral-800',
         className,
       )}
     />
@@ -86,16 +82,16 @@ function ViewTabs({
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const current = VIEWS.findIndex((v) => v.key === value);
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
       event.preventDefault();
       move(current + 1);
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
       event.preventDefault();
       move(current - 1);
-    } else if (event.key === "Home") {
+    } else if (event.key === 'Home') {
       event.preventDefault();
       move(0);
-    } else if (event.key === "End") {
+    } else if (event.key === 'End') {
       event.preventDefault();
       move(VIEWS.length - 1);
     }
@@ -124,10 +120,10 @@ function ViewTabs({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(v.key)}
             className={cx(
-              "inline-flex h-7 cursor-pointer items-center rounded-[var(--rb-r-sm,6px)] px-2.5 text-[13px] font-medium transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]",
+              'inline-flex h-7 cursor-pointer items-center rounded-[var(--rb-r-sm,6px)] px-2.5 text-[13px] font-medium transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]',
               selected
-                ? "bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100"
-                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100",
+                ? 'bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100'
+                : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100',
             )}
           >
             {v.label}
@@ -139,7 +135,7 @@ function ViewTabs({
 }
 
 export default function Dashboard7() {
-  const [view, setView] = useState<View>("ready");
+  const [view, setView] = useState<View>('ready');
   const baseId = useId();
   const panelId = `${baseId}-panel`;
 
@@ -149,12 +145,7 @@ export default function Dashboard7() {
         <h1 className="truncate text-xl font-medium tracking-[-0.015em] text-neutral-900 dark:text-neutral-100">
           Recurring revenue
         </h1>
-        <ViewTabs
-          value={view}
-          onChange={setView}
-          baseId={baseId}
-          panelId={panelId}
-        />
+        <ViewTabs value={view} onChange={setView} baseId={baseId} panelId={panelId} />
       </header>
 
       <div
@@ -164,7 +155,7 @@ export default function Dashboard7() {
         tabIndex={0}
         className="flex min-h-0 flex-1 flex-col outline-none"
       >
-        {view === "empty" && (
+        {view === 'empty' && (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-12 text-center">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[var(--rb-r-lg,10px)] border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
               <Plug className="h-5 w-5 text-neutral-500" aria-hidden />
@@ -173,8 +164,8 @@ export default function Dashboard7() {
               No revenue data yet
             </p>
             <p className="mt-1 max-w-xs text-xs text-neutral-600 dark:text-neutral-400">
-              Connect your billing provider to track recurring revenue,
-              expansion, and churn in one place.
+              Connect your billing provider to track recurring revenue, expansion, and churn in one
+              place.
             </p>
             <button
               type="button"
@@ -185,7 +176,7 @@ export default function Dashboard7() {
           </div>
         )}
 
-        {view === "loading" && (
+        {view === 'loading' && (
           <div
             aria-hidden
             className="flex min-h-0 flex-1 animate-pulse flex-col gap-4 p-4 motion-reduce:animate-none sm:p-6"
@@ -214,7 +205,7 @@ export default function Dashboard7() {
           </div>
         )}
 
-        {view === "ready" && (
+        {view === 'ready' && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 sm:p-6">
             <div className="flex min-h-0 flex-1 flex-col rounded-[var(--rb-r-2xl,14px)] border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
               <div>
@@ -226,10 +217,8 @@ export default function Dashboard7() {
                     $148.2K
                   </p>
                   <p className="text-[13px] tabular-nums text-neutral-500">
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      +$4.2K
-                    </span>{" "}
-                    (+2.9%) vs. last month
+                    <span className="text-emerald-600 dark:text-emerald-400">+$4.2K</span> (+2.9%)
+                    vs. last month
                   </p>
                 </div>
               </div>
@@ -237,7 +226,7 @@ export default function Dashboard7() {
               <div className="mt-4 flex min-h-0 flex-1 gap-3">
                 <div className="-my-2 flex w-10 shrink-0 flex-col justify-between text-right text-[11px] leading-4 tabular-nums text-neutral-500">
                   {Y_TICKS.map((t) => (
-                    <span key={t}>{t === 0 ? "$0" : `$${t}k`}</span>
+                    <span key={t}>{t === 0 ? '$0' : `$${t}k`}</span>
                   ))}
                 </div>
                 <div className="relative min-h-0 flex-1">
@@ -295,9 +284,7 @@ export default function Dashboard7() {
                   key={s.label}
                   className="rounded-[var(--rb-r-lg,10px)] border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
                 >
-                  <p className="truncate text-[13px] text-neutral-500">
-                    {s.label}
-                  </p>
+                  <p className="truncate text-[13px] text-neutral-500">{s.label}</p>
                   <p className="mt-2 truncate text-2xl font-medium tabular-nums tracking-[-0.02em] text-neutral-900 dark:text-neutral-100">
                     {s.value}
                   </p>
@@ -305,16 +292,13 @@ export default function Dashboard7() {
                     <span
                       className={
                         s.positive
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-600 dark:text-red-400"
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-red-600 dark:text-red-400'
                       }
                     >
                       {s.delta}
                     </span>
-                    <span className="hidden text-neutral-500 sm:inline">
-                      {" "}
-                      vs. last month
-                    </span>
+                    <span className="hidden text-neutral-500 sm:inline"> vs. last month</span>
                   </p>
                 </div>
               ))}

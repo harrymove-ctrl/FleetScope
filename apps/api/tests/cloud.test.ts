@@ -23,9 +23,7 @@ describe('GET /cloud/console', () => {
   });
 
   it('names the hosted Cloud Run services judges can curl', async () => {
-    const body = (await (
-      await createApp(recorded, 'silent').request('/cloud/console')
-    ).json()) as {
+    const body = (await (await createApp(recorded, 'silent').request('/cloud/console')).json()) as {
       hosted: { web: { url: string; revision: string }; api: { url: string; liveMode: boolean } };
     };
     expect(body.hosted.web.url).toBe('https://fleetscope-web-6tes2q7oqa-uc.a.run.app');
@@ -35,9 +33,7 @@ describe('GET /cloud/console', () => {
   });
 
   it('keeps the bundled ADK fixture and the Vertex take as two sessions', async () => {
-    const body = (await (
-      await createApp(recorded, 'silent').request('/cloud/console')
-    ).json()) as {
+    const body = (await (await createApp(recorded, 'silent').request('/cloud/console')).json()) as {
       session: { invocationId: string; decision: string };
       vertexTake: { invocationId: string };
     };

@@ -1,6 +1,4 @@
-import {
-  LAUNCH_GATES,
-} from '@/content/launch-hitl';
+import { LAUNCH_GATES } from '@/content/launch-hitl';
 import { READINESS_TABS, READINESS_COMMANDS } from '@/content/readiness';
 
 export default function FeaturesPage() {
@@ -11,9 +9,8 @@ export default function FeaturesPage() {
           FleetScope ↔ React Bits map
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-neutral-400">
-          Registry demo copy (Net revenue, Acme refunds) is not product. Embeds
-          use FleetScope content packs under{' '}
-          <code className="rounded bg-neutral-900 px-1.5">src/content/</code>.
+          Registry demo copy (Net revenue, Acme refunds) is not product. Embeds use FleetScope
+          content packs under <code className="rounded bg-neutral-900 px-1.5">src/content/</code>.
         </p>
       </div>
 
@@ -30,18 +27,13 @@ export default function FeaturesPage() {
                   : 'rehearsal ready · open Viewer/Demo'}
             </li>
           ))}
-          <li>
-            Commands — {READINESS_COMMANDS.length} product paths (Viewer, Demo,
-            Approvals, …)
-          </li>
+          <li>Commands — {READINESS_COMMANDS.length} product paths (Viewer, Demo, Approvals, …)</li>
           <li className="text-rose-300/90">Dropped: dashboard-1 Net revenue / churn</li>
         </ul>
       </section>
 
       <section className="rounded-2xl border border-neutral-800 p-5">
-        <h2 className="text-sm font-medium text-neutral-200">
-          Approvals → launch_readiness HITL
-        </h2>
+        <h2 className="text-sm font-medium text-neutral-200">Approvals → launch_readiness HITL</h2>
         <ul className="mt-3 space-y-2 text-sm text-neutral-400">
           {LAUNCH_GATES.map((g) => (
             <li key={g.id}>
