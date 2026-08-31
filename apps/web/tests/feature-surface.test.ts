@@ -217,6 +217,10 @@ describe('the feature-detail visual surface', () => {
     expect(viewer).toContain('attachLocalSessions');
     expect(viewer).toContain('pnpm demo:antigravity');
     expect(viewer).toContain('--no-tui');
+    expect(viewer).toContain('data-local-sessions');
+    expect(viewer).toContain('data-follow-newest');
+    expect(viewer).toContain('pnpm demo:agy');
+    expect(viewer).toContain('data-copy-agy-repl');
     expect(viewer).toContain('Follow folder…');
     expect(viewer).toContain('data-stage-toggle');
     expect(viewer).toContain('story--strip');

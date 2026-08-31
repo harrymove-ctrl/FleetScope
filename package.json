@@ -43,6 +43,8 @@
     "qa:landing": "tsx scripts/qa-landing.ts",
     "demo:google-session": "bash scripts/run-google-session.sh",
     "demo:antigravity": "bash scripts/demo-antigravity.sh",
+    "demo:agy-chat": "bash scripts/agy-chat-follow.sh",
+    "demo:agy": "bash scripts/agy-repl.sh",
     "demo:cmux": "bash scripts/demo-cmux.sh",
     "dev:ui": "pnpm --filter @fleetscope/ui dev",
     "build:ui": "pnpm --filter @fleetscope/ui build"
