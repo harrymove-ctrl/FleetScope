@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useCallback,
@@ -9,7 +9,7 @@ import {
   useState,
   type KeyboardEvent,
   type ReactNode,
-} from "react";
+} from 'react';
 import {
   CalendarClock,
   Clock,
@@ -22,10 +22,9 @@ import {
   UserPlus,
   Users,
   type LucideIcon,
-} from "lucide-react";
+} from 'lucide-react';
 
-const cx = (...c: (string | false | null | undefined)[]) =>
-  c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
 function useScrollFade<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -65,84 +64,84 @@ type Command = {
 
 const COMMANDS: Command[] = [
   {
-    id: "recent-readiness",
-    group: "Recent",
-    title: "Launch readiness review",
-    detail: "Opened 6 minutes ago",
-    shortcut: "1",
+    id: 'recent-readiness',
+    group: 'Recent',
+    title: 'Launch readiness review',
+    detail: 'Opened 6 minutes ago',
+    shortcut: '1',
     icon: Clock,
   },
   {
-    id: "recent-incident",
-    group: "Recent",
-    title: "Incident 4821, checkout latency",
-    detail: "Opened yesterday",
-    shortcut: "2",
+    id: 'recent-incident',
+    group: 'Recent',
+    title: 'Incident 4821, checkout latency',
+    detail: 'Opened yesterday',
+    shortcut: '2',
     icon: Clock,
   },
   {
-    id: "recent-roadmap",
-    group: "Recent",
-    title: "Q3 roadmap draft",
-    detail: "Opened 2 days ago",
-    shortcut: "3",
+    id: 'recent-roadmap',
+    group: 'Recent',
+    title: 'Q3 roadmap draft',
+    detail: 'Opened 2 days ago',
+    shortcut: '3',
     icon: Clock,
   },
   {
-    id: "go-overview",
-    group: "Navigation",
-    title: "Release overview",
-    shortcut: "G O",
+    id: 'go-overview',
+    group: 'Navigation',
+    title: 'Release overview',
+    shortcut: 'G O',
     icon: LayoutDashboard,
   },
   {
-    id: "go-docs",
-    group: "Navigation",
-    title: "Runbooks and docs",
-    shortcut: "G D",
+    id: 'go-docs',
+    group: 'Navigation',
+    title: 'Runbooks and docs',
+    shortcut: 'G D',
     icon: FileText,
   },
   {
-    id: "go-people",
-    group: "Navigation",
-    title: "Team directory",
-    shortcut: "G P",
+    id: 'go-people',
+    group: 'Navigation',
+    title: 'Team directory',
+    shortcut: 'G P',
     icon: Users,
   },
   {
-    id: "go-settings",
-    group: "Navigation",
-    title: "Workspace settings",
-    shortcut: "G S",
+    id: 'go-settings',
+    group: 'Navigation',
+    title: 'Workspace settings',
+    shortcut: 'G S',
     icon: Settings2,
   },
   {
-    id: "do-invite",
-    group: "Actions",
-    title: "Invite a teammate",
-    detail: "Send a workspace invite by email",
-    shortcut: "I",
+    id: 'do-invite',
+    group: 'Actions',
+    title: 'Invite a teammate',
+    detail: 'Send a workspace invite by email',
+    shortcut: 'I',
     icon: UserPlus,
   },
   {
-    id: "do-schedule",
-    group: "Actions",
-    title: "Schedule a launch review",
-    detail: "Hold a slot with product and infra",
-    shortcut: "S",
+    id: 'do-schedule',
+    group: 'Actions',
+    title: 'Schedule a launch review',
+    detail: 'Hold a slot with product and infra',
+    shortcut: 'S',
     icon: CalendarClock,
   },
   {
-    id: "do-rotate",
-    group: "Actions",
-    title: "Rotate an API key",
-    detail: "Retire a key and issue a replacement",
-    shortcut: "R",
+    id: 'do-rotate',
+    group: 'Actions',
+    title: 'Rotate an API key',
+    detail: 'Retire a key and issue a replacement',
+    shortcut: 'R',
     icon: KeyRound,
   },
 ];
 
-const GROUP_ORDER = ["Recent", "Navigation", "Actions"];
+const GROUP_ORDER = ['Recent', 'Navigation', 'Actions'];
 
 const EXIT_MS = 140;
 
@@ -152,9 +151,7 @@ const FOCUSABLE =
 function matches(command: Command, query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return `${command.title} ${command.detail ?? ""} ${command.group}`
-    .toLowerCase()
-    .includes(q);
+  return `${command.title} ${command.detail ?? ''} ${command.group}`.toLowerCase().includes(q);
 }
 
 function Kbd({ children }: { children: ReactNode }) {
@@ -177,14 +174,11 @@ export default function CommandMenu1() {
 
   const [open, setOpen] = useState(true);
   const [shown, setShown] = useState(true);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
 
   const listboxId = `${uid}-listbox`;
-  const filtered = useMemo(
-    () => COMMANDS.filter((command) => matches(command, query)),
-    [query],
-  );
+  const filtered = useMemo(() => COMMANDS.filter((command) => matches(command, query)), [query]);
   const activeCommand = filtered[activeIndex];
   const activeId = activeCommand ? `${uid}-${activeCommand.id}` : undefined;
 
@@ -236,17 +230,17 @@ export default function CommandMenu1() {
   useEffect(() => {
     const doc = rootRef.current?.ownerDocument ?? document;
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         openMenu(false);
       }
     };
-    doc.addEventListener("keydown", onKeyDown);
-    return () => doc.removeEventListener("keydown", onKeyDown);
+    doc.addEventListener('keydown', onKeyDown);
+    return () => doc.removeEventListener('keydown', onKeyDown);
   }, [openMenu]);
 
   const run = useCallback(() => {
-    setQuery("");
+    setQuery('');
     setActiveIndex(0);
     close();
   }, [close]);
@@ -261,23 +255,23 @@ export default function CommandMenu1() {
 
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
-      case "ArrowDown":
+      case 'ArrowDown':
         event.preventDefault();
         move(1);
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         event.preventDefault();
         move(-1);
         break;
-      case "Home":
+      case 'Home':
         event.preventDefault();
         setActiveIndex(0);
         break;
-      case "End":
+      case 'End':
         event.preventDefault();
         setActiveIndex(Math.max(filtered.length - 1, 0));
         break;
-      case "Enter":
+      case 'Enter':
         if (!activeCommand) break;
         event.preventDefault();
         run();
@@ -286,12 +280,12 @@ export default function CommandMenu1() {
   };
 
   const onDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       event.preventDefault();
       close();
       return;
     }
-    if (event.key !== "Tab") return;
+    if (event.key !== 'Tab') return;
     const root = dialogRef.current;
     if (!root) return;
     const nodes = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));
@@ -322,9 +316,7 @@ export default function CommandMenu1() {
         className="inline-flex h-9 w-64 max-w-full cursor-pointer items-center gap-2 rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-900 transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-neutral-50 active:scale-[0.97] focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]"
       >
         <Search aria-hidden="true" className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-left">
-          Search or run a command
-        </span>
+        <span className="min-w-0 flex-1 truncate text-left">Search or run a command</span>
         <Kbd>⌘K</Kbd>
       </button>
 
@@ -336,8 +328,8 @@ export default function CommandMenu1() {
             aria-label="Close menu"
             onClick={close}
             className={cx(
-              "absolute inset-0 z-40 cursor-default bg-neutral-950/40 backdrop-blur-[2px] transition-opacity ease-[cubic-bezier(0.23,1,0.32,1)] dark:bg-neutral-950/60",
-              shown ? "opacity-100 duration-200" : "opacity-0 duration-[140ms]",
+              'absolute inset-0 z-40 cursor-default bg-neutral-950/40 backdrop-blur-[2px] transition-opacity ease-[cubic-bezier(0.23,1,0.32,1)] dark:bg-neutral-950/60',
+              shown ? 'opacity-100 duration-200' : 'opacity-0 duration-[140ms]',
             )}
           />
           <div
@@ -347,10 +339,10 @@ export default function CommandMenu1() {
             aria-labelledby={`${uid}-title`}
             onKeyDown={onDialogKeyDown}
             className={cx(
-              "absolute left-1/2 top-[12%] z-50 flex max-h-[76%] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-[var(--rb-r-4xl,18px)] border border-neutral-200/70 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] transition-[opacity,transform] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:scale-100 motion-reduce:transition-opacity dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none",
+              'absolute left-1/2 top-[12%] z-50 flex max-h-[76%] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-[var(--rb-r-4xl,18px)] border border-neutral-200/70 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] transition-[opacity,transform] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:scale-100 motion-reduce:transition-opacity dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none',
               shown
-                ? "scale-100 opacity-100 duration-200"
-                : "scale-[0.97] opacity-0 duration-[140ms]",
+                ? 'scale-100 opacity-100 duration-200'
+                : 'scale-[0.97] opacity-0 duration-[140ms]',
             )}
           >
             <h2 id={`${uid}-title`} className="sr-only">
@@ -429,10 +421,10 @@ export default function CommandMenu1() {
                                   run();
                                 }}
                                 className={cx(
-                                  "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[var(--rb-r-lg,10px)] px-2.5 py-2 text-left transition-colors duration-150 active:bg-neutral-200 dark:active:bg-neutral-700",
+                                  'flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[var(--rb-r-lg,10px)] px-2.5 py-2 text-left transition-colors duration-150 active:bg-neutral-200 dark:active:bg-neutral-700',
                                   selected
-                                    ? "bg-neutral-100 dark:bg-neutral-800"
-                                    : "bg-transparent",
+                                    ? 'bg-neutral-100 dark:bg-neutral-800'
+                                    : 'bg-transparent',
                                 )}
                               >
                                 <Icon
@@ -469,7 +461,7 @@ export default function CommandMenu1() {
                       type="button"
                       onMouseDown={(event) => {
                         event.preventDefault();
-                        setQuery("");
+                        setQuery('');
                         setActiveIndex(0);
                         inputRef.current?.focus({ preventScroll: true });
                       }}
@@ -483,15 +475,15 @@ export default function CommandMenu1() {
               <div
                 aria-hidden="true"
                 className={cx(
-                  "pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-neutral-50 to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950/50",
-                  list.edges.start ? "opacity-100" : "opacity-0",
+                  'pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-neutral-50 to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950/50',
+                  list.edges.start ? 'opacity-100' : 'opacity-0',
                 )}
               />
               <div
                 aria-hidden="true"
                 className={cx(
-                  "pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50 to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950/50",
-                  list.edges.end ? "opacity-100" : "opacity-0",
+                  'pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50 to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950/50',
+                  list.edges.end ? 'opacity-100' : 'opacity-0',
                 )}
               />
             </div>
@@ -513,7 +505,7 @@ export default function CommandMenu1() {
                 to close
               </span>
               <span className="ml-auto shrink-0 tabular-nums">
-                {filtered.length} {filtered.length === 1 ? "result" : "results"}
+                {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
               </span>
             </div>
           </div>

@@ -13,17 +13,12 @@ function CheckList({ view }: { view: ReadinessView }) {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-medium tracking-tight text-neutral-100">{copy.title}</h2>
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-neutral-400">
-          {copy.message}
-        </p>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-neutral-400">{copy.message}</p>
       </div>
       {view === 'checking' ? (
         <div className="space-y-3" aria-busy="true" aria-label="Checking runtime">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-12 animate-pulse rounded-lg bg-neutral-900"
-            />
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-neutral-900" />
           ))}
         </div>
       ) : (
@@ -59,9 +54,7 @@ function CommandList() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-medium tracking-tight text-neutral-100">
-          Commands
-        </h2>
+        <h2 className="text-lg font-medium tracking-tight text-neutral-100">Commands</h2>
         <p className="mt-1.5 text-sm text-neutral-400">
           Product paths for this machine. Opens the Astro site (port 4321).
         </p>

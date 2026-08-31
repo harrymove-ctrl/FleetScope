@@ -63,17 +63,13 @@ export interface DashboardStateContract {
 
 export type ControlId = 'open-viewer' | 'load-demo' | 'copy-cli' | 'command-menu';
 
-const ALL_CONTROLS: readonly ControlId[] = [
-  'open-viewer',
-  'load-demo',
-  'copy-cli',
-  'command-menu',
-];
+const ALL_CONTROLS: readonly ControlId[] = ['open-viewer', 'load-demo', 'copy-cli', 'command-menu'];
 
 export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateContract>> = {
   'first-run': {
     title: 'Watch the CLI session',
-    message: 'Run the producer in your terminal. FleetScope follows the JSONL it writes — this tab never uploads a recording.',
+    message:
+      'Run the producer in your terminal. FleetScope follows the JSONL it writes — this tab never uploads a recording.',
     tone: 'info',
     primary: { label: 'Check the runtime', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer', href: '/viewer' },
@@ -92,7 +88,8 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
 
   'cli-missing': {
     title: 'The viewer needs attention',
-    message: 'The browser runtime did not load. Retry here, or follow the session from your terminal.',
+    message:
+      'The browser runtime did not load. Retry here, or follow the session from your terminal.',
     tone: 'bad',
     primary: { label: 'Retry the check', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer anyway', href: '/viewer' },
@@ -111,7 +108,8 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
 
   'adapter-failed': {
     title: "This session isn't supported",
-    message: 'Follow a Gemini or Google ADK JSONL from the CLI. FleetScope will not guess an unknown format.',
+    message:
+      'Follow a Gemini or Google ADK JSONL from the CLI. FleetScope will not guess an unknown format.',
     tone: 'bad',
     primary: { label: 'Open Agent Viewer', href: '/viewer' },
     secondary: { label: 'Preview bundled run', href: '/viewer' },
@@ -131,7 +129,8 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
 
   ready: {
     title: 'Watch the CLI session',
-    message: 'The local viewer is ready. Follow the producer from your terminal, or preview the bundled run.',
+    message:
+      'The local viewer is ready. Follow the producer from your terminal, or preview the bundled run.',
     tone: 'ok',
     primary: { label: 'Open Agent Viewer', href: '/viewer' },
     secondary: { label: 'Preview bundled run', href: '/viewer' },

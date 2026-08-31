@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 
-const cx = (...c: (string | false | null | undefined)[]) =>
-  c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
 type Metric = {
   label: string;
@@ -34,108 +33,108 @@ const Y_TICKS = [500, 375, 250, 125, 0];
 
 const RANGES: Range[] = [
   {
-    key: "Last 3 months",
-    compare: "vs. prior 3 months",
-    months: ["Jul", "Aug", "Sep"],
+    key: 'Last 3 months',
+    compare: 'vs. prior 3 months',
+    months: ['Jul', 'Aug', 'Sep'],
     revenue: [448, 466, 483],
     metrics: [
       {
-        label: "Net revenue",
-        value: "$1.40M",
-        delta: "+9.8%",
+        label: 'Net revenue',
+        value: '$1.40M',
+        delta: '+9.8%',
         positive: true,
         spark: SPARK.revenue,
       },
       {
-        label: "Paid accounts",
-        value: "3,914",
-        delta: "+2.1%",
+        label: 'Paid accounts',
+        value: '3,914',
+        delta: '+2.1%',
         positive: true,
         spark: SPARK.accounts,
       },
       {
-        label: "Average contract",
-        value: "$1,278",
-        delta: "−1.4%",
+        label: 'Average contract',
+        value: '$1,278',
+        delta: '−1.4%',
         positive: false,
         spark: SPARK.contract,
       },
       {
-        label: "Monthly churn",
-        value: "1.8%",
-        delta: "+0.2 pp",
+        label: 'Monthly churn',
+        value: '1.8%',
+        delta: '+0.2 pp',
         positive: false,
         spark: SPARK.churn,
       },
     ],
   },
   {
-    key: "Last 6 months",
-    compare: "vs. prior 6 months",
-    months: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+    key: 'Last 6 months',
+    compare: 'vs. prior 6 months',
+    months: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
     revenue: [371, 402, 419, 448, 466, 483],
     metrics: [
       {
-        label: "Net revenue",
-        value: "$2.59M",
-        delta: "+12.4%",
+        label: 'Net revenue',
+        value: '$2.59M',
+        delta: '+12.4%',
         positive: true,
         spark: SPARK.revenue,
       },
       {
-        label: "Paid accounts",
-        value: "3,914",
-        delta: "+4.1%",
+        label: 'Paid accounts',
+        value: '3,914',
+        delta: '+4.1%',
         positive: true,
         spark: SPARK.accounts,
       },
       {
-        label: "Average contract",
-        value: "$1,284",
-        delta: "−2.3%",
+        label: 'Average contract',
+        value: '$1,284',
+        delta: '−2.3%',
         positive: false,
         spark: SPARK.contract,
       },
       {
-        label: "Monthly churn",
-        value: "1.8%",
-        delta: "+0.3 pp",
+        label: 'Monthly churn',
+        value: '1.8%',
+        delta: '+0.3 pp',
         positive: false,
         spark: SPARK.churn,
       },
     ],
   },
   {
-    key: "Year to date",
-    compare: "vs. same period last year",
-    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+    key: 'Year to date',
+    compare: 'vs. same period last year',
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
     revenue: [279, 301, 318, 371, 402, 419, 448, 466, 483],
     metrics: [
       {
-        label: "Net revenue",
-        value: "$3.49M",
-        delta: "+22.8%",
+        label: 'Net revenue',
+        value: '$3.49M',
+        delta: '+22.8%',
         positive: true,
         spark: SPARK.revenue,
       },
       {
-        label: "Paid accounts",
-        value: "3,914",
-        delta: "+14.2%",
+        label: 'Paid accounts',
+        value: '3,914',
+        delta: '+14.2%',
         positive: true,
         spark: SPARK.accounts,
       },
       {
-        label: "Average contract",
-        value: "$1,292",
-        delta: "−1.8%",
+        label: 'Average contract',
+        value: '$1,292',
+        delta: '−1.8%',
         positive: false,
         spark: SPARK.contract,
       },
       {
-        label: "Monthly churn",
-        value: "1.9%",
-        delta: "+0.4 pp",
+        label: 'Monthly churn',
+        value: '1.9%',
+        delta: '+0.4 pp',
         positive: false,
         spark: SPARK.churn,
       },
@@ -153,7 +152,7 @@ function Sparkline({ values }: { values: number[] }) {
       const y = 92 - ((v - min) / span) * 84;
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
-    .join(" ");
+    .join(' ');
 
   return (
     <svg
@@ -175,13 +174,7 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-function RangeSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function RangeSelect({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [active, setActive] = useState(0);
@@ -199,8 +192,8 @@ function RangeSelect({
         setShown(false);
       }
     };
-    doc.addEventListener("pointerdown", onPointerDown);
-    return () => doc.removeEventListener("pointerdown", onPointerDown);
+    doc.addEventListener('pointerdown', onPointerDown);
+    return () => doc.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
   useEffect(() => {
@@ -232,10 +225,10 @@ function RangeSelect({
   };
 
   const onTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "ArrowDown") {
+    if (event.key === 'ArrowDown') {
       event.preventDefault();
       openMenu(0, false);
-    } else if (event.key === "ArrowUp") {
+    } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       openMenu(RANGES.length - 1, false);
     }
@@ -243,32 +236,32 @@ function RangeSelect({
 
   const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     switch (event.key) {
-      case "Escape":
+      case 'Escape':
         event.preventDefault();
         close();
         break;
-      case "ArrowDown":
+      case 'ArrowDown':
         event.preventDefault();
         setActive((i) => (i + 1) % RANGES.length);
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         event.preventDefault();
         setActive((i) => (i - 1 + RANGES.length) % RANGES.length);
         break;
-      case "Home":
+      case 'Home':
         event.preventDefault();
         setActive(0);
         break;
-      case "End":
+      case 'End':
         event.preventDefault();
         setActive(RANGES.length - 1);
         break;
-      case "Enter":
-      case " ":
+      case 'Enter':
+      case ' ':
         event.preventDefault();
         select(active);
         break;
-      case "Tab":
+      case 'Tab':
         close(false);
         break;
     }
@@ -287,10 +280,7 @@ function RangeSelect({
         className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-900 transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.97] focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]"
       >
         {value}
-        <ChevronDown
-          className="h-4 w-4 shrink-0 text-neutral-500"
-          aria-hidden
-        />
+        <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
       </button>
 
       {open && (
@@ -301,8 +291,8 @@ function RangeSelect({
           tabIndex={-1}
           onKeyDown={onMenuKeyDown}
           className={cx(
-            "absolute right-0 top-full z-30 mt-1.5 w-48 origin-top-right overflow-hidden rounded-[var(--rb-r-2xl,14px)] border border-neutral-200/70 bg-white p-1 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.10)] outline-none transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none",
-            shown ? "scale-100 opacity-100" : "scale-95 opacity-0",
+            'absolute right-0 top-full z-30 mt-1.5 w-48 origin-top-right overflow-hidden rounded-[var(--rb-r-2xl,14px)] border border-neutral-200/70 bg-white p-1 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.10)] outline-none transition-[opacity,transform] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none',
+            shown ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
           )}
         >
           {RANGES.map((range, index) => {
@@ -317,13 +307,11 @@ function RangeSelect({
                 onClick={() => select(index)}
                 onPointerMove={() => setActive(index)}
                 className={cx(
-                  "flex h-8 w-full cursor-pointer items-center gap-2 rounded-[var(--rb-r-lg,10px)] px-2 text-left text-[13px] transition-colors duration-150",
+                  'flex h-8 w-full cursor-pointer items-center gap-2 rounded-[var(--rb-r-lg,10px)] px-2 text-left text-[13px] transition-colors duration-150',
                   selected
-                    ? "font-medium text-neutral-900 dark:text-neutral-100"
-                    : "text-neutral-600 dark:text-neutral-400",
-                  index === active
-                    ? "bg-neutral-100 dark:bg-neutral-800"
-                    : "bg-transparent",
+                    ? 'font-medium text-neutral-900 dark:text-neutral-100'
+                    : 'text-neutral-600 dark:text-neutral-400',
+                  index === active ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-transparent',
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{range.key}</span>
@@ -362,9 +350,7 @@ export default function Dashboard1() {
               key={metric.label}
               className="rounded-[var(--rb-r-lg,10px)] border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
             >
-              <p className="truncate text-[13px] text-neutral-500">
-                {metric.label}
-              </p>
+              <p className="truncate text-[13px] text-neutral-500">{metric.label}</p>
               <div className="mt-2 flex items-end justify-between gap-3">
                 <p className="truncate text-2xl font-medium tabular-nums tracking-[-0.02em] text-neutral-900 dark:text-neutral-100">
                   {metric.value}
@@ -375,16 +361,13 @@ export default function Dashboard1() {
                 <span
                   className={
                     metric.positive
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-red-600 dark:text-red-400'
                   }
                 >
                   {metric.delta}
                 </span>
-                <span className="hidden text-neutral-500 sm:inline">
-                  {" "}
-                  {range.compare}
-                </span>
+                <span className="hidden text-neutral-500 sm:inline"> {range.compare}</span>
               </p>
             </div>
           ))}
@@ -395,9 +378,7 @@ export default function Dashboard1() {
             <h2 className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
               Net revenue by month
             </h2>
-            <span className="shrink-0 text-xs text-neutral-500">
-              USD, thousands
-            </span>
+            <span className="shrink-0 text-xs text-neutral-500">USD, thousands</span>
           </div>
 
           <div className="mt-4 flex min-h-0 flex-1 gap-3">

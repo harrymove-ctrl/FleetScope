@@ -171,7 +171,9 @@ describe('the feature-detail visual surface', () => {
     expect(dashboardStyles).toContain('text-align: center');
     expect(plan).toContain('Assistant · Gemini ADK');
     expect(plan).toContain('data-assistant-chat');
-    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(plan.indexOf('id="assistant-plan-title"'));
+    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(
+      plan.indexOf('id="assistant-plan-title"'),
+    );
     expect(plan).toContain('data-support-msg="privacy"');
     expect(plan).toContain('data-support-msg="cli"');
     expect(plan).toContain('data-support-msg="formats"');
@@ -217,6 +219,10 @@ describe('the feature-detail visual surface', () => {
     expect(viewer).toContain('attachLocalSessions');
     expect(viewer).toContain('pnpm demo:antigravity');
     expect(viewer).toContain('--no-tui');
+    expect(viewer).toContain('data-local-sessions');
+    expect(viewer).toContain('data-follow-newest');
+    expect(viewer).toContain('pnpm demo:agy');
+    expect(viewer).toContain('data-copy-agy-repl');
     expect(viewer).toContain('Follow folder…');
     expect(viewer).toContain('data-stage-toggle');
     expect(viewer).toContain('story--strip');

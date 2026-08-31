@@ -103,9 +103,16 @@ import '../styles/feature-viewer.css';
       </div>
 
       <div class="viewer-cli-card__command" data-cli-command-wrap>
-        <span class="viewer-cli-card__cmd-label">Producer (live write for that project)</span>
+        <span class="viewer-cli-card__cmd-label">Chat in real agy CLI (continuous)</span>
+        <code data-agy-repl-command></code>
+        <button class="fs-button fs-button--sm" data-variant="primary" type="button" data-copy-agy-repl>
+          Copy agy chat
+        </button>
+      </div>
+      <div class="viewer-cli-card__command" data-cli-command-wrap>
+        <span class="viewer-cli-card__cmd-label">One-shot producer (5 workers then done)</span>
         <code data-cli-command></code>
-        <button class="fs-button fs-button--sm" data-variant="primary" type="button" data-cli-copy>
+        <button class="fs-button fs-button--sm" type="button" data-cli-copy>
           Copy producer
         </button>
       </div>
@@ -120,11 +127,27 @@ import '../styles/feature-viewer.css';
       </div>
       <p class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></p>
       <ol class="viewer-cli-card__steps">
-        <li>Project folder needs <code>brief.md</code> (agents read it).</li>
-        <li>Copy producer → run in Terminal (needs <code>agy</code>). <code>--no-tui</code> is already in the copy.</li>
-        <li>When it prints <code>session_dir=…</code>, Follow folder… and pick <strong>that</strong> folder.</li>
-        <li>If TUI panics with crossterm IoError: ignore it and Follow the printed <code>session_dir</code> here.</li>
+        <li><strong>Copy agy chat</strong> → Terminal B. That is <code>agy --dangerously-skip-permissions</code> (rainbow <code>&gt;</code>).</li>
+        <li>Refresh this tab. Click a row in <strong>Local sessions</strong> below (or leave Follow newest on).</li>
+        <li>Type at <code>&gt;</code> in Terminal B. Graph should grow. Do not Follow the project folder (only <code>brief.md</code>).</li>
       </ol>
+    </section>
+
+    <section class="viewer-sessions fs-feature-section" aria-labelledby="local-sessions-title">
+      <div class="viewer-sessions__head">
+        <h2 id="local-sessions-title">Local sessions</h2>
+        <label class="viewer-sessions__newest">
+          <input type="checkbox" data-follow-newest checked />
+          Follow newest
+        </label>
+      </div>
+      <p class="viewer-sessions__lede">
+        Every folder under <code>.fleetscope/sessions</code> with <code>session.jsonl</code>. Click to watch.
+        Loopback only — nothing is uploaded.
+      </p>
+      <ul class="viewer-sessions__list" data-local-sessions role="list">
+        <li class="fs-muted">Looking for local sessions…</li>
+      </ul>
     </section>
 
   <input type="file" data-file-input hidden accept=".jsonl,.json" />
@@ -361,6 +384,10 @@ import '../styles/feature-viewer.css';
   const cliCopyEl = document.querySelector('[data-cli-copy]') as HTMLButtonElement | null;
   const cliCommandEl = document.querySelector('[data-cli-command]') as HTMLElement | null;
   const tuiCommandEl = document.querySelector('[data-tui-command]') as HTMLElement | null;
+  const agyReplCommandEl = document.querySelector('[data-agy-repl-command]') as HTMLElement | null;
+  const copyAgyReplEl = document.querySelector('[data-copy-agy-repl]') as HTMLButtonElement | null;
+  const localSessionsEl = document.querySelector('[data-local-sessions]') as HTMLElement | null;
+  const followNewestEl = document.querySelector('[data-follow-newest]') as HTMLInputElement | null;
   const cliCopyStatusEl = document.querySelector('[data-cli-copy-status]') as HTMLElement | null;
   const fleetscopeRootEl = document.querySelector(
     '[data-fleetscope-root]',
@@ -407,6 +434,13 @@ import '../styles/feature-viewer.css';
     return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity --no-tui --project ${shellSingleQuote(project)}`;
   }
 
+  /** Real agy rainbow CLI + sidecar that tails transcript.jsonl. */
+  function buildAgyReplCommand(): string {
+    const root = currentRepoRoot();
+    const project = currentProjectPath() || root;
+    return `cd ${shellSingleQuote(root)} && pnpm demo:agy -- --project ${shellSingleQuote(project)}`;
+  }
+
   /** Native TUI for the session this tab is already following. */
   function buildTuiCommand(sessionId = localFollowId ?? 'antigravity-live-cu'): string {
     const root = currentRepoRoot();
@@ -416,6 +450,7 @@ import '../styles/feature-viewer.css';
   function refreshCommandPreviews(): void {
     if (cliCommandEl) cliCommandEl.textContent = buildProducerCommand();
     if (tuiCommandEl) tuiCommandEl.textContent = buildTuiCommand();
+    if (agyReplCommandEl) agyReplCommandEl.textContent = buildAgyReplCommand();
   }
 
   /** Files a session can be made of. Anything else in a folder is ignored. */
@@ -513,6 +548,14 @@ import '../styles/feature-viewer.css';
     );
   }
 
+  async function copyAgyReplCommand() {
+    refreshCommandPreviews();
+    await copyText(
+      buildAgyReplCommand(),
+      'agy chat copied — paste in a terminal. Chat at the rainbow > prompt.',
+    );
+  }
+
   async function copyOpenTui() {
     refreshCommandPreviews();
     const session = localFollowId ?? 'antigravity-live-cu';
@@ -583,6 +626,20 @@ import '../styles/feature-viewer.css';
 
   cliCopyEl?.addEventListener('click', () => {
     void copyCliCommand();
+  });
+  copyAgyReplEl?.addEventListener('click', () => {
+    void copyAgyReplCommand();
+  });
+  followNewestEl?.addEventListener('change', () => {
+    if (!api || !followNewest()) return;
+    void fetchLocalSessions().then((listed) => {
+      const newest = listed[0];
+      if (!newest) return;
+      void loadLocalSession(api, newest).then((ok) => {
+        if (ok) scheduleLocalPoll(api);
+        renderLocalSessionList(listed);
+      });
+    });
   });
   for (const button of document.querySelectorAll('[data-open-tui]')) {
     button.addEventListener('click', () => {
@@ -737,14 +794,52 @@ import '../styles/feature-viewer.css';
     }
   }
 
+  function followNewest(): boolean {
+    return followNewestEl?.checked !== false;
+  }
+
+  function renderLocalSessionList(rows: readonly LocalSessionRow[]): void {
+    if (!localSessionsEl) return;
+    if (rows.length === 0) {
+      localSessionsEl.innerHTML = '<li class="fs-muted">No local session.jsonl yet. Start agy chat or a producer.</li>';
+      return;
+    }
+    localSessionsEl.replaceChildren();
+    for (const row of rows) {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'viewer-sessions__item';
+      if (row.id === localFollowId) button.setAttribute('aria-current', 'true');
+      const kb = row.bytes < 1024 ? `${row.bytes} B` : `${Math.round(row.bytes / 1024)} KB`;
+      button.innerHTML = `<span class="viewer-sessions__id">${row.id}</span><span class="viewer-sessions__meta">${kb}</span>`;
+      button.addEventListener('click', () => {
+        if (followNewestEl) followNewestEl.checked = false;
+        if (!api) return;
+        void loadLocalSession(api, row).then((ok) => {
+          if (ok) {
+            scheduleLocalPoll(api);
+            void fetchLocalSessions().then(renderLocalSessionList);
+          }
+        });
+      });
+      item.appendChild(button);
+      localSessionsEl.appendChild(item);
+    }
+  }
+
   function scheduleLocalPoll(mod: Api) {
     window.clearTimeout(localFollowTimer);
     localFollowTimer = window.setTimeout(async () => {
       if (localFollowId === null) return;
       const listed = await fetchLocalSessions();
-      const current = listed.find((row) => row.id === localFollowId) ?? listed[0];
+      renderLocalSessionList(listed);
+      const current = followNewest()
+        ? (listed[0] ?? null)
+        : (listed.find((row) => row.id === localFollowId) ?? null);
       if (current && (current.id !== localFollowId || current.bytes !== localFollowBytes)) {
         await loadLocalSession(mod, current);
+        renderLocalSessionList(listed);
       }
       if (localFollowId !== null) scheduleLocalPoll(mod);
     }, 750);
@@ -752,6 +847,7 @@ import '../styles/feature-viewer.css';
 
   async function attachLocalSessions(mod: Api): Promise<boolean> {
     const listed = await fetchLocalSessions();
+    renderLocalSessionList(listed);
     if (listed.length === 0) return false;
     const ok = await loadLocalSession(mod, listed[0]);
     if (ok) scheduleLocalPoll(mod);
