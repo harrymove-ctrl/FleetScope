@@ -30,7 +30,7 @@ OPTIONS
     -s, --speed <N>     replay speed multiplier (default 1)
         --format <ID>   force a session format instead of detecting one
         --formats       list the session formats this build can read
-        --tiny          allow a terminal smaller than 160×48 (tests / cramped)
+        --tiny          skip the size warning on a terminal smaller than 160×48
     -h, --help          print this message
     -V, --version       print the version
 
@@ -316,8 +316,9 @@ fn run_view(
     tiny: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(message) = size_gate(tiny) {
+        // Typical macOS windows are under 160×48. Zoetrope already lays out to
+        // the real size; refusing to start made Copy CLI unusable.
         eprintln!("{message}");
-        std::process::exit(2);
     }
 
     let resolved = discover::resolve(path)?;
@@ -360,10 +361,9 @@ fn run_view(
     Ok(())
 }
 
-/// Refuse to open a cramped TUI unless `--tiny` is set.
+/// Warn on a cramped TTY. Never refuse: `--tiny` only silences the notice.
 ///
-/// `inspect` / `demo` / `--help` never call this. Only a TTY is gated: a pipe
-/// has no size to judge and tests must keep passing.
+/// `inspect` / `demo` / `--help` never call this. A pipe has no size to judge.
 fn size_gate(tiny: bool) -> Option<String> {
     use std::io::IsTerminal;
     if tiny || !std::io::stdin().is_terminal() {
@@ -374,8 +374,7 @@ fn size_gate(tiny: bool) -> Option<String> {
         return None;
     }
     Some(format!(
-        "fleetscope: terminal is {cols}×{rows}; the viewer needs at least 160×48.\n\
-         Zoom the window (pinch-zoom, or macOS Terminal: View → Larger Text) or pass --tiny."
+        "fleetscope: terminal is {cols}×{rows} (full layout is 160×48). Continuing with a compact view."
     ))
 }
 

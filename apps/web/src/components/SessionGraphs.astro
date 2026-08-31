@@ -15,7 +15,6 @@ import {
   treeRows,
   uptimeCells,
 } from '../features/viewer/graphs';
-import FullscreenToggle from './FullscreenToggle.astro';
 import '../styles/feature-readings.css';
 
 const GANTT_WIDTH = 28;
@@ -31,6 +30,13 @@ const failedCount = uptime.filter((cell) => cell === 'down').length;
 const unanswered = check.filter((row) => !row.done).length;
 const faultedId = gantt.find((row) => row.faulted)?.label;
 const accentId = faultedId ?? flow.at(-1)?.label;
+const oneLine = [
+  `${flow.length} agents in handoff order`,
+  unanswered === 1 ? '1 call never returned' : `${unanswered} unanswered calls`,
+  failedCount === 1 ? '1 failed event' : `${failedCount} failed events`,
+  spec.find((row) => row.label === 'elapsed')?.value ?? '—',
+].join(' · ');
+const agentNames = gantt.map((row) => row.label).join(' · ');
 ---
 
 <section class="readings readings--demo" data-session-graphs aria-labelledby="graphs-title">
@@ -38,17 +44,14 @@ const accentId = faultedId ?? flow.at(-1)?.label;
     <div>
       <p class="readings__kicker">What the record shows</p>
       <h2 id="graphs-title">One session, seven readings</h2>
-    </div>
-    <div class="readings__actions">
-      <FullscreenToggle target="[data-session-graphs]" label="readings" idleLabel="Full screen" />
+      <p class="readings__lede" data-readings-line>{oneLine}</p>
+      <p class="readings__agents">Agents that ran: {agentNames}</p>
     </div>
   </header>
 
   <div class="readings__stack">
     <figure class="reading reading--hero" data-graph="flow">
       <figcaption class="reading__title">handoffs</figcaption>
-      <span class="reading__corner-bl" aria-hidden="true">+</span>
-      <span class="reading__corner-br" aria-hidden="true">+</span>
       <ol class="reading-flow" aria-label="Handoff chain">
         {
           flow.map((step) => (
@@ -73,10 +76,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
     </figure>
 
     <figure class="reading" data-graph="gantt">
-      <figcaption class="reading__title">who held the run</figcaption>
-      <span class="reading__corner-bl" aria-hidden="true">+</span>
-      <span class="reading__corner-br" aria-hidden="true">+</span>
-      <ul class="reading-gantt" role="list">
+      <figcaption class="reading__title">who held the run</figcaption>      <ul class="reading-gantt" role="list">
         {
           gantt.map((row) => {
             const track =
@@ -109,10 +109,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
 
     <div class="readings__pair">
       <figure class="reading" data-graph="tree">
-        <figcaption class="reading__title">agent tree</figcaption>
-        <span class="reading__corner-bl" aria-hidden="true">+</span>
-        <span class="reading__corner-br" aria-hidden="true">+</span>
-        <ul class="reading-list" role="list">
+        <figcaption class="reading__title">agent tree</figcaption>        <ul class="reading-list" role="list">
           {
             tree.map((row) => (
               <li class="reading-list__row">
@@ -130,10 +127,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
       </figure>
 
       <figure class="reading" data-graph="check">
-        <figcaption class="reading__title">calls answered</figcaption>
-        <span class="reading__corner-bl" aria-hidden="true">+</span>
-        <span class="reading__corner-br" aria-hidden="true">+</span>
-        <ul class="reading-list" role="list">
+        <figcaption class="reading__title">calls answered</figcaption>        <ul class="reading-list" role="list">
           {
             check.map((row) => (
               <li class="reading-list__row reading-check__row" data-done={row.done ? '1' : '0'}>
@@ -155,10 +149,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
 
     <div class="readings__pair">
       <figure class="reading" data-graph="uptime">
-        <figcaption class="reading__title">event health</figcaption>
-        <span class="reading__corner-bl" aria-hidden="true">+</span>
-        <span class="reading__corner-br" aria-hidden="true">+</span>
-        <ul class="reading-health" aria-label="Per-event health">
+        <figcaption class="reading__title">event health</figcaption>        <ul class="reading-health" aria-label="Per-event health">
           {
             uptime.map((cell) => (
               <li class="reading-health__cell" data-state={cell}>
@@ -174,10 +165,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
       </figure>
 
       <figure class="reading" data-graph="spec">
-        <figcaption class="reading__title">session</figcaption>
-        <span class="reading__corner-bl" aria-hidden="true">+</span>
-        <span class="reading__corner-br" aria-hidden="true">+</span>
-        <ul class="reading-list" role="list">
+        <figcaption class="reading__title">session</figcaption>        <ul class="reading-list" role="list">
           {
             spec.map((row) => (
               <li class="reading-list__row">
@@ -195,10 +183,7 @@ const accentId = faultedId ?? flow.at(-1)?.label;
     </div>
 
     <figure class="reading" data-graph="timeline">
-      <figcaption class="reading__title">timeline</figcaption>
-      <span class="reading__corner-bl" aria-hidden="true">+</span>
-      <span class="reading__corner-br" aria-hidden="true">+</span>
-      <ol class="reading-timeline">
+      <figcaption class="reading__title">timeline</figcaption>      <ol class="reading-timeline">
         {
           timeline.map((row) => (
             <li class="reading-timeline__row" data-ok={row.ok ? '1' : '0'}>

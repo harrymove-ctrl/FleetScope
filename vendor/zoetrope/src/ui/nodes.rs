@@ -168,7 +168,7 @@ impl NodeContent for AgentNode {
 
         if let Some(desc) = self.description.as_ref().filter(|d| !d.is_empty()) {
             let remain = inner.height.saturating_sub(3) as usize; // title + activity + status
-            let cap = remain.max(1).min(4);
+            let cap = remain.clamp(1, 4);
             for row in wrap(desc, inner_w, cap) {
                 lines.push(Line::from(Span::styled(row, bg_style.fg(palette.text))));
             }
@@ -258,6 +258,16 @@ mod tests {
         assert_eq!(AgentStatus::Running.glyph(), '●');
         assert_eq!(AgentStatus::Done.glyph(), '✓');
         assert_eq!(AgentStatus::Failed.glyph(), '✗');
+    }
+
+    #[test]
+    fn activity_row_never_says_zero_tools() {
+        assert_eq!(activity_row(0, 0, 0, None), "no output yet");
+        assert_eq!(activity_row(12, 0, 5, None), "12 msgs · 5 spawned");
+        assert_eq!(
+            activity_row(3, 2, 0, Some("Read")),
+            "3 msgs · 2 tools · Read"
+        );
     }
 
     fn render_into(area: ratatui::layout::Rect) -> Buffer {

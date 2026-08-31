@@ -2,9 +2,8 @@
 /**
  * Judge/video poster for the bundled Agent Viewer recording.
  *
- * This route is deliberately server-rendered and deterministic. It does not
- * mount the Agent Viewer shell, load the WASM renderer, follow a file, or start
- * a model. SessionGraphs is the whole evidence body.
+ * Zero interaction by design: no buttons, no fullscreen, no Follow, no WASM,
+ * no model start. Scroll to read. Site nav is the only way to leave.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SessionGraphs from '../components/SessionGraphs.astro';
@@ -14,75 +13,70 @@ const statusLine = sessionStatusLine();
 ---
 
 <BaseLayout title="Session readings" wide surface="feature" theme="adaptive">
-  <article class="demo-poster" data-demo-poster>
+  <article class="demo-poster" data-demo-poster data-interactive="false">
     <header class="demo-poster__bar">
-      <div>
-        <p class="demo-poster__kicker">FleetScope · recorded session</p>
-        <h1>Session readings</h1>
-      </div>
-      <a class="demo-poster__viewer-link" href="/viewer">Open Agent Viewer</a>
+      <p class="demo-poster__kicker">
+        <span class="demo-poster__orb" aria-hidden="true"></span>
+        Gemini · Antigravity · recorded session
+      </p>
+      <h1>Session readings</h1>
       <p class="demo-poster__status" data-demo-line>{statusLine}</p>
     </header>
 
     <SessionGraphs />
 
     <footer class="demo-poster__footnote">
-      <span>Recorded example · local files stay local · no upload</span>
-      <span>Produced with <code>pnpm demo:antigravity</code></span>
+      <span>Recorded evidence only · no upload · no model call · no controls on this page</span>
+      <span>Producer: <code>pnpm demo:antigravity</code></span>
     </footer>
   </article>
 </BaseLayout>
 
 <style>
   .demo-poster {
-    width: min(100%, 1180px);
+    width: min(100%, 980px);
     margin: 0 auto;
+    padding: clamp(8px, 2vw, 24px) 0 clamp(48px, 8vw, 96px);
   }
 
   .demo-poster__bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px 24px;
-    align-items: end;
-    margin-bottom: clamp(28px, 5vw, 56px);
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--fd-line);
+    margin-bottom: clamp(36px, 6vw, 64px);
   }
 
   .demo-poster__kicker {
-    margin: 0 0 6px;
-    color: var(--fd-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    color: var(--fd-cyan);
     font: 500 10px/1 var(--fs-mono);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+  }
+
+  .demo-poster__orb {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4285f4, #8430ce 55%, #fbbc05);
+    box-shadow: 0 0 0 3px color-mix(in srgb, #8430ce 18%, transparent);
   }
 
   .demo-poster h1 {
     margin: 0;
     color: var(--fd-text);
-    font-size: clamp(30px, 4vw, 52px);
-    font-weight: 600;
-    letter-spacing: -0.04em;
-  }
-
-  .demo-poster__viewer-link {
-    align-self: start;
-    color: var(--fd-muted);
-    font: 500 11px/1.4 var(--fs-mono);
-    letter-spacing: 0.06em;
-    text-decoration: none;
-  }
-
-  .demo-poster__viewer-link:hover,
-  .demo-poster__viewer-link:focus-visible {
-    color: var(--fd-action);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(34px, 5vw, 56px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
   }
 
   .demo-poster__status {
-    grid-column: 1 / -1;
-    margin: 0;
+    margin: 18px 0 0;
+    max-width: 46rem;
     color: var(--fd-text);
-    font: 500 clamp(13px, 1.6vw, 17px) / 1.55 var(--fs-mono);
+    font: 500 clamp(13px, 1.5vw, 16px) / 1.55 var(--fs-mono);
   }
 
   .demo-poster__footnote {
@@ -90,8 +84,8 @@ const statusLine = sessionStatusLine();
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px 24px;
-    margin-top: clamp(36px, 6vw, 72px);
-    padding-top: 16px;
+    margin-top: clamp(48px, 8vw, 88px);
+    padding-top: 18px;
     border-top: 1px solid var(--fd-line);
     color: var(--fd-faint);
     font: 500 11px/1.6 var(--fs-mono);
@@ -102,14 +96,8 @@ const statusLine = sessionStatusLine();
     font: inherit;
   }
 
-  @media (max-width: 640px) {
-    .demo-poster__bar {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .demo-poster__viewer-link,
-    .demo-poster__status {
-      grid-column: 1;
-    }
+  /* Poster body: no pointer affordances that look like controls. */
+  .demo-poster :is(button, [data-fullscreen-toggle], summary) {
+    display: none !important;
   }
 </style>

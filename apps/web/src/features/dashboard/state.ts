@@ -61,19 +61,19 @@ export interface DashboardStateContract {
   readonly enabled: readonly ControlId[];
 }
 
-export type ControlId = 'open-viewer' | 'load-demo' | 'choose-workspace' | 'command-menu';
+export type ControlId = 'open-viewer' | 'load-demo' | 'copy-cli' | 'command-menu';
 
 const ALL_CONTROLS: readonly ControlId[] = [
   'open-viewer',
   'load-demo',
-  'choose-workspace',
+  'copy-cli',
   'command-menu',
 ];
 
 export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateContract>> = {
   'first-run': {
-    title: 'Start with one session',
-    message: 'Choose local files or open the example. FleetScope only reads what you select.',
+    title: 'Watch the CLI session',
+    message: 'Run the producer in your terminal. FleetScope follows the JSONL it writes — this tab never uploads a recording.',
     tone: 'info',
     primary: { label: 'Check the runtime', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer', href: '/viewer' },
@@ -92,7 +92,7 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
 
   'cli-missing': {
     title: 'The viewer needs attention',
-    message: 'The browser runtime did not load. Retry here, or use FleetScope from your terminal.',
+    message: 'The browser runtime did not load. Retry here, or follow the session from your terminal.',
     tone: 'bad',
     primary: { label: 'Retry the check', command: 'retry-runtime' },
     secondary: { label: 'Open Agent Viewer anyway', href: '/viewer' },
@@ -101,40 +101,40 @@ export const DASHBOARD_STATES: Readonly<Record<DashboardState, DashboardStateCon
   },
 
   'workspace-required': {
-    title: 'What would you like to inspect?',
-    message: 'Open a local session, or preview the bundled run first.',
+    title: 'Watch the CLI session',
+    message: 'Copy the watch command, run it next to the producer, then open Agent Viewer.',
     tone: 'info',
-    primary: { label: 'Choose local session', href: '/viewer' },
-    secondary: { label: 'Preview the example', href: '/viewer' },
+    primary: { label: 'Open Agent Viewer', href: '/viewer' },
+    secondary: { label: 'Preview bundled run', href: '/viewer' },
     enabled: ALL_CONTROLS,
   },
 
   'adapter-failed': {
     title: "This session isn't supported",
-    message: 'Choose another file or folder. FleetScope will not guess an unknown format.',
+    message: 'Follow a Gemini or Google ADK JSONL from the CLI. FleetScope will not guess an unknown format.',
     tone: 'bad',
-    primary: { label: 'Choose a different session', href: '/viewer' },
-    secondary: { label: 'Preview the example', href: '/viewer' },
+    primary: { label: 'Open Agent Viewer', href: '/viewer' },
+    secondary: { label: 'Preview bundled run', href: '/viewer' },
     recovery: { label: 'See the formats this build reads', command: 'open-command-menu' },
     enabled: ALL_CONTROLS,
   },
 
   'no-sessions': {
     title: 'No session found',
-    message: 'Choose a folder containing a .jsonl or .json transcript.',
+    message: 'Point fleetscope --follow at the folder the producer is writing.',
     tone: 'warn',
-    primary: { label: 'Choose a different folder', href: '/viewer' },
-    secondary: { label: 'Preview the example', href: '/viewer' },
-    recovery: { label: 'Run fleetscope inspect on the folder', command: 'open-command-menu' },
+    primary: { label: 'Open Agent Viewer', href: '/viewer' },
+    secondary: { label: 'Preview bundled run', href: '/viewer' },
+    recovery: { label: 'Copy the CLI watch command', command: 'open-command-menu' },
     enabled: ALL_CONTROLS,
   },
 
   ready: {
-    title: 'What would you like to inspect?',
-    message: 'The local viewer is ready. Choose your session or explore the example.',
+    title: 'Watch the CLI session',
+    message: 'The local viewer is ready. Follow the producer from your terminal, or preview the bundled run.',
     tone: 'ok',
-    primary: { label: 'Choose local session', href: '/viewer' },
-    secondary: { label: 'Preview the example', href: '/viewer' },
+    primary: { label: 'Open Agent Viewer', href: '/viewer' },
+    secondary: { label: 'Preview bundled run', href: '/viewer' },
     enabled: ALL_CONTROLS,
   },
 };
@@ -176,11 +176,11 @@ export const SETUP_CHECKS: readonly SetupCheck[] = [
   },
   {
     id: 'workspace',
-    title: 'Choose a workspace',
+    title: 'Follow a local session',
     description:
-      'Local files are read in the browser when you pick them. Nothing is enumerated in advance and nothing is uploaded.',
+      'The producer writes JSONL on disk. FleetScope tails that path from the CLI. This tab never uploads a recording.',
     verifiable: false,
-    detail: 'Open a session file, or the folder containing it',
+    detail: 'fleetscope <path> --follow',
   },
 ];
 

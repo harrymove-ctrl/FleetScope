@@ -23,12 +23,14 @@ pub type AgentFlow = Flow<AgentNode, AgentEdge>;
 /// (detail panel persists), `with_min_zoom(0.1)` (Sugiyama trees outgrow the
 /// default fit-view limit). Hidden source/target handles for a clean look.
 pub fn new_flow() -> AgentFlow {
-    // zoetrope identity palette: stock dark base, but `accent` becomes GOLD —
-    // selection highlights, done medals, the REPLAY badge. Green stays
-    // exclusively "alive" (status), red "failed". Every surface resolves from
-    // flow.theme, so this one assignment brands the whole app.
+    // FleetScope identity (not Zoetrope gold 178). Yellow selection is banned
+    // on this surface. Accent is Gemini blue (#8ab4f8 ≈ xterm 111): selection,
+    // done medals, sparkline, wordmark. Live stays green (`success`); failed
+    // stays red. Canvas tracks the feature ground `#06070c` (xterm 232).
     let mut palette = Theme::Dark.palette();
-    palette.accent = Color::Indexed(178);
+    palette.canvas_bg = Color::Indexed(232);
+    palette.surface = Color::Indexed(234);
+    palette.accent = Color::Indexed(111);
     let mut flow = Flow::new()
         .with_theme(Theme::Custom(palette))
         .with_deselect_on_pane_click(false)
@@ -44,15 +46,15 @@ pub fn new_flow() -> AgentFlow {
 /// Title line for a node, given its kind and agent type.
 fn node_title(info: &AgentInfo) -> String {
     match info.kind {
-        AgentKind::Main => crate::ui::brand::branding().main_agent.to_string(),
-        AgentKind::WorkflowGroup => info
-            .agent_type
-            .clone()
-            .unwrap_or_else(|| "workflow".to_string()),
-        AgentKind::Subagent => info
-            .agent_type
-            .clone()
-            .unwrap_or_else(|| "subagent".to_string()),
+        AgentKind::Main => {
+            let name = info.display_name();
+            if name.is_empty() {
+                crate::ui::brand::branding().main_agent.to_string()
+            } else {
+                name
+            }
+        }
+        AgentKind::WorkflowGroup | AgentKind::Subagent => info.display_name(),
     }
 }
 
@@ -68,11 +70,7 @@ fn node_dims(kind: AgentKind) -> (f64, f64) {
 /// comparison so unchanged agents skip [`build_content`]'s String clones on
 /// every sync (the steady state for almost all agents on almost all ticks).
 fn content_matches(info: &AgentInfo, node: &AgentNode) -> bool {
-    let title_ok = match info.kind {
-        AgentKind::Main => node.title == crate::ui::brand::branding().main_agent,
-        AgentKind::WorkflowGroup => node.title == info.agent_type.as_deref().unwrap_or("workflow"),
-        AgentKind::Subagent => node.title == info.agent_type.as_deref().unwrap_or("subagent"),
-    };
+    let title_ok = node.title == node_title(info);
     title_ok
         && node.description.as_deref() == card_description(info)
         && node.status == info.status
@@ -104,9 +102,9 @@ fn build_content(info: &AgentInfo) -> AgentNode {
 }
 
 /// Horizontal gap between locally-placed siblings (world units).
-const LOCAL_H_GAP: f64 = 4.0;
+const LOCAL_H_GAP: f64 = 2.0;
 /// Vertical gap below a parent for locally-placed children (world units).
-const LOCAL_V_GAP: f64 = 5.0;
+const LOCAL_V_GAP: f64 = 3.0;
 
 /// Incrementally sync `flow` to `model`.
 ///

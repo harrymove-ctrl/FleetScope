@@ -410,18 +410,18 @@ fn render_scrubber(frame: &mut Frame, area: Rect, app: &mut App) {
         }
         // Event markers, PAST only (reveal as the playhead reaches them — in sync
         // with the graph's chips): spawns, then failures (more urgent → on top).
-        // Spawn = the Claude sunburst in Claude coral (#d7875f ≈ xterm 173).
+        // Spawn = Gemini violet (#c58af9 ≈ xterm 141), not Zoetrope coral.
         for c in (0..head).filter(|&c| spawn_at[c]) {
             buf[(x(c), marker_y)]
                 .set_symbol("❋")
-                .set_style(bg.fg(Color::Indexed(173)).add_modifier(Modifier::BOLD));
+                .set_style(bg.fg(Color::Indexed(141)).add_modifier(Modifier::BOLD));
         }
         for c in (0..head).filter(|&c| fail_at[c]) {
             buf[(x(c), marker_y)]
                 .set_symbol("✗")
                 .set_style(bg.fg(palette.error).add_modifier(Modifier::BOLD));
         }
-        // Playhead: a gold vertical line over a translucent (tinted) column,
+        // Playhead: accent vertical line over a translucent (tinted) column,
         // spanning the marker strip and both bar rows.
         let ph_style = Style::default()
             .fg(palette.accent)
@@ -551,9 +551,10 @@ fn render_log_line(frame: &mut Frame, row: Rect, app: &App) {
         // Coral to match the spawn ❋ on the scrubber's marker strip (xterm 173).
         LogKind::Spawn => (
             "❋ ",
-            bg.fg(Color::Indexed(173)).add_modifier(Modifier::BOLD),
+            bg.fg(Color::Indexed(141)).add_modifier(Modifier::BOLD),
         ),
         LogKind::Failure => ("✗ ", bg.fg(palette.error).add_modifier(Modifier::BOLD)),
+        LogKind::Output => ("▸ ", bg.fg(palette.text)),
     };
     // Width left for the text after the "HH:MM:SS " prefix and the 2-col icon.
     let tw = (r.width as usize).saturating_sub(time.chars().count() + 3);

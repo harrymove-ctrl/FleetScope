@@ -15,42 +15,117 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import FormatMarks from '../components/FormatMarks.astro';
 import FullscreenToggle from '../components/FullscreenToggle.astro';
+import ApprovalCard from '../components/ApprovalCard.astro';
 import '../styles/feature-viewer.css';
 ---
 
 <BaseLayout title="Agent Viewer" wide surface="feature" theme="adaptive">
+  <!--
+    Operator flight deck (default). Do NOT add viewer-page--stage here:
+    that class hides CLI, story, lanes, rail, inspector, and timeline —
+    leaving a graph-only canvas with almost no interaction. Stage mode is
+    opt-in via data-stage-toggle / Full screen graph.
+  -->
   <div class="viewer-page" data-view-style="terminal" data-viewer-mode="operator">
     <PageHeader
       title="Agent Viewer"
-      lede="Follow and inspect a local Gemini or Antigravity session. Files stay in your browser and are never uploaded."
+      lede="Watches .fleetscope/sessions on this machine. Open folder is fallback only. This page never uploads a transcript and never starts a model."
     >
-      <span slot="badges" class="viewer-kicker"><span class="gemini-orb" aria-hidden="true"></span> OPERATOR MODE</span>
+      <span slot="badges" class="viewer-kicker"
+        ><span class="gemini-orb" aria-hidden="true"></span> GEMINI · ANTIGRAVITY</span
+      >
       <FormatMarks slot="badges" />
-      <button slot="actions" class="fs-button viewer-action" type="button" data-load-demo>Load example</button>
+      <button slot="actions" class="fs-button viewer-action" data-variant="primary" type="button" data-open-tui
+        >Open TUI</button
+      >
+      <button slot="actions" class="fs-button viewer-action" type="button" data-load-demo>Load launch-readiness</button>
       <button slot="actions" class="fs-button viewer-action" type="button" data-follow-file>Follow file…</button>
-      <button slot="actions" class="fs-button viewer-action" data-variant="primary" type="button" data-follow-folder>Follow folder…</button>
-      <a slot="actions" class="fs-button viewer-action" href="/demo" data-demo-link>Demo poster</a>
+      <button slot="actions" class="fs-button viewer-action" type="button" data-follow-folder>Follow folder…</button>
+      <a slot="actions" class="fs-button viewer-action" href="/demo" data-demo-link>Session readings</a>
+      <button
+        slot="actions"
+        class="fs-button viewer-action"
+        type="button"
+        data-stage-toggle
+        aria-pressed="false"
+        title="Hide chrome and focus the graph (same as immersive stage)"
+      >
+        Focus graph
+      </button>
+      <FullscreenToggle
+        slot="actions"
+        target="[data-dropzone]"
+        label="graph"
+        idleLabel="Full screen graph"
+        activeLabel="Exit full screen"
+      />
     </PageHeader>
 
-    <details class="viewer-cli-card fs-feature-section">
-      <summary class="viewer-cli-card__summary">
-        <span class="viewer-cli-card__eyebrow">LOCAL OBSERVER</span>
-        <span>Producer and fallback controls</span>
-      </summary>
-      <p class="viewer-cli-card__lede">
-        The producer runs in your terminal. FleetScope only reads its local session, so this page never starts a model.
-      </p>
-      <div class="viewer-cli-card__command" data-cli-command-wrap>
-        <code data-cli-command>pnpm demo:antigravity</code>
-        <button class="fs-button fs-button--sm" type="button" data-cli-copy>Copy CLI command</button>
-        <span class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></span>
+    <section
+      id="agy-project"
+      class="viewer-cli-card fs-feature-section"
+      data-cli-dock
+      aria-labelledby="cli-dock-title"
+    >
+      <div class="viewer-cli-card__summary">
+        <span class="viewer-cli-card__eyebrow">TUI · PRODUCER</span>
+        <h2 id="cli-dock-title">New Antigravity project → view here</h2>
       </div>
-      <dl class="viewer-cli-card__facts">
-        <div><dt>Input</dt><dd>Local <code>session.jsonl</code></dd></div>
-        <div><dt>Pairing</dt><dd>Optional local <code>view.json</code></dd></div>
-        <div><dt>Fallback</dt><dd><button class="fs-button fs-button--sm" type="button" data-pick-folder>Open folder…</button></dd></div>
-      </dl>
-    </details>
+      <p class="viewer-cli-card__lede">
+        Paste your project folder (needs <code>brief.md</code>). This page never runs <code>agy</code>.
+        Producer copy includes <code>--no-tui</code> so a terminal TUI panic cannot kill the run.
+        After it prints <code>session_dir=…</code>, click <strong>Follow folder…</strong> and pick
+        <em>that</em> session directory — not the project folder, not <code>session.jsonl</code>.
+        If the graph still says waiting, the wrong folder was picked or <code>session.jsonl</code> is not there yet.
+      </p>
+
+      <div class="viewer-cli-card__fields">
+        <label class="viewer-cli-card__field">
+          <span>FleetScope repo root</span>
+          <input
+            type="text"
+            data-fleetscope-root
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="/Users/you/…/FleetScope"
+          />
+        </label>
+        <label class="viewer-cli-card__field">
+          <span>Antigravity project path</span>
+          <input
+            type="text"
+            data-agy-project-path
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="/Users/you/dev/my-new-app"
+          />
+        </label>
+      </div>
+
+      <div class="viewer-cli-card__command" data-cli-command-wrap>
+        <span class="viewer-cli-card__cmd-label">Producer (live write for that project)</span>
+        <code data-cli-command></code>
+        <button class="fs-button fs-button--sm" data-variant="primary" type="button" data-cli-copy>
+          Copy producer
+        </button>
+      </div>
+      <div class="viewer-cli-card__command" data-cli-command-wrap>
+        <span class="viewer-cli-card__cmd-label">Watch bundled demo (no cloud)</span>
+        <code data-tui-command></code>
+        <button class="fs-button fs-button--sm" type="button" data-open-tui>Copy Open TUI</button>
+      </div>
+      <div class="viewer-cli-card__actions">
+        <button class="fs-button fs-button--sm" type="button" data-follow-folder>Follow folder…</button>
+        <button class="fs-button fs-button--sm" type="button" data-pick-folder>Open folder…</button>
+      </div>
+      <p class="viewer-cli-card__copy-status" data-cli-copy-status role="status" aria-live="polite"></p>
+      <ol class="viewer-cli-card__steps">
+        <li>Project folder needs <code>brief.md</code> (agents read it).</li>
+        <li>Copy producer → run in Terminal (needs <code>agy</code>). <code>--no-tui</code> is already in the copy.</li>
+        <li>When it prints <code>session_dir=…</code>, Follow folder… and pick <strong>that</strong> folder.</li>
+        <li>If TUI panics with crossterm IoError: ignore it and Follow the printed <code>session_dir</code> here.</li>
+      </ol>
+    </section>
 
   <input type="file" data-file-input hidden accept=".jsonl,.json" />
   <!-- `webkitdirectory` is how a browser offers folder selection. A session is
@@ -60,16 +135,39 @@ import '../styles/feature-viewer.css';
   <input type="file" data-folder-input hidden multiple />
 
   <div class="fs-stack">
-    <section class="story fs-feature-section" aria-labelledby="story-title" data-story>
-      <p class="story__source" data-story-source>—</p>
-      <h2 id="story-title" class="story__outcome" data-story-outcome>Reading the session…</h2>
-      <p class="story__summary" data-story-summary></p>
-      <ul class="story__cards" data-story-cards role="list"></ul>
+    <section class="story story--strip fs-feature-section" aria-labelledby="story-title" data-story>
+      <div class="story-strip__main">
+        <p class="story__source" data-story-source>—</p>
+        <h2 id="story-title" class="story__outcome" data-story-outcome>Reading the session…</h2>
+        <p class="story__summary" data-story-summary></p>
+      </div>
+      <div class="story-strip__aside">
+        <a class="story-strip__link" href="/demo">Session readings</a>
+        <a class="story-strip__link" href="/approvals">Launch HITL</a>
+        <button class="story-strip__link" type="button" data-open-tui>Open TUI</button>
+      </div>
+      <div class="story-strip__approval">
+        <ApprovalCard
+          mode="recorded"
+          status="approved"
+          title="Budget gate: +2 Vertex calls (rehearsal)"
+          description="launch_readiness · budget_guard hit 6/6. Interactive Approve/Reject lives on Approvals — this strip only points at the gate."
+          result="See /approvals for budget · upload · READY rehearsal. No write-path here."
+          facts={[
+            { label: 'Agent', value: 'budget_guard' },
+            { label: 'Ask', value: '+2 calls' },
+            { label: 'Side effect', value: 'none' },
+          ]}
+          note="Recorded pointer only. Open TUI for the same projection in your terminal."
+        />
+      </div>
+      <!-- Kept in DOM for renderStory(); hidden by .story--strip CSS. -->
+      <ul class="story__cards" data-story-cards role="list" hidden></ul>
       <p class="story__disclosure" data-story-disclosure hidden></p>
-      <nav class="story__chapters" aria-label="Session chapters">
+      <nav class="story__chapters" aria-label="Session chapters" hidden>
         <ul data-story-chapters role="list"></ul>
       </nav>
-      <div class="story__narrative">
+      <div class="story__narrative" hidden>
         <div>
           <h3>What happened</h3>
           <p data-story-problem></p>
@@ -88,10 +186,10 @@ import '../styles/feature-viewer.css';
     <section class="workflow-board fs-feature-section" aria-labelledby="workflow-board-title" data-workflow-board>
       <header class="workflow-board__header">
         <div>
-          <p class="workflow-board__eyebrow">WORKFLOW BOARD</p>
-          <h2 id="workflow-board-title">Every Gemini lane, one calm surface.</h2>
+          <p class="workflow-board__eyebrow">LANES</p>
+          <h2 id="workflow-board-title">Agents in this session</h2>
           <p class="workflow-board__lede">
-            The board is a quick map of the loaded recording. Select a lane to focus the same graph and timeline.
+            A quiet map of who ran. Select a lane to focus the same graph and timeline below.
           </p>
         </div>
         <div class="workflow-board__styles" aria-label="Viewer style">
@@ -140,12 +238,6 @@ import '../styles/feature-viewer.css';
             <button class="fs-button fs-button--sm" type="button" data-fit-graph disabled>
               Fit graph
             </button>
-            <FullscreenToggle
-              target="[data-dropzone]"
-              label="graph"
-              idleLabel="Full screen graph"
-              activeLabel="Exit full screen"
-            />
           </span>
         </div>
       </header>
@@ -268,10 +360,63 @@ import '../styles/feature-viewer.css';
   const folderInput = document.querySelector('[data-folder-input]') as HTMLInputElement | null;
   const cliCopyEl = document.querySelector('[data-cli-copy]') as HTMLButtonElement | null;
   const cliCommandEl = document.querySelector('[data-cli-command]') as HTMLElement | null;
+  const tuiCommandEl = document.querySelector('[data-tui-command]') as HTMLElement | null;
   const cliCopyStatusEl = document.querySelector('[data-cli-copy-status]') as HTMLElement | null;
-  const sessionGraphsEl = document.querySelector('[data-session-graphs]') as HTMLElement | null;
-  const CLI_COMMAND = 'pnpm demo:antigravity';
-  const DASHBOARD_HANDOFF_KEY = 'fleetscope:dashboard-upload';
+  const fleetscopeRootEl = document.querySelector(
+    '[data-fleetscope-root]',
+  ) as HTMLInputElement | null;
+  const agyProjectPathEl = document.querySelector(
+    '[data-agy-project-path]',
+  ) as HTMLInputElement | null;
+  const pageRoot = document.querySelector('.viewer-page') as HTMLElement | null;
+  const LS_ROOT = 'fleetscope:repo-root';
+  const LS_PROJECT = 'fleetscope:agy-project-path';
+  const DEFAULT_ROOT = '/Users/harryphan/Documents/dev/FleetScope';
+
+  function shellSingleQuote(value: string): string {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+  }
+
+  function currentRepoRoot(): string {
+    const typed = fleetscopeRootEl?.value.trim() ?? '';
+    if (typed) return typed.replace(/\/$/, '');
+    try {
+      const saved = window.localStorage.getItem(LS_ROOT)?.trim();
+      if (saved) return saved.replace(/\/$/, '');
+    } catch {
+      /* persistence optional */
+    }
+    return DEFAULT_ROOT;
+  }
+
+  function currentProjectPath(): string {
+    return (agyProjectPathEl?.value ?? '').trim();
+  }
+
+  /**
+   * Live Antigravity producer for the pasted project path.
+   * Defaults to --no-tui: the TUI often panics (crossterm IoError) and used to
+   * kill the producer on exit. Browser Follow folder is the reliable path.
+   */
+  function buildProducerCommand(): string {
+    const root = currentRepoRoot();
+    const project = currentProjectPath();
+    if (!project) {
+      return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity -- --no-tui`;
+    }
+    return `cd ${shellSingleQuote(root)} && pnpm demo:antigravity -- --no-tui --project ${shellSingleQuote(project)}`;
+  }
+
+  /** Offline watch of the bundled Gemini example — no agy. */
+  function buildTuiCommand(): string {
+    const root = currentRepoRoot();
+    return `cd ${shellSingleQuote(root)} && cargo run -p fleetscope-cli --bin fleetscope -- .fleetscope/sessions/antigravity-live-cu --follow --tiny`;
+  }
+
+  function refreshCommandPreviews(): void {
+    if (cliCommandEl) cliCommandEl.textContent = buildProducerCommand();
+    if (tuiCommandEl) tuiCommandEl.textContent = buildTuiCommand();
+  }
 
   /** Files a session can be made of. Anything else in a folder is ignored. */
   const READABLE = /\.(jsonl|json)$/i;
@@ -335,64 +480,107 @@ import '../styles/feature-viewer.css';
 
   let api: Api | null = null;
 
-  type DashboardHandoff = {
-    readonly name: string;
-    readonly main: string;
-    readonly companions: readonly { name: string; text: string }[];
-  };
-
-  /** Read the one-shot, same-tab handoff produced by Dashboard. */
-  function takeDashboardHandoff(): DashboardHandoff | null {
-    try {
-      const encoded = window.sessionStorage.getItem(DASHBOARD_HANDOFF_KEY);
-      if (encoded === null) return null;
-      window.sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY);
-      const value = JSON.parse(encoded) as Partial<DashboardHandoff>;
-      if (
-        typeof value.name !== 'string' ||
-        typeof value.main !== 'string' ||
-        !Array.isArray(value.companions) ||
-        value.companions.some(
-          (item) =>
-            typeof item !== 'object' ||
-            item === null ||
-            typeof item.name !== 'string' ||
-            typeof item.text !== 'string',
-        )
-      ) {
-        return null;
-      }
-      return value as DashboardHandoff;
-    } catch {
-      return null;
-    }
-  }
-
   function say(message: string, bad = false) {
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.dataset.bad = String(bad);
   }
 
-  async function copyCliCommand() {
+  async function copyText(text: string, okMessage: string): Promise<void> {
     try {
-      await navigator.clipboard.writeText(CLI_COMMAND);
-      if (cliCopyStatusEl) cliCopyStatusEl.textContent = 'Copied — run it in your terminal.';
-      if (cliCopyEl) cliCopyEl.textContent = 'CLI command copied';
+      await navigator.clipboard.writeText(text);
+      if (cliCopyStatusEl) cliCopyStatusEl.textContent = okMessage;
     } catch {
       // Clipboard permissions are optional. The command remains visible and
       // selectable, so copy failure never hides the only path to the CLI.
-      if (cliCopyStatusEl) cliCopyStatusEl.textContent = 'Select the command above and copy it.';
+      if (cliCopyStatusEl) {
+        cliCopyStatusEl.textContent = 'Select the command above and copy it.';
+      }
     }
     window.setTimeout(() => {
-      if (cliCopyEl) cliCopyEl.textContent = 'Copy CLI command';
-    }, 2200);
+      if (cliCopyStatusEl) cliCopyStatusEl.textContent = '';
+    }, 3200);
   }
 
-  if (cliCommandEl) cliCommandEl.textContent = CLI_COMMAND;
-  cliCopyEl?.addEventListener('click', copyCliCommand);
+  async function copyCliCommand() {
+    const project = currentProjectPath();
+    refreshCommandPreviews();
+    await copyText(
+      buildProducerCommand(),
+      project
+        ? 'Producer copied — run it. This tab auto-follows the new .fleetscope/sessions folder.'
+        : 'Producer copied (example project). Paste your folder path above for a custom project.',
+    );
+  }
 
-  function report(statusJson: string, customSession = false, followNote?: string) {
+  async function copyOpenTui() {
+    refreshCommandPreviews();
+    await copyText(
+      buildTuiCommand(),
+      'TUI command copied — includes cd into FleetScope, follows antigravity-live-cu, --tiny.',
+    );
+  }
+
+  function setStageMode(on: boolean) {
+    if (!pageRoot) return;
+    pageRoot.classList.toggle('viewer-page--stage', on);
+    for (const button of document.querySelectorAll('[data-stage-toggle]')) {
+      button.setAttribute('aria-pressed', String(on));
+      button.textContent = on ? 'Exit focus' : 'Focus graph';
+    }
+    if (on) api?.agent_viewer_fit_graph();
+  }
+
+  try {
+    const savedRoot = window.localStorage.getItem(LS_ROOT);
+    const savedProject = window.localStorage.getItem(LS_PROJECT);
+    if (fleetscopeRootEl && savedRoot) fleetscopeRootEl.value = savedRoot;
+    else if (fleetscopeRootEl && !fleetscopeRootEl.value) fleetscopeRootEl.value = DEFAULT_ROOT;
+    if (agyProjectPathEl && savedProject) agyProjectPathEl.value = savedProject;
+  } catch {
+    if (fleetscopeRootEl && !fleetscopeRootEl.value) fleetscopeRootEl.value = DEFAULT_ROOT;
+  }
+
+  const persistPaths = () => {
+    try {
+      if (fleetscopeRootEl?.value.trim()) {
+        window.localStorage.setItem(LS_ROOT, fleetscopeRootEl.value.trim());
+      }
+      if (agyProjectPathEl) {
+        window.localStorage.setItem(LS_PROJECT, agyProjectPathEl.value.trim());
+      }
+    } catch {
+      /* persistence optional */
+    }
+    refreshCommandPreviews();
+  };
+
+  fleetscopeRootEl?.addEventListener('input', persistPaths);
+  agyProjectPathEl?.addEventListener('input', persistPaths);
+  refreshCommandPreviews();
+
+  cliCopyEl?.addEventListener('click', () => {
+    void copyCliCommand();
+  });
+  for (const button of document.querySelectorAll('[data-open-tui]')) {
+    button.addEventListener('click', () => {
+      void copyOpenTui();
+    });
+  }
+  for (const button of document.querySelectorAll('[data-stage-toggle]')) {
+    button.addEventListener('click', () => {
+      const on = pageRoot?.classList.contains('viewer-page--stage') ?? false;
+      setStageMode(!on);
+    });
+  }
+
+  // Deep-link from dashboard: /viewer#agy-project
+  if (window.location.hash === '#agy-project') {
+    document.getElementById('agy-project')?.scrollIntoView({ block: 'start' });
+    agyProjectPathEl?.focus();
+  }
+
+  function report(statusJson: string, _customSession = false, followNote?: string) {
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(statusJson);
@@ -412,15 +600,8 @@ import '../styles/feature-viewer.css';
     if (parsed.flattenNote) bits.push(String(parsed.flattenNote));
     if (followNote) bits.unshift(followNote);
     say(bits.join('  ·  '));
-    // Readings stay visible: fixture panels describe the bundled demo; when a
-    // custom session is loaded they remain as the audience surface until the
-    // projection-backed adapter rewrites them (honest empty > inventing).
-    sessionGraphsEl?.toggleAttribute('hidden', false);
-    if (customSession) {
-      sessionGraphsEl?.setAttribute('data-source', 'custom');
-    } else {
-      sessionGraphsEl?.setAttribute('data-source', 'fixture');
-    }
+    // Session readings live on /demo (judge poster). /viewer stays the
+    // interactive flight deck only.
     if (summaryEl && api) summaryEl.textContent = api.agent_viewer_summary();
     reloadShellData();
   }
@@ -489,9 +670,70 @@ import '../styles/feature-viewer.css';
     window.clearTimeout(followedFolderTimer);
   }
 
+  let localFollowTimer = 0;
+  let localFollowId: string | null = null;
+  let localFollowBytes = -1;
+
+  function stopLocalFollow() {
+    localFollowId = null;
+    localFollowBytes = -1;
+    window.clearTimeout(localFollowTimer);
+  }
+
   function stopAllFollows() {
     stopFileFollow();
     stopFolderFollow();
+    stopLocalFollow();
+  }
+
+  type LocalSessionRow = { readonly id: string; readonly bytes: number; readonly mtimeMs: number };
+
+  async function fetchLocalSessions(): Promise<LocalSessionRow[]> {
+    try {
+      const response = await fetch('/local-sessions.json');
+      if (!response.ok) return [];
+      const rows = (await response.json()) as LocalSessionRow[];
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async function loadLocalSession(mod: Api, row: LocalSessionRow): Promise<boolean> {
+    try {
+      const response = await fetch(`/local-sessions/${encodeURIComponent(row.id)}/session.jsonl`);
+      if (!response.ok) return false;
+      const text = await response.text();
+      localFollowId = row.id;
+      localFollowBytes = text.length;
+      const status = mod.agent_viewer_load(`${row.id}.jsonl`, text, '[]');
+      report(status, true, `Watching local session “${row.id}” — loopback, never uploaded`);
+      mod.agent_viewer_go_live?.();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function scheduleLocalPoll(mod: Api) {
+    window.clearTimeout(localFollowTimer);
+    localFollowTimer = window.setTimeout(async () => {
+      if (localFollowId === null) return;
+      const listed = await fetchLocalSessions();
+      const current = listed.find((row) => row.id === localFollowId) ?? listed[0];
+      if (current && (current.id !== localFollowId || current.bytes !== localFollowBytes)) {
+        await loadLocalSession(mod, current);
+      }
+      if (localFollowId !== null) scheduleLocalPoll(mod);
+    }, 750);
+  }
+
+  async function attachLocalSessions(mod: Api): Promise<boolean> {
+    const listed = await fetchLocalSessions();
+    if (listed.length === 0) return false;
+    const ok = await loadLocalSession(mod, listed[0]);
+    if (ok) scheduleLocalPoll(mod);
+    return ok;
   }
 
   function openExpertWorkspace() {
@@ -908,29 +1150,9 @@ import '../styles/feature-viewer.css';
       }
       api = module;
       fallbackEl?.remove();
-      const handoff = takeDashboardHandoff();
-      if (handoff === null) {
-        report(module.agent_viewer_load_demo());
-      } else {
-        try {
-          report(
-            module.agent_viewer_load(
-              handoff.name,
-              handoff.main,
-              JSON.stringify(handoff.companions),
-            ),
-            true,
-          );
-        } catch (error) {
-          report(module.agent_viewer_load_demo());
-          say(
-            `The selected recording was refused (${
-              error instanceof Error ? error.message : 'unknown error'
-            }). The bundled example is open instead.`,
-            true,
-          );
-        }
-      }
+      const attached = await attachLocalSessions(module);
+      if (!attached) report(module.agent_viewer_load_demo());
+      module.agent_viewer_fit_graph();
     } catch (error) {
       say(
         `The Agent Viewer renderer could not be loaded (${
@@ -1583,8 +1805,9 @@ import '../styles/feature-viewer.css';
       disclosureEl.textContent = story.disclosure ?? '';
     }
 
-    const cardsEl = document.querySelector('[data-story-cards]');
+    const cardsEl = document.querySelector<HTMLElement>('[data-story-cards]');
     if (cardsEl !== null) {
+      cardsEl.hidden = true;
       cardsEl.replaceChildren();
       for (const card of story.cards) {
         const li = document.createElement('li');
@@ -1605,6 +1828,11 @@ import '../styles/feature-viewer.css';
         cardsEl.append(li);
       }
     }
+
+    const chaptersNav = document.querySelector('.story--strip .story__chapters') as HTMLElement | null;
+    if (chaptersNav !== null) chaptersNav.hidden = true;
+    const narrativeEl = document.querySelector('.story--strip .story__narrative') as HTMLElement | null;
+    if (narrativeEl !== null) narrativeEl.hidden = true;
 
     const chaptersEl = document.querySelector('[data-story-chapters]');
     if (chaptersEl !== null) {
@@ -1663,6 +1891,7 @@ import '../styles/feature-viewer.css';
     }
 
     selectedAgentId = signal.selectedAgentId;
+    document.querySelector('.viewer-page')?.toggleAttribute('data-has-selection', Boolean(selectedAgentId));
     if (signal.sequence === null) {
       // A sidecar: real renderer state, no viewer event behind it.
       selectionHasNoEvent = true;
@@ -1762,13 +1991,18 @@ import '../styles/feature-viewer.css';
   });
 
   document.querySelector('[data-follow-file]')?.addEventListener('click', chooseFollowedFile);
-  document.querySelector('[data-follow-folder]')?.addEventListener('click', chooseFollowedFolder);
-  document
-    .querySelector('[data-pick-folder]')
-    ?.addEventListener('click', () => folderInput?.click());
+  for (const button of document.querySelectorAll('[data-follow-folder]')) {
+    button.addEventListener('click', chooseFollowedFolder);
+  }
+  for (const button of document.querySelectorAll('[data-pick-folder]')) {
+    button.addEventListener('click', () => folderInput?.click());
+  }
   document.querySelector('[data-load-demo]')?.addEventListener('click', () => {
     stopAllFollows();
-    if (api) report(api.agent_viewer_load_demo());
+    if (api) {
+      report(api.agent_viewer_load_demo());
+      api.agent_viewer_fit_graph();
+    }
   });
 
   // Non-standard, and the only way a browser offers a directory picker.

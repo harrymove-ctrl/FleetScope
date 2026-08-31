@@ -304,6 +304,27 @@ fn the_same_author_under_two_parents_stays_two_nodes() {
     assert!(parsed.agent("root/beta").is_some());
 }
 
+#[test]
+fn adk_roles_are_the_card_kind_not_generic_agent() {
+    let text = [
+        r#"{"id":"1","invocationId":"i","author":"lead","branch":"lead","timestamp":1.0,"content":{"role":"model","parts":[{"text":"fan out"}]}}"#,
+        r#"{"id":"2","invocationId":"i","author":"lead","branch":"lead","timestamp":2.0,"actions":{"transferToAgent":"researcher"}}"#,
+        r#"{"id":"3","invocationId":"i","author":"researcher","branch":"lead.researcher","timestamp":3.0,"content":{"role":"model","parts":[{"text":"jobs"}]}}"#,
+    ]
+    .join("\n");
+    let parsed =
+        adapter::parse(&SessionSource::new(PathBuf::from("roles.jsonl"), text)).expect("parses");
+    assert_eq!(parsed.root().map(|a| a.kind.as_str()), Some("lead"));
+    assert_eq!(
+        parsed.agent("lead/researcher").map(|a| a.kind.as_str()),
+        Some("researcher")
+    );
+    assert_eq!(
+        parsed.agent("lead/researcher").map(|a| a.label.as_str()),
+        Some("researcher")
+    );
+}
+
 // ── What must never be rendered ─────────────────────────────────────────────
 
 #[test]

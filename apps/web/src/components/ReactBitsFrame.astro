@@ -1,0 +1,95 @@
+---
+/**
+ * Mount a chrome-less React Bits surface inside FleetScope Astro chrome.
+ *
+ * Why iframe: `@astrojs/react` breaks Astro CSS virtual modules. The React
+ * Bits app (`apps/ui`) stays a separate Vite build; this frame keeps product
+ * nav/landing/tokens in Astro while Pro blocks render inside.
+ */
+interface Props {
+  surface: 'approvals' | 'dashboard';
+  title: string;
+  height?: string;
+}
+
+const { surface, title, height = '640px' } = Astro.props;
+const hash = surface === 'approvals' ? '#/embed/approvals' : '#/embed/dashboard';
+
+// Dev: live Vite. Prod / `astro preview`: static copy under public/ui.
+const src = import.meta.env.DEV
+  ? `http://127.0.0.1:5173/ui/${hash}`
+  : `/ui/${hash}`;
+---
+
+<div class="rb-frame" data-rb-surface={surface}>
+  <div class="rb-frame__head">
+    <h2 class="rb-frame__title">{title}</h2>
+    <span class="rb-frame__aside">
+      {surface === 'approvals'
+        ? 'launch_readiness HITL · rehearsal'
+        : 'session readiness · no SaaS metrics'}
+    </span>
+  </div>
+  <iframe
+    class="rb-frame__iframe"
+    title={title}
+    src={src}
+    loading="lazy"
+    referrerpolicy="no-referrer"
+    style={`min-height:${height}`}
+  ></iframe>
+  {
+    import.meta.env.DEV && (
+      <p class="rb-frame__hint">
+        Needs <code>pnpm dev:ui</code> on port 5173 while Astro is running. Built
+        embeds ship under <code>/ui/</code> after <code>pnpm build:ui</code>.
+      </p>
+    )
+  }
+</div>
+
+<style>
+  .rb-frame {
+    display: flex;
+    flex-direction: column;
+    gap: var(--fs-space-2, 0.5rem);
+    min-width: 0;
+  }
+
+  .rb-frame__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+
+  .rb-frame__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .rb-frame__aside {
+    font-size: 12px;
+    color: var(--fs-text-faint, #858fa0);
+  }
+
+  .rb-frame__iframe {
+    width: 100%;
+    border: 1px solid var(--fs-border, #262d36);
+    border-radius: 12px;
+    background: #0a0a0a;
+  }
+
+  .rb-frame__hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--fs-text-faint, #858fa0);
+  }
+
+  .rb-frame__hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+  }
+</style>

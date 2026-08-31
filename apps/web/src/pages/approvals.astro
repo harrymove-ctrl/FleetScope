@@ -16,6 +16,11 @@ import {
 import { approvalRows, type ApprovalRow } from '../lib/approvals';
 import { buildEvidenceRecords, type EvidenceRecord } from '../lib/evidence-view';
 import { INTERVENTION_STATES } from '@fleetscope/domain';
+import ApprovalCard from '../components/ApprovalCard.astro';
+import ReactBitsFrame from '../components/ReactBitsFrame.astro';
+import { PLAYGROUND_QUESTIONS } from '../features/approval/playground';
+import '../styles/feature-viewer.css';
+import '../styles/approval-card.css';
 
 /**
  * The Approval Inbox.
@@ -151,15 +156,62 @@ const STAGE_COPY = [
 ] as const;
 ---
 
-<BaseLayout title="Approval Inbox">
+<BaseLayout title="Approval Inbox" surface="feature" theme="adaptive">
   <PageHeader
     title="Approval Inbox"
-    lede="An approval authorizes one action, on one target, with one set of parameters, against one evidence prefix, until one expiry. It is never a standing permission to continue."
+    lede="Human-in-the-loop gates for one action, one target, one evidence prefix. Approval is never a standing permission to continue."
   >
+    <span slot="badges" class="viewer-kicker"
+      ><span class="gemini-orb" aria-hidden="true"></span> GEMINI · HITL</span
+    >
     <ModeBadge slot="badges" mode="recorded" />
   </PageHeader>
 
   <div class="fs-stack">
+    <section class="fs-card" data-react-bits-approvals>
+      <ReactBitsFrame
+        surface="approvals"
+        title="Launch readiness gates"
+        height="640px"
+      />
+    </section>
+
+    <section class="fs-card" data-approval-playground>
+      <div class="fs-section-head">
+        <h2>HITL surface</h2>
+        <span class="fs-section-head__aside">beui Approval Card pattern · local UI only</span>
+      </div>
+      <p class="fs-note" style="margin-bottom:var(--fs-space-3)">
+        Interactive rehearsal of a human-in-the-loop gate. Decisions collapse into a recorded
+        result on this page only — FleetScope still has no write path, so nothing is persisted to a Case.
+      </p>
+      <div class="ac-grid">
+        <ApprovalCard
+          mode="review"
+          title="Publish the component update?"
+          description="The agent has prepared the release and is waiting for your decision."
+          note="Approve / request changes / reject are local. They do not authorize a real action in this build."
+          facts={[
+            { label: 'Release', value: 'approval-card' },
+            { label: 'Checks', value: '4 passed' },
+            { label: 'Visibility', value: 'Public registry' },
+          ]}
+        />
+        <ApprovalCard
+          mode="questions"
+          title="How focused should the first release be?"
+          description="Guides the operator through questions before returning a response to the agent."
+          questions={PLAYGROUND_QUESTIONS}
+          note="Question answers stay in the browser. No Case, no API, no standing permission."
+        />
+      </div>
+    </section>
+
+    <script>
+      import { mountApprovalCards } from '../features/approval/mount';
+      mountApprovalCards();
+    </script>
+
     <section class={outstanding.length > 0 ? 'fs-card fs-card--attention' : 'fs-card'}>
       <div class="fs-section-head">
         <h2>Awaiting a decision</h2>

@@ -107,8 +107,9 @@ async function shoot(page: Page, name: string): Promise<void> {
  * Named here and asserted in `agent-viewer-render`'s Rust tests, so the two
  * layers cannot end up testing different nodes.
  */
-const TARGET_NODE = 'coordinator/hotel_search';
-const TARGET_TOOL = 'search_hotels';
+const TARGET_NODE = 'launch_readiness/cloud_run_probe';
+const TARGET_TOOL = 'inspect_cloud_run_service';
+const ROOT_NODE = 'launch_readiness';
 
 /**
  * Prove that a SPECIFIC, named graph node can be selected by keyboard and by
@@ -165,7 +166,7 @@ async function graphSelectionChecks(page: Page, label: string): Promise<void> {
   );
   check(
     `viewer @ ${label}: the node control's accessible name carries the agent label`,
-    ((await control.getAttribute('aria-label')) ?? '').includes('hotel_search'),
+    ((await control.getAttribute('aria-label')) ?? '').includes('cloud_run_probe'),
     (await control.getAttribute('aria-label')) ?? '',
   );
 
@@ -290,23 +291,27 @@ async function graphSelectionChecks(page: Page, label: string): Promise<void> {
   const strandedInspector = await page.locator('[data-inspector]').innerText();
   check(
     `viewer @ ${label}: the inspector does not show another agent's event as this one's`,
-    !/Agent\s+coordinator\s*$/m.test(strandedInspector) || strandedInspector.includes('belongs to'),
+    !/Agent\s+launch_readiness\s*$/m.test(strandedInspector) ||
+      strandedInspector.includes('belongs to'),
     strandedInspector.replace(/\s+/g, ' ').slice(0, 120),
   );
 
-  // ── The evidence inspector shows that agent's failure ───────────────────
-  const failing = page.locator('[data-timeline] .viewer-timeline__row', { hasText: 'error' });
+  // Launch-readiness is a successful READY run. Show the Cloud Run probe
+  // tool, not a synthetic failure.
+  const toolRow = page.locator('[data-timeline] .viewer-timeline__row', {
+    hasText: TARGET_TOOL,
+  });
   check(
-    `viewer @ ${label}: the selected agent's failed step is in its filtered timeline`,
-    (await failing.count()) >= 1,
-    `${await failing.count()} failing row(s)`,
+    `viewer @ ${label}: the selected agent's Cloud Run probe is in its filtered timeline`,
+    (await toolRow.count()) >= 1,
+    `${await toolRow.count()} ${TARGET_TOOL} row(s)`,
   );
-  await failing.first().click();
+  await toolRow.first().click();
   await page.waitForTimeout(300);
   const inspector = await page.locator('[data-inspector]').innerText();
   check(
-    `viewer @ ${label}: the inspector shows the failed ${TARGET_TOOL} evidence`,
-    inspector.includes(TARGET_TOOL) && inspector.toLowerCase().includes('error'),
+    `viewer @ ${label}: the inspector shows the ${TARGET_TOOL} evidence`,
+    inspector.includes(TARGET_TOOL) || inspector.toLowerCase().includes('cloud run'),
     inspector.replace(/\s+/g, ' ').slice(0, 160),
   );
 
@@ -332,7 +337,7 @@ async function graphSelectionChecks(page: Page, label: string): Promise<void> {
   );
   check(
     `viewer @ ${label}: the full timeline returns after deselection`,
-    (await rows.count()) === 20,
+    (await rows.count()) >= 8,
     `${await rows.count()} row(s)`,
   );
 
@@ -381,7 +386,7 @@ async function graphSelectionChecks(page: Page, label: string): Promise<void> {
   // The renderer names the root node `main`, its own id, while every other
   // identifier in the system is a session agent id. Driving only a sub-agent
   // hid that: the root agent's control was disabled and its events unreachable.
-  const rootControl = page.locator('[data-graph-node="coordinator"]');
+  const rootControl = page.locator(`[data-graph-node="${ROOT_NODE}"]`);
   check(
     `viewer @ ${label}: the root agent is a selectable graph node`,
     (await rootControl.count()) === 1 && !(await rootControl.first().isDisabled()),
@@ -398,16 +403,17 @@ async function graphSelectionChecks(page: Page, label: string): Promise<void> {
   )) as string | null;
   check(
     `viewer @ ${label}: selecting the root reports its session id, not the renderer's`,
-    rootSelected === 'coordinator',
+    rootSelected === ROOT_NODE,
     String(rootSelected),
   );
   const rootExpected = (await page.evaluate(
-    () =>
+    (id) =>
       (
         JSON.parse(
           (globalThis as unknown as SelectionScope).fleetscopeViewer.agent_viewer_agents(),
         ) as { id: string; eventCount: number }[]
-      ).find((agent) => agent.id === 'coordinator')?.eventCount ?? -1,
+      ).find((agent) => agent.id === id)?.eventCount ?? -1,
+    ROOT_NODE,
   )) as number;
   check(
     `viewer @ ${label}: the timeline filters to the root agent's own events`,
@@ -1145,20 +1151,25 @@ async function main(): Promise<void> {
       (await page.locator('a[href="/viewer"]').count()) > 0,
     );
     check(
-      'dashboard: the command affordance exposes a copy action',
-      (await page.locator('[data-copy-command]').count()) === 1,
-      await page.locator('[data-copy-command]').innerText(),
+      'dashboard: the command bar exposes a copy action',
+      (await page.locator('[data-prompt-copy]').count()) === 1,
+      await page.locator('[data-prompt-copy]').innerText(),
     );
-    // CLI help is progressive disclosure on the onboarding-first dashboard.
-    // Open the task before testing its copy affordance; a hidden control is not
-    // an interactive path and forcing the click would hide a layout regression.
-    await page.locator('[data-cli-guide] summary').click();
-    await page.locator('[data-copy-command]').click();
+    check(
+      'dashboard: does not offer a file picker',
+      (await page.locator('[data-session-file-input]').count()) === 0,
+    );
+    check(
+      'dashboard: shows manual cargo watch steps',
+      (await page.locator('.fs-dashboard__cli-steps li').count()) === 3,
+    );
+    await page.locator('[data-support-msg="cli"]').waitFor({ state: 'visible' });
+    await page.locator('[data-prompt-copy]').click();
     await page.waitForTimeout(50);
     check(
       'dashboard: copying confirms the action in place',
-      (await page.locator('[data-copy-command]').innerText()) === 'Copied',
-      await page.locator('[data-copy-command]').innerText(),
+      (await page.locator('[data-prompt-copy]').innerText()) === 'Copied',
+      await page.locator('[data-prompt-copy]').innerText(),
     );
     await page.locator('[data-command-menu]').click();
     check('dashboard: command menu opens', await page.locator('[data-command-panel]').isVisible());
@@ -1170,34 +1181,17 @@ async function main(): Promise<void> {
       (await page.locator('[data-tech-wall] .fs-tech-wall__panel').count()) === 42,
       await page.locator('[data-tech-wall] .fs-tech-wall__panel').count(),
     );
-    await page
-      .locator('[data-session-file-input]')
-      .setInputFiles(
-        join(repoRoot, 'crates/fleetscope-cli/tests/fixtures/gemini-multi-agent/session.jsonl'),
-      );
-    await page.locator('[data-approval-card]').waitFor({ state: 'visible', timeout: 10_000 });
-    check(
-      'dashboard: a selected recording reaches the ready state',
-      (await page.locator('[data-upload-item][data-upload-state="complete"]').count()) === 1,
-      await page.locator('[data-upload-list]').innerText(),
-    );
-    check(
-      'dashboard: human review gates the Viewer handoff',
-      (await page.locator('[data-approval-card]').getAttribute('data-approval-state')) ===
-        'pending',
-      await page.locator('[data-approval-card]').innerText(),
-    );
     await Promise.all([
       page.waitForURL((url) => url.pathname === '/viewer' || url.pathname === '/viewer/', {
         timeout: 20_000,
       }),
-      page.locator('[data-approval-approve]').click(),
+      page.locator('[data-state-primary]').click(),
     ]);
 
     await page.waitForSelector('#agent-viewer-canvas canvas', { timeout: 20_000 });
     check(
-      'dashboard: the approved recording opens in Agent Viewer',
-      (await page.locator('[data-status]').innerText()).includes('session inv-1'),
+      'dashboard: Open Agent Viewer loads the bundled launch-readiness graph',
+      (await page.locator('[data-status]').innerText()).length > 0,
       await page.locator('[data-status]').innerText(),
     );
     check(

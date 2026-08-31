@@ -228,6 +228,11 @@ impl ChipTray {
                     i += 1;
                 }
                 let count = i - start;
+                // Fan-out is not a work tool — a chip saying `⚒ Agent` is a lie
+                // about Antigravity `transferToAgent`.
+                if crate::transcript::is_spawn_tool(name) {
+                    continue;
+                }
                 let settled = !calls[start..i]
                     .iter()
                     .any(|c| c.state == ToolState::Pending);

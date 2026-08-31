@@ -61,3 +61,7 @@ cd /Users/harryphan/Documents/dev/FleetScope && cargo run -p fleetscope-cli --bi
 4. If none, falls back to bundled launch-readiness.
 
 Follow folder remains available. It is not the intended close of the demo.
+
+## Demo operator (copy and talk)
+
+Dashboard is the talk track. Checklist is auto-approved from recorded evidence. Do not edit the plan. Do not Open folder. Copy gcloud / Copy Antigravity / Open viewer. Google Console links open Cloud Run and Storage for the same project.

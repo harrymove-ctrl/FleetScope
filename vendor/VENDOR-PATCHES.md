@@ -115,7 +115,7 @@ away from doing so.
 
 **What upstream does.** The inspector is a tool-call list. Cards show title, optional spawn description, and `⚒ N tools`. Assistant `text` blocks are used only as spawn-reasoning provenance, then discarded. Antigravity `--print` streams are almost all text and zero tools, so the TUI looked empty (`0 tools`, `no tool calls`) while the JSONL held dozens of output chunks.
 
-**The change.** Each agent keeps `last_text` and a capped `notes` list of assistant text excerpts. Cards prefer `last_text` as the description line. An inspector with no tools lists those notes under **output**. The timeline log row shows even when there are no Claude-style prompt eras. Subagent cards are slightly taller so the output line fits.
+**The change.** Each agent keeps `last_text` and a capped `notes` list of assistant text excerpts. Cards wrap 2–4 lines of `last_text` and an honest activity row (`N msgs · M tools · K spawned`) — never `⚒ 0 tools`, never a fan-out counted as a tool. Inspector: if the agent has no *work* tools, list notes under **output** and label `Agent` rows `❋ spawned · …`. Timeline log narrates last streamed text (`▸`) when there are no Claude prompt eras. Status bar uses the same counts. Tool chips skip spawn tools. Subagent cards are taller so the output fits.
 
 **Why a wrapper could not do it.** The session model and card/panel widgets live inside the vendored renderer. Emitting fake `tool_use` blocks from FleetScope would lie about tools.
 

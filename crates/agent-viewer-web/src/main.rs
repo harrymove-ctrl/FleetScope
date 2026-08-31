@@ -36,13 +36,13 @@ use zoetrope::state::App;
 
 /// The bundled demo, compiled in.
 ///
-/// This is what makes the page work with the network disabled and with nothing
-/// dropped on it: it needs no fetch to show a complete, real multi-agent
-/// session. It is the SAME file the CLI's tests use, so the demo and the test
-/// suite can never drift apart.
-const DEMO_SESSION: &str =
-    include_str!("../../fleetscope-cli/tests/fixtures/gemini-multi-agent/session.jsonl");
-const DEMO_NAME: &str = "gemini-multi-agent/session.jsonl";
+/// Judge-facing default: the Google ADK launch-readiness session (Cloud Run
+/// probe, Storage probe, budget guard, READY decision). The travel-planner
+/// fixture stays in CLI/unit tests; it is not what `/viewer` opens on.
+const DEMO_SESSION: &str = include_str!(
+    "../../fleetscope-cli/tests/fixtures/google-cloud-launch-readiness/session.jsonl"
+);
+const DEMO_NAME: &str = "google-cloud-launch-readiness/session.jsonl";
 
 /// The DOM element the WebGl2 grid fills. `apps/web` owns everything around it
 /// and writes nothing inside it, so the renderer owns its subtree entirely.
@@ -210,7 +210,7 @@ fn main() -> io::Result<()> {
         WebGl2BackendOptions::new()
             .grid_id(CONTAINER)
             .font_atlas_config(FontAtlasConfig::dynamic(MONO, 16.0))
-            .canvas_padding_color(ratatui::style::Color::Indexed(233)),
+            .canvas_padding_color(ratatui::style::Color::Indexed(232)),
     )?;
     let mut terminal = ratatui::Terminal::new(backend)?;
 

@@ -73,9 +73,9 @@ pub struct SessionModel {
 }
 
 /// A notable timeline event for the scrubber's log line: a prompt (era
-/// boundary), an agent spawn, or a tool failure. Surfaced by
-/// [`SessionModel::latest_event_at`] and rendered with an icon matching the
-/// scrubber's marker glyphs (◆ / ❋ / ✗).
+/// boundary), an agent spawn, a tool failure, or streamed assistant output.
+/// Surfaced by [`SessionModel::latest_event_at`] and rendered with an icon
+/// matching the scrubber's marker glyphs (◆ / ❋ / ✗ / ▸).
 #[derive(Debug, Clone)]
 pub struct LogEvent {
     pub ts: DateTime<Utc>,
@@ -89,6 +89,8 @@ pub enum LogKind {
     Prompt,
     Spawn,
     Failure,
+    /// Assistant text (Antigravity `--print` streams). Not a Claude prompt era.
+    Output,
 }
 
 /// One user prompt in the main transcript — an era boundary on the session's
@@ -331,6 +333,36 @@ impl AgentInfo {
             .rev()
             .find(|tc| !crate::transcript::is_spawn_tool(&tc.name))
             .map(|tc| tc.name.as_str())
+    }
+
+    /// Card/inspector title: the role (`researcher`), never a generic `agent`.
+    pub fn display_name(&self) -> String {
+        if let Some(t) = self
+            .agent_type
+            .as_deref()
+            .filter(|t| !is_generic_agent_kind(t))
+        {
+            return t.to_string();
+        }
+        if let Some(d) = self.description.as_deref()
+            && let Some(leaf) = d
+                .split(['/', '·'])
+                .map(str::trim)
+                .find(|s| !s.is_empty() && !is_generic_agent_kind(s) && s.len() <= 40)
+        {
+            let token = leaf.split_whitespace().next().unwrap_or(leaf);
+            if !token.is_empty() && !is_generic_agent_kind(token) {
+                return token.to_string();
+            }
+        }
+        match self.kind {
+            AgentKind::Main => String::new(),
+            AgentKind::WorkflowGroup => self
+                .agent_type
+                .clone()
+                .unwrap_or_else(|| "workflow".to_string()),
+            AgentKind::Subagent => "subagent".to_string(),
+        }
     }
 
     fn push_note(&mut self, text: &str) {
@@ -1103,6 +1135,11 @@ impl SessionModel {
                     consider(tc.end_ts.or(tc.ts), LogKind::Failure, text);
                 }
             }
+            // Antigravity sessions often have no Claude prompt eras and no
+            // work tools — the last streamed text is the only honest log line.
+            if let Some(text) = agent.last_text.as_ref().filter(|t| !is_bridge_status(t)) {
+                consider(agent.last_ts, LogKind::Output, text.clone());
+            }
         }
         best
     }
@@ -1141,7 +1178,14 @@ impl SessionModel {
 
 /// One-line excerpt for provenance display: whitespace collapsed, hard cap so
 /// adversarial 38KB lines can't bloat the model.
-fn is_bridge_status(s: &str) -> bool {
+pub(crate) fn is_generic_agent_kind(s: &str) -> bool {
+    matches!(
+        s,
+        "agent" | "subagent" | "workflow-subagent" | "transferred"
+    )
+}
+
+pub(crate) fn is_bridge_status(s: &str) -> bool {
     s.contains("started in Antigravity")
         || s.contains("report saved locally")
         || (s.contains("conversation ") && s.contains(" opened"))
@@ -1321,6 +1365,68 @@ mod tests {
         assert_eq!(f.kind, LogKind::Failure);
         assert_eq!(f.text, "Bash failed · cargo test");
         assert_eq!(f.ts, ts("2026-06-05T10:12:00Z"));
+    }
+
+    #[test]
+    fn streamed_output_narrates_when_there_are_no_prompt_eras() {
+        let ts = |s: &str| s.parse::<DateTime<Utc>>().unwrap();
+        let mut m = SessionModel::new("s".into());
+        let main = m.agents.get_mut(MAIN_ID).unwrap();
+        main.last_text = Some("# Demo Runbook: Agent Workbench".into());
+        main.last_ts = Some(ts("2026-06-05T10:00:00Z"));
+        let none = std::collections::BTreeSet::new();
+        let e = m
+            .latest_event_at(Some(ts("2026-06-05T10:01:00Z")), &none)
+            .expect("output event");
+        assert_eq!(e.kind, LogKind::Output);
+        assert!(e.text.contains("Demo Runbook"));
+    }
+
+    #[test]
+    fn agent_spawn_is_not_a_work_tool() {
+        let mut a = AgentInfo::new(AgentKind::Main);
+        a.tool_calls.push(ToolCallInfo {
+            id: "s1".into(),
+            name: "Agent".into(),
+            summary: Some("researcher".into()),
+            ts: None,
+            end_ts: None,
+            state: ToolState::Ok,
+        });
+        a.tool_calls.push(ToolCallInfo {
+            id: "r1".into(),
+            name: "Read".into(),
+            summary: Some("foo.rs".into()),
+            ts: None,
+            end_ts: None,
+            state: ToolState::Ok,
+        });
+        assert_eq!(a.work_tool_count(), 1);
+        assert_eq!(a.spawn_count(), 1);
+        assert_eq!(a.last_work_tool(), Some("Read"));
+    }
+
+    #[test]
+    fn bridge_status_is_not_card_last_text() {
+        let mut a = AgentInfo::new(AgentKind::Main);
+        a.push_note("researcher started in Antigravity");
+        assert!(a.last_text.is_none());
+        assert_eq!(a.notes.len(), 1);
+        a.push_note("# Demo Runbook: Agent Workbench");
+        assert_eq!(
+            a.last_text.as_deref(),
+            Some("# Demo Runbook: Agent Workbench")
+        );
+    }
+
+    #[test]
+    fn display_name_prefers_role_over_generic_agent() {
+        let mut a = AgentInfo::new(AgentKind::Subagent);
+        a.agent_type = Some("agent".into());
+        a.description = Some("researcher · gemini".into());
+        assert_eq!(a.display_name(), "researcher");
+        a.agent_type = Some("qa_planner".into());
+        assert_eq!(a.display_name(), "qa_planner");
     }
 
     #[test]

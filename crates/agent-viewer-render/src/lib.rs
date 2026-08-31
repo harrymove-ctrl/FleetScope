@@ -13,7 +13,7 @@
 //! is one of it. It depends on the substrate's PORTABLE core, so it builds for
 //! the host and for wasm32 alike.
 
-use zoetrope::state::{App, Mode};
+use zoetrope::state::{App, Camera, Mode};
 use zoetrope::tailer::{replay_from_session, DemoSubagent, UiEvent};
 use zoetrope::ui::brand::{set_branding, Branding};
 
@@ -33,26 +33,13 @@ pub use view_state::ViewState;
 /// The wordmark the renderer draws in the status bar and help overlay.
 const PRODUCT: &str = "FleetScope";
 
-/// Name the main node after the agent the session actually named.
-///
-/// Upstream's defaults are its own wordmark and a provider-specific main-node
-/// title. Those defaults are wrong here. A generic fallback like "root" would
-/// be almost as wrong: the developer's session calls its orchestrator
-/// `coordinator`, and a viewer that renames it is describing a run that did not
-/// happen.
-///
-/// `Branding::main_agent` is `&'static str` and `set_branding` uses a
-/// `OnceLock`, so the label is leaked deliberately: one small allocation, once
-/// per process, for a string that lives until the process exits anyway. The
-/// binary opens exactly one session, so nothing accumulates.
-fn brand_for(root_label: Option<&str>) -> Branding {
-    let main_agent: &'static str = match root_label {
-        Some(label) if !label.is_empty() => Box::leak(label.to_owned().into_boxed_str()),
-        _ => "root",
-    };
+/// Set the process-wide product wordmark without putting session identity in
+/// process-global state. The main-agent value is only a fallback; each built
+/// app receives its own recorded root label below.
+fn product_branding() -> Branding {
     Branding {
         product: PRODUCT,
-        main_agent,
+        main_agent: "root",
     }
 }
 
@@ -80,10 +67,9 @@ pub fn build_with_manifest(
     playhead: Playhead,
     root_label: Option<&str>,
 ) -> (App, ViewerManifest) {
-    // Idempotent (a `OnceLock` behind the scenes), and cheap enough to do at
-    // every load rather than relying on a caller remembering to call it before
-    // the first frame.
-    set_branding(brand_for(root_label));
+    // Idempotent (`OnceLock` behind the scenes). Only the product wordmark is
+    // global; the root agent belongs to the session being loaded.
+    set_branding(product_branding());
 
     let subagents: Vec<DemoSubagent<'_>> = wire
         .subagents
@@ -109,8 +95,26 @@ pub fn build_with_manifest(
         info,
     });
 
+    if let Some(label) = root_label.filter(|label| !label.is_empty()) {
+        if let Some(main) = app
+            .session
+            .agents
+            .get_mut(zoetrope::state::session::MAIN_ID)
+        {
+            main.agent_type = Some(label.to_owned());
+        }
+        if let Some(node) = app.flow.node_content_mut(zoetrope::state::session::MAIN_ID) {
+            node.title = label.to_owned();
+        }
+    }
+
     if playhead == Playhead::Edge {
         app.go_live();
+        // `--follow` narrates: the first frame's Follow tick centers the last
+        // agent and opens the inspector. Do not select here — build-time
+        // selection would make every test start with a panel already open.
+        app.camera = Camera::Follow;
+        app.follow_inspector = true;
     }
     (app, manifest)
 }

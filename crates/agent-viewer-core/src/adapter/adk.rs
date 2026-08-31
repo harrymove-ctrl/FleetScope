@@ -523,13 +523,13 @@ impl Builder {
             if event.author.eq_ignore_ascii_case("user") {
                 if let Some(root) = branch_root(event.branch.as_deref()) {
                     root_candidates.insert(root.clone());
-                    self.ensure_path(&root, &root, "agent");
+                    self.ensure_path(&root, &root, &root);
                 }
                 continue;
             }
 
             let path = agent_path(&event.author, event.branch.as_deref());
-            self.ensure_path(&path, &event.author, "agent");
+            self.ensure_path(&path, &event.author, &event.author);
             if parent_of(&path).is_none() {
                 root_candidates.insert(path);
             }
@@ -545,7 +545,11 @@ impl Builder {
                     .map(|agent| agent.id.clone())
             })
             .unwrap_or_else(|| "root".to_string());
-        self.ensure_path(&self.root_id.clone(), &self.root_id.clone(), "agent");
+        self.ensure_path(
+            &self.root_id.clone(),
+            &self.root_id.clone(),
+            &self.root_id.clone(),
+        );
 
         // Transfers can declare a child that never emits an event of its own.
         // Add those paths after the root is stable, so user-authored transfers
@@ -558,7 +562,7 @@ impl Builder {
                 .as_ref()
                 .and_then(|actions| actions.transfer_to_agent.as_deref())
             {
-                self.ensure_path(&child_path(&parent, target), target, "transferred");
+                self.ensure_path(&child_path(&parent, target), target, target);
             }
         }
 
@@ -765,9 +769,10 @@ impl Builder {
             current.push_str(segment);
             let is_leaf = index + 1 == segments.len();
             let node_label = if is_leaf { label } else { segment };
-            let node_kind = if is_leaf { kind } else { "agent" };
+            let node_kind = if is_leaf { kind } else { segment };
             let parent_id = parent_of(&current);
-            self.agents
+            let agent = self
+                .agents
                 .entry(current.clone())
                 .or_insert_with(|| ViewerAgent {
                     id: current.clone(),
@@ -775,6 +780,14 @@ impl Builder {
                     kind: node_kind.to_string(),
                     parent_id,
                 });
+            // A user-branch insert may land first with a generic kind. The
+            // author's own event names the role (`researcher`, not `agent`).
+            if is_leaf {
+                agent.label = label.to_string();
+                if !is_generic_kind(kind) {
+                    agent.kind = kind.to_string();
+                }
+            }
         }
     }
 }
@@ -840,6 +853,13 @@ fn parent_of(path: &str) -> Option<String> {
 
 fn leaf_of(path: &str) -> &str {
     path.rsplit_once('/').map_or(path, |(_, tail)| tail)
+}
+
+fn is_generic_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "agent" | "subagent" | "workflow-subagent" | "transferred"
+    )
 }
 
 fn child_path(parent: &str, child: &str) -> String {

@@ -2,7 +2,7 @@
   "name": "fleetscope",
   "version": "0.1.0",
   "private": true,
-  "description": "FleetScope \u2014 read-only live and replay observer for agent sessions",
+  "description": "FleetScope — read-only live and replay observer for agent sessions",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "packageManager": "pnpm@11.24.0",
@@ -14,7 +14,7 @@
     "dev": "pnpm --filter @fleetscope/web dev",
     "dev:web": "pnpm --filter @fleetscope/web dev",
     "dev:api": "pnpm --filter @fleetscope/api dev",
-    "build": "pnpm run build:web",
+    "build": "pnpm run build:ui && pnpm run build:web",
     "build:web": "pnpm --filter @fleetscope/web build",
     "build:wasm": "bash scripts/build-wasm.sh",
     "test": "vitest run",
@@ -43,7 +43,9 @@
     "qa:landing": "tsx scripts/qa-landing.ts",
     "demo:google-session": "bash scripts/run-google-session.sh",
     "demo:antigravity": "bash scripts/demo-antigravity.sh",
-    "demo:cmux": "bash scripts/demo-cmux.sh"
+    "demo:cmux": "bash scripts/demo-cmux.sh",
+    "dev:ui": "pnpm --filter @fleetscope/ui dev",
+    "build:ui": "pnpm --filter @fleetscope/ui build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

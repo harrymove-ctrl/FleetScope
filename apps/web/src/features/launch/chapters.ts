@@ -88,10 +88,10 @@ export const LAUNCH_CHAPTERS: readonly LaunchChapter[] = [
     label: 'FleetScope',
     title: 'Watch agent work become evidence',
     summary:
-      'A local Gemini or Antigravity session, projected in your browser. The file never leaves this machine.',
+      'A local Gemini or Antigravity session, read as Session readings. The file never leaves this machine.',
     detail:
-      'Point it at a session file already on disk and it draws the run: which agents started, what each called, where a tool returned nothing. Reading is all it does — it cannot start an agent, cannot retry a call, and never uploads the file.',
-    route: '/viewer',
+      'Open the judge poster first: one status line and seven readings from the recorded run. It cannot start an agent, cannot retry a call, and never uploads the file. The interactive flight deck lives at /viewer when you need live follow.',
+    route: '/demo',
     src: '/product/viewer.png',
     aspect: CARD_ASPECT,
     agents: ['coordinator', 'flight_search', 'hotel_search', 'itinerary_writer'],

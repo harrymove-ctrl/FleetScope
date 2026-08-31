@@ -1,9 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DashboardLoader from '../components/DashboardLoader.astro';
+import AssistantPlan from '../components/AssistantPlan.astro';
 import TechWall from '../components/TechWall.astro';
-import TerminalWindow from '../components/TerminalWindow.astro';
 import { DASHBOARD_STATES, INITIAL_STATE } from '../features/dashboard/state';
+import {
+  DEMO_TALK,
+  SUPPORT_AGY_COMMAND,
+  SUPPORT_CLI_COMMAND,
+  SUPPORT_CLI_STEPS,
+} from '../features/dashboard/launch-plan';
 import '../styles/feature-dashboard.css';
 
 /**
@@ -17,7 +22,6 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
 ---
 
 <BaseLayout title="Dashboard" surface="feature" theme="adaptive">
-  <DashboardLoader />
   <div class="dashboard-page">
     <TechWall
       className="fs-dashboard__wall"
@@ -59,81 +63,82 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
         <h2 id="welcome-title" data-state-title>{initial.title}</h2>
         <p class="fs-dashboard__message" data-state-message>{initial.message}</p>
 
-        <div
-          class="fs-dashboard__prompt"
-          data-upload-dropzone
-          aria-label="Choose a local session file or folder"
-        >
-          <input
-            class="fs-dashboard__file-input"
-            data-session-file-input
-            type="file"
-            accept=".jsonl,.json,application/json"
-            multiple
-            tabindex="-1"
-            aria-label="Choose session files"
-          />
-          <input
-            class="fs-dashboard__file-input"
-            data-session-folder-input
-            type="file"
-            multiple
-            tabindex="-1"
-            aria-label="Choose a session folder"
-          />
-          <span class="fs-dashboard__prompt-mark" aria-hidden="true">+</span>
+        <div class="fs-dashboard__prompt" aria-label="Follow the Antigravity session">
+          <span class="fs-dashboard__prompt-mark" aria-hidden="true">›</span>
           <span class="fs-dashboard__prompt-copy">
-            <strong>Session file or folder</strong>
-            <small data-upload-hint>.jsonl or .json · stays in this browser</small>
+            <strong>Antigravity session</strong>
+            <code data-cli-command>{SUPPORT_AGY_COMMAND}</code>
           </span>
-          <a
+          <button
             class="fs-dashboard__prompt-submit"
-            data-state-primary
-            data-upload-trigger
-            href="/viewer"
+            type="button"
+            data-control="copy-cli"
+            data-prompt-copy
+            data-copy-command={SUPPORT_AGY_COMMAND}
           >
-            {initial.primary.label}
-            <span aria-hidden="true">↗</span>
-          </a>
+            Copy Antigravity
+          </button>
+        </div>
+        <div class="fs-dashboard__prompt fs-dashboard__prompt--quiet" aria-label="Follow the Gemini example">
+          <span class="fs-dashboard__prompt-mark" aria-hidden="true">›</span>
+          <span class="fs-dashboard__prompt-copy">
+            <strong>Example only (gemini-session)</strong>
+            <code>{SUPPORT_CLI_COMMAND}</code>
+          </span>
+          <button
+            class="fs-dashboard__prompt-submit"
+            type="button"
+            data-control="copy-cli"
+            data-copy-command={SUPPORT_CLI_COMMAND}
+          >
+            Copy example
+          </button>
         </div>
 
+        <ol class="fs-dashboard__talk" aria-label="Demo talk track">
+          {
+            DEMO_TALK.map((beat, index) => (
+              <li>
+                <span class="fs-dashboard__cli-index">{index + 1}</span>
+                <span>
+                  <strong>Say: {beat.say}</strong>
+                  <small>Show: {beat.show}</small>
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+
+        <ol class="fs-dashboard__cli-steps" aria-label="Manual CLI steps">
+          {
+            SUPPORT_CLI_STEPS.map((step, index) => (
+              <li>
+                <span class="fs-dashboard__cli-index">{index + 1}</span>
+                <span>
+                  <strong>{step.title}</strong>
+                  <small>{step.detail}</small>
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+
         <div class="fs-dashboard__suggestions" aria-label="Other ways to start">
+          <a data-state-primary href="/viewer">{initial.primary.label}</a>
           <a data-state-secondary href="/viewer" hidden></a>
-          <button type="button" data-cli-reveal>Use the CLI</button>
+          <a href="/viewer#agy-project">New Antigravity folder…</a>
           <button type="button" data-formats-reveal>Supported inputs</button>
-          <button type="button" data-upload-folder-trigger>Browse a folder</button>
         </div>
         <p class="fs-dashboard__upload-feedback" data-upload-feedback role="status" aria-live="polite">
-          Drop a recording here, or choose one to keep going.
+          Producer writes JSONL. FleetScope only follows. New project folder? Open Agent Viewer → paste
+          path → Copy producer → Follow folder on the printed session_dir.
         </p>
-        <section class="fs-dashboard__upload-list" data-upload-list hidden aria-labelledby="upload-list-title">
-          <div class="fs-dashboard__upload-list-head">
-            <h3 id="upload-list-title">Selected files</h3>
-            <span data-upload-count>0 files</span>
-          </div>
-          <ul data-upload-items></ul>
-        </section>
-        <section class="fs-dashboard__approval" data-approval-card hidden aria-labelledby="approval-title">
-          <div class="fs-dashboard__approval-icon" aria-hidden="true">?</div>
-          <div class="fs-dashboard__approval-body">
-            <div class="fs-dashboard__approval-head">
-              <div>
-                <p class="fs-dashboard__approval-eyebrow">Input required</p>
-                <h3 id="approval-title" data-approval-title>Ready to open this session?</h3>
-              </div>
-              <span class="fs-dashboard__approval-status" data-approval-status>Review</span>
-            </div>
-            <p data-approval-copy>FleetScope will read this recording locally and open the Agent Viewer.</p>
-            <div class="fs-dashboard__approval-actions">
-              <button type="button" data-approval-approve>Review session <span aria-hidden="true">→</span></button>
-              <button type="button" data-approval-reselect>Choose another</button>
-            </div>
-          </div>
-        </section>
         <p class="fs-dashboard__recovery" data-state-recovery hidden></p>
       </div>
 
-      <details class="fs-dashboard__task" data-readiness>
+      <AssistantPlan />
+
+      <details class="fs-dashboard__task" data-readiness hidden>
         <summary>
           <span>
             <strong>Viewer readiness</strong>
@@ -154,7 +159,7 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
           </li>
           <li data-check="workspace">
             <span class="fs-dashboard__checkpoint" aria-hidden="true"></span>
-            <span><strong>Your session</strong><small>Choose it when you are ready</small></span>
+            <span><strong>Your session</strong><small>Follow it from the CLI</small></span>
             <span data-tone="info" data-check-status><span class="fs-status__glyph">i</span> Your choice</span>
           </li>
         </ol>
@@ -166,65 +171,13 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
       </details>
     </section>
 
-    <section class="fs-dashboard__disclosures" aria-label="Setup details">
-      <details data-cli-guide>
-        <summary>
-          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">⌘</span>
-          <span><strong>Use the CLI</strong><small>Follow a running session from your terminal</small></span>
-          <span aria-hidden="true">›</span>
-        </summary>
-        <div class="fs-dashboard__disclosure-body">
-          <p>Point FleetScope at the session your agent already writes.</p>
-          <TerminalWindow title="fleetscope / command" class="fs-dashboard__terminal">
-            <span slot="actions">
-              <button
-                type="button"
-                class="fs-button fs-button--sm fs-terminal-window__copy"
-                data-copy-command="fleetscope ~/sessions/my-run --follow"
-              >
-                Copy
-              </button>
-            </span>
-            <code class="fs-dashboard__command">fleetscope ~/sessions/my-run --follow</code>
-          </TerminalWindow>
-        </div>
-      </details>
-
-      <details data-formats-guide>
-        <summary>
-          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">{ }</span>
-          <span><strong>Supported inputs</strong><small>Formats reported by this build</small></span>
-          <span aria-hidden="true">›</span>
-        </summary>
-        <div class="fs-dashboard__disclosure-body">
-          <ul class="fs-dashboard__sources">
-            <li><code>.jsonl</code><span>Gemini and Google ADK transcripts</span></li>
-            <li><code>.json</code><span>Session recordings</span></li>
-            <li><code>folder</code><span>Parent and sub-agent files together</span></li>
-          </ul>
-          <p class="fs-mono" data-formats-output>Checking adapters…</p>
-        </div>
-      </details>
-
-      <details>
-        <summary>
-          <span class="fs-dashboard__disclosure-mark" aria-hidden="true">○</span>
-          <span><strong>Privacy boundary</strong><small>Read-only and local by default</small></span>
-          <span aria-hidden="true">›</span>
-        </summary>
-        <div class="fs-dashboard__disclosure-body">
-          <p>FleetScope reads only the files you choose. It does not start an agent, request a key, or upload a transcript.</p>
-        </div>
-      </details>
-    </section>
-
     <div class="fs-dashboard__command-menu" data-command-panel hidden>
       <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="command-title">
         <div class="fs-row fs-row--between">
           <h2 id="command-title">Go somewhere</h2>
           <button class="fs-button fs-button--sm" type="button" data-command-close>Close</button>
         </div>
-        <a href="/viewer">Open a local session</a>
+        <a href="/viewer">Open Agent Viewer</a>
         <a href="/viewer">Preview the bundled run</a>
         <button type="button" data-command-cli>Copy the CLI command</button>
       </div>
@@ -238,13 +191,7 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
     deriveDashboardState,
     type Probe,
   } from '../features/dashboard/state';
-  import {
-    companionName,
-    filePath,
-    isReadableSession,
-    pickMainFile,
-    type DashboardHandoff,
-  } from '../features/dashboard/upload';
+  import { SUPPORT_AGY_COMMAND, SUPPORT_CLI_COMMAND } from '../features/dashboard/launch-plan';
 
   /**
    * Probe what this page can actually reach, then render the derived state.
@@ -276,34 +223,6 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
   const secondaryEl = document.querySelector('[data-state-secondary]') as HTMLAnchorElement | null;
   const recoveryEl = document.querySelector('[data-state-recovery]') as HTMLElement | null;
   const readinessEl = document.querySelector('[data-readiness]') as HTMLDetailsElement | null;
-  const uploadDropzone = document.querySelector('[data-upload-dropzone]') as HTMLElement | null;
-  const uploadInput = document.querySelector('[data-session-file-input]') as HTMLInputElement | null;
-  const folderInput = document.querySelector('[data-session-folder-input]') as HTMLInputElement | null;
-  const uploadListEl = document.querySelector('[data-upload-list]') as HTMLElement | null;
-  const uploadItemsEl = document.querySelector('[data-upload-items]') as HTMLUListElement | null;
-  const uploadCountEl = document.querySelector('[data-upload-count]') as HTMLElement | null;
-  const uploadFeedbackEl = document.querySelector('[data-upload-feedback]') as HTMLElement | null;
-  const uploadHintEl = document.querySelector('[data-upload-hint]') as HTMLElement | null;
-  const approvalEl = document.querySelector('[data-approval-card]') as HTMLElement | null;
-  const approvalTitleEl = document.querySelector('[data-approval-title]') as HTMLElement | null;
-  const approvalStatusEl = document.querySelector('[data-approval-status]') as HTMLElement | null;
-  const approvalCopyEl = document.querySelector('[data-approval-copy]') as HTMLElement | null;
-  const approvalApproveEl = document.querySelector('[data-approval-approve]') as HTMLButtonElement | null;
-  const approvalReselectEl = document.querySelector('[data-approval-reselect]') as HTMLButtonElement | null;
-
-  const DASHBOARD_HANDOFF_KEY = 'fleetscope:dashboard-upload';
-  const MAX_UPLOAD_FILES = 8;
-  const MAX_HANDOFF_BYTES = 8 * 1024 * 1024;
-  type UploadItem = {
-    readonly id: string;
-    readonly file: File;
-    state: 'uploading' | 'complete' | 'failed';
-    text?: string;
-    error?: string;
-  };
-  let uploadItems: UploadItem[] = [];
-  let handoffReady = false;
-  let uploadRun = 0;
 
   const STATE_LABELS = {
     'first-run': 'Getting started',
@@ -340,8 +259,10 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
     applyAction(primaryEl, contract.primary);
     applyAction(secondaryEl, contract.secondary);
     primaryEl?.setAttribute('aria-disabled', String(state === 'checking-runtime'));
-    if (readinessEl !== null && (contract.tone === 'bad' || contract.tone === 'warn')) {
-      readinessEl.open = true;
+    if (readinessEl !== null) {
+      const showTask = contract.tone === 'bad' || contract.tone === 'warn';
+      readinessEl.hidden = !showTask;
+      if (showTask) readinessEl.open = true;
     }
     if (recoveryEl !== null) {
       recoveryEl.hidden = contract.recovery === undefined;
@@ -486,6 +407,7 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
       if (formatsOutput !== null) formatsOutput.textContent = formats.join(' · ');
 
       setDiagnostics(`probe=wasm · result=loaded · formats=${formats.length}`);
+      setSupportRuntime(null);
     } catch (error) {
       runtimeLoaded = false;
       const message = error instanceof Error ? error.message : String(error);
@@ -495,226 +417,19 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
       // The distinction the design insists on: a timeout says the browser got
       // no answer, not that the runtime is absent. Only one of those is a fact
       // this page observed.
-      setDiagnostics(
+      const diagnostic = timedOut
+        ? `probe=wasm · result=timeout (${RUNTIME_TIMEOUT_MS} ms) · the browser received no result`
+        : `probe=wasm · result=failed · ${message}`;
+      setDiagnostics(diagnostic, true);
+      setSupportRuntime(
         timedOut
-          ? `probe=wasm · result=timeout (${RUNTIME_TIMEOUT_MS} ms) · the browser received no result`
-          : `probe=wasm · result=failed · ${message}`,
-        true,
+          ? 'The projection runtime did not answer in time. Retry here, or follow the session from your terminal.'
+          : `The projection runtime did not load. ${message}`,
       );
     }
     render();
     window.dispatchEvent(new CustomEvent('fleetscope:dashboard-ready'));
   }
-
-  function setUploadFeedback(message: string, tone: 'info' | 'ok' | 'bad' = 'info') {
-    if (uploadFeedbackEl === null) return;
-    uploadFeedbackEl.textContent = message;
-    uploadFeedbackEl.dataset.tone = tone;
-  }
-
-  function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  function renderUploadItems() {
-    if (uploadListEl === null || uploadItemsEl === null) return;
-    uploadListEl.hidden = uploadItems.length === 0;
-    if (uploadCountEl !== null) {
-      uploadCountEl.textContent = `${uploadItems.length} file${uploadItems.length === 1 ? '' : 's'}`;
-    }
-    uploadItemsEl.replaceChildren();
-    for (const item of uploadItems) {
-      const row = document.createElement('li');
-      row.className = 'fs-dashboard__upload-row';
-      row.dataset.uploadItem = item.id;
-      row.dataset.uploadState = item.state;
-
-      const icon = document.createElement('span');
-      icon.className = 'fs-dashboard__upload-icon';
-      icon.setAttribute('aria-hidden', 'true');
-      icon.textContent = item.file.type.startsWith('image/') ? '▧' : '{ }';
-
-      const copy = document.createElement('span');
-      copy.className = 'fs-dashboard__upload-copy';
-      const name = document.createElement('strong');
-      name.textContent = filePath(item.file);
-      const size = document.createElement('small');
-      size.textContent = formatFileSize(item.file.size);
-      copy.append(name, size);
-
-      const status = document.createElement('span');
-      status.className = 'fs-dashboard__upload-state';
-      status.textContent =
-        item.state === 'uploading'
-          ? 'Reading…'
-          : item.state === 'complete'
-            ? 'Ready'
-            : item.error ?? 'Could not read';
-
-      const action = document.createElement('button');
-      action.type = 'button';
-      action.className = 'fs-dashboard__upload-action';
-      action.dataset.uploadAction = item.state === 'failed' ? 'retry' : 'remove';
-      action.dataset.uploadId = item.id;
-      action.setAttribute('aria-label', item.state === 'failed' ? `Retry ${filePath(item.file)}` : `Remove ${filePath(item.file)}`);
-      action.textContent = item.state === 'failed' ? 'Retry' : '×';
-      row.append(icon, copy, status, action);
-      uploadItemsEl.append(row);
-    }
-  }
-
-  function setApproval(status: 'pending' | 'approved' | 'rejected', copy?: string) {
-    if (approvalEl === null) return;
-    approvalEl.hidden = status === 'rejected';
-    approvalEl.dataset.approvalState = status;
-    if (approvalStatusEl !== null) {
-      approvalStatusEl.textContent = status === 'approved' ? 'Approved' : 'Review';
-    }
-    if (approvalTitleEl !== null) {
-      approvalTitleEl.textContent = status === 'approved' ? 'Opening your session…' : 'Ready to open this session?';
-    }
-    if (approvalCopyEl !== null && copy !== undefined) approvalCopyEl.textContent = copy;
-    if (approvalApproveEl !== null) approvalApproveEl.disabled = status === 'approved';
-    if (approvalReselectEl !== null) approvalReselectEl.disabled = status === 'approved';
-  }
-
-  function clearUploadState() {
-    uploadRun += 1;
-    uploadItems = [];
-    handoffReady = false;
-    renderUploadItems();
-    setApproval('rejected');
-    setUploadFeedback('Drop a recording here, or choose one to keep going.');
-    if (uploadHintEl !== null) uploadHintEl.textContent = '.jsonl or .json · stays in this browser';
-    if (uploadInput !== null) uploadInput.value = '';
-    if (folderInput !== null) folderInput.value = '';
-    try {
-      sessionStorage.removeItem(DASHBOARD_HANDOFF_KEY);
-    } catch {
-      /* Storage is optional; the viewer remains available as a direct path. */
-    }
-  }
-
-  function openFilePicker(folder = false) {
-    (folder ? folderInput : uploadInput)?.click();
-  }
-
-  async function addUploadFiles(incoming: File[]) {
-    const files = incoming.slice(0, MAX_UPLOAD_FILES);
-    if (files.length === 0) return;
-    const run = ++uploadRun;
-    handoffReady = false;
-    setApproval('rejected');
-    uploadItems = files.map((file, index) => ({
-      id: `${run}-${index}-${file.name}`,
-      file,
-      state: isReadableSession(file.name) ? 'uploading' : 'failed',
-      error: isReadableSession(file.name) ? undefined : 'Unsupported format',
-    }));
-    renderUploadItems();
-    setUploadFeedback('Checking the files you chose…');
-
-    const readableItems = uploadItems.filter((item) => item.state === 'uploading');
-    await Promise.all(
-      readableItems.map(async (item) => {
-        try {
-          item.text = await item.file.text();
-          item.state = 'complete';
-        } catch {
-          item.state = 'failed';
-          item.error = 'Could not read';
-        }
-      }),
-    );
-    if (run !== uploadRun) return;
-    renderUploadItems();
-
-    const main = pickMainFile(files);
-    const mainItem = main === null ? null : uploadItems.find((item) => item.file === main);
-    if (main === null || mainItem?.state !== 'complete' || mainItem.text === undefined) {
-      setUploadFeedback('Choose a .jsonl or .json recording to continue.', 'bad');
-      return;
-    }
-
-    const companions = uploadItems
-      .filter((item) => item.file !== main && item.state === 'complete' && item.text !== undefined)
-      .map((item) => ({ name: companionName(item.file, main), text: item.text! }));
-    const handoff: DashboardHandoff = {
-      name: main.name,
-      main: mainItem.text,
-      companions,
-      createdAt: Date.now(),
-    };
-    const encoded = JSON.stringify(handoff);
-    if (new Blob([encoded]).size > MAX_HANDOFF_BYTES) {
-      setUploadFeedback('This recording is larger than the browser handoff limit. Open Viewer and choose it there.', 'bad');
-      return;
-    }
-    try {
-      sessionStorage.setItem(DASHBOARD_HANDOFF_KEY, encoded);
-      handoffReady = true;
-      setUploadFeedback(`${uploadItems.filter((item) => item.state === 'complete').length} file${uploadItems.filter((item) => item.state === 'complete').length === 1 ? '' : 's'} ready for review.`, 'ok');
-      if (uploadHintEl !== null) uploadHintEl.textContent = 'Local only · nothing is uploaded';
-      setApproval('pending');
-    } catch {
-      setUploadFeedback('The browser could not hold this recording. Open Viewer and choose it there.', 'bad');
-    }
-  }
-
-  uploadInput?.addEventListener('change', () => {
-    void addUploadFiles(Array.from(uploadInput.files ?? []));
-    uploadInput.value = '';
-  });
-  folderInput?.setAttribute('webkitdirectory', '');
-  folderInput?.setAttribute('directory', '');
-  folderInput?.addEventListener('change', () => {
-    void addUploadFiles(Array.from(folderInput.files ?? []));
-    folderInput.value = '';
-  });
-  uploadDropzone?.addEventListener('dragover', (event) => {
-    event.preventDefault();
-    uploadDropzone.dataset.dragging = 'true';
-  });
-  uploadDropzone?.addEventListener('dragleave', () => {
-    uploadDropzone.dataset.dragging = 'false';
-  });
-  uploadDropzone?.addEventListener('drop', (event) => {
-    event.preventDefault();
-    uploadDropzone.dataset.dragging = 'false';
-    void addUploadFiles(Array.from(event.dataTransfer?.files ?? []));
-  });
-  document.querySelector('[data-upload-trigger]')?.addEventListener('click', (event) => {
-    const state = deriveDashboardState(currentProbe());
-    if (state === 'workspace-required' || state === 'ready') {
-      event.preventDefault();
-      openFilePicker();
-    }
-  });
-  document.querySelector('[data-upload-folder-trigger]')?.addEventListener('click', () => openFilePicker(true));
-  uploadItemsEl?.addEventListener('click', (event) => {
-    const action = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-upload-action]');
-    if (action === null) return;
-    const id = action.dataset.uploadId;
-    const item = uploadItems.find((entry) => entry.id === id);
-    if (item === undefined) return;
-    if (action.dataset.uploadAction === 'retry') {
-      void addUploadFiles([item.file]);
-      return;
-    }
-    const remaining = uploadItems.filter((entry) => entry.id !== id).map((entry) => entry.file);
-    if (remaining.length === 0) clearUploadState();
-    else void addUploadFiles(remaining);
-  });
-  approvalApproveEl?.addEventListener('click', () => {
-    if (!handoffReady) return;
-    setApproval('approved', 'Opening the local recording in Agent Viewer.');
-    window.setTimeout(() => {
-      window.location.assign('/viewer');
-    }, 180);
-  });
-  approvalReselectEl?.addEventListener('click', clearUploadState);
 
   document.querySelector('[data-state-primary]')?.addEventListener('click', (event) => {
     if (primaryEl?.getAttribute('aria-disabled') === 'true') {
@@ -764,25 +479,41 @@ const initial = DASHBOARD_STATES[INITIAL_STATE];
       button.textContent = previous;
     }, 1400);
   }
-  document.querySelector('[data-copy-command]')?.addEventListener('click', (event) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    void copyCommand(button, button.dataset['copyCommand'] ?? '');
-  });
+  for (const node of document.querySelectorAll('[data-copy-command]')) {
+    node.addEventListener('click', (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      void copyCommand(button, button.dataset['copyCommand'] ?? '');
+    });
+  }
   document.querySelector('[data-command-cli]')?.addEventListener('click', (event) => {
     const button = event.currentTarget as HTMLButtonElement;
-    void copyCommand(button, 'fleetscope ~/sessions/my-run --follow');
+    void copyCommand(button, SUPPORT_AGY_COMMAND);
   });
 
-  function reveal(details: HTMLDetailsElement | null) {
-    if (details === null) return;
-    details.open = true;
+  function revealSupport(topic: string) {
+    const msg = document.querySelector(`[data-support-msg="${topic}"]`) as HTMLElement | null;
+    const panel = document.querySelector('[data-assistant-plan]') as HTMLElement | null;
+    if (msg === null || panel === null) return;
+    msg.hidden = false;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    details.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    const top = msg.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 12;
+    panel.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
   }
-  const cliGuide = document.querySelector('[data-cli-guide]') as HTMLDetailsElement | null;
-  const formatsGuide = document.querySelector('[data-formats-guide]') as HTMLDetailsElement | null;
-  document.querySelector('[data-cli-reveal]')?.addEventListener('click', () => reveal(cliGuide));
-  document.querySelector('[data-formats-reveal]')?.addEventListener('click', () => reveal(formatsGuide));
+
+  function setSupportRuntime(text: string | null) {
+    const msg = document.querySelector('[data-support-msg="runtime"]') as HTMLElement | null;
+    const copy = document.querySelector('[data-support-runtime]') as HTMLElement | null;
+    if (msg === null) return;
+    if (text === null) {
+      msg.hidden = true;
+      return;
+    }
+    if (copy !== null) copy.textContent = text;
+    revealSupport('runtime');
+  }
+
+  document.querySelector('[data-cli-reveal]')?.addEventListener('click', () => revealSupport('cli'));
+  document.querySelector('[data-formats-reveal]')?.addEventListener('click', () => revealSupport('formats'));
   panel?.addEventListener('click', (event) => {
     if (event.target === panel) close();
   });

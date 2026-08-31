@@ -223,6 +223,7 @@ export function compileZoetropeScene(events: readonly CanonicalEvent[]): Zoetrop
   const subagentStarted = new Set<string>();
   const pendingCalls = new Map<string, PendingCall>();
   const spawnToolUseIds = new Map<string, string>();
+  const spawnRoles = new Map<string, string>();
   const blockedInputIds = new Set<string>();
   const deniedRouteCapabilities = new Set<string>();
 
@@ -416,6 +417,7 @@ export function compileZoetropeScene(events: readonly CanonicalEvent[]): Zoetrop
         agentNodes.set(id, rendererId);
         const toolUseId = `spawn-${event.eventId}`;
         spawnToolUseIds.set(id, toolUseId);
+        spawnRoles.set(id, role);
         emitAssistant([
           {
             type: 'tool_use',
@@ -449,7 +451,8 @@ export function compileZoetropeScene(events: readonly CanonicalEvent[]): Zoetrop
           kind: 'meta',
           agentId: rendererId,
           meta: subagentMeta({
-            agentType: redactedSummary(c['agentVersionRef'], 'agent'),
+            agentType:
+              spawnRoles.get(id) ?? redactedSummary(p['role'], id.split(/[./]/).pop() ?? 'agent'),
             description: `${id} · ${c['agentVersionRef'] ?? 'unknown version'}`,
             toolUseId: spawnToolUseIds.get(id) ?? `spawn-${id}`,
           }),

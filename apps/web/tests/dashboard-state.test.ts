@@ -25,8 +25,11 @@ describe('deriveDashboardState', () => {
     expect(deriveDashboardState({ ...base, runtimeLoaded: false })).toBe('cli-missing');
   });
 
-  it('asks for a workspace once the runtime is up and nothing is open', () => {
+  it('asks the operator to follow the CLI once the runtime is up', () => {
     expect(deriveDashboardState(base)).toBe('workspace-required');
+    expect(DASHBOARD_STATES['workspace-required'].title).toContain('CLI');
+    expect(DASHBOARD_STATES['workspace-required'].primary.label).toBe('Open Agent Viewer');
+    expect(DASHBOARD_STATES.ready.primary.label).not.toContain('Choose local session');
   });
 
   it('is ready only after a session actually projected', () => {

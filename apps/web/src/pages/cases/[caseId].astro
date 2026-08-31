@@ -1,12 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHeader from '../../components/PageHeader.astro';
-import CaseHeader from '../../components/CaseHeader.astro';
-import StatusBadge from '../../components/StatusBadge.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import EvidenceDrawer from '../../components/EvidenceDrawer.astro';
-import UnknownOr from '../../components/UnknownOr.astro';
-import Metric from '../../components/Metric.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
 import {
   getCanonicalEvents,
   getCaseDescriptor,
@@ -14,17 +10,15 @@ import {
   listCaseIds,
   projectCase,
 } from '../../lib/fixtures';
-import { buildEvidenceRecords, incidentViews, narrativeActivity } from '../../lib/evidence-view';
-import { caseRail, summariseCase } from '../../lib/case-summary';
-import { answerCaseQuestions } from '../../lib/case-view';
+import { buildEvidenceRecords, incidentViews } from '../../lib/evidence-view';
+import { summariseCase } from '../../lib/case-summary';
 
 /**
- * The Case Workspace — the business-facing surface.
+ * The Case page is the product explanation, not an operations dashboard.
  *
- * Everything here is derived from the same Observable Case State the Cockpit and
- * the Audit view read. No canonical JSON is shown by default: an operator who
- * wants the raw payload opens the Decision Evidence drawer for the exact event,
- * which is a deliberate step rather than the default reading experience.
+ * It tells one evidence-backed story first: the Runtime can report success while
+ * FleetScope still has an unresolved finding. Exact events and operational
+ * metadata remain available on demand, but no longer compete with that point.
  */
 export function getStaticPaths() {
   return listCaseIds().map((caseId) => ({ params: { caseId } }));
@@ -34,252 +28,426 @@ const { caseId } = Astro.params;
 const descriptor = getCaseDescriptor(caseId!);
 const events = getCanonicalEvents(caseId!);
 const manifest = getRenderManifest(caseId!);
-const projection = projectCase(caseId!);
-const state = projection?.state ?? null;
-
+const state = projectCase(caseId!)?.state ?? null;
 const records = manifest === null ? [] : buildEvidenceRecords(events, manifest);
 const summary = summariseCase(caseId!, descriptor, state, records);
-const answers = state === null ? [] : answerCaseQuestions(state, records);
-const rail = state === null ? [] : caseRail(state, events);
-const activity = narrativeActivity(records, 8);
 const incidents = state === null ? [] : incidentViews(state, events);
-const pendingApprovals = (state?.approvals ?? []).filter((a) => a.state === 'pending');
 const openIncidents = incidents.filter((incident) => incident.state !== 'resolved');
+const primaryIncident = openIncidents[0] ?? null;
+const primaryIncidentEvent =
+  primaryIncident === null
+    ? null
+    : (records.find((record) => record.caseSequence === primaryIncident.incidentCaseSequence) ??
+      records.find((record) => primaryIncident.evidenceEventIds.includes(record.eventId)) ??
+      null);
+
+const findingTitle =
+  primaryIncident?.incidentClass === 'context_drift'
+    ? 'Context drift is still open.'
+    : primaryIncident?.incidentClass === 'repeated_tool_failure'
+      ? 'A repeated tool failure is still open.'
+      : primaryIncident === null
+        ? 'No unresolved finding.'
+        : 'A finding is still open.';
+
+const findingExplanation =
+  primaryIncident?.incidentClass === 'context_drift'
+    ? 'Screened content drifted away from this onboarding. The warning is advisory, but it has not been resolved.'
+    : (primaryIncident?.detectedBecause ??
+      'FleetScope found no unresolved issue in the recorded evidence.');
 ---
 
-<BaseLayout title={`Case ${caseId}`}>
-  <PageHeader title={`Case ${caseId}`} lede={summary.title ?? undefined}>
-    <a slot="actions" class="fs-button" data-variant="primary" href={`/cockpit/${caseId}`}>
-      Open Agent Viewer
-    </a>
-    <a slot="actions" class="fs-button" href={`/audit/${caseId}`}>View Audit</a>
-    {pendingApprovals.length > 0 && (
-      <a slot="actions" class="fs-button" href="/approvals">Review approval</a>
-    )}
-  </PageHeader>
-
+<BaseLayout title={`Why FleetScope · ${caseId}`}>
   {state === null ? (
     <EmptyState
       tone="warn"
-      title="No recorded evidence for this Case"
-      detail="The canonical stream for this Case is empty, so no state can be reconstructed."
+      title="No recorded evidence for this case"
+      detail="FleetScope cannot explain a result without a session record."
     />
   ) : (
-    <div class="fs-stack">
-      <CaseHeader summary={summary} />
-
-      <section class="fs-card">
-        <div class="fs-section-head">
-          <h2>Where this Case stands</h2>
-          <span class="fs-section-head__aside">{summary.nextAction}</span>
-        </div>
-        <div class="fs-answers">
-          {answers.map((answer) => (
-            <article class="fs-answer">
-              <p class="fs-answer__q">{answer.question}</p>
-              <p class="fs-answer__a">
-                {answer.unknown ? <UnknownOr value={null} /> : answer.answer}
-              </p>
-              {answer.evidenceEventId !== null && (
-                <p class="fs-answer__evidence">
-                  <button
-                    type="button"
-                    class="fs-button fs-button--sm"
-                    data-variant="quiet"
-                    data-evidence-open={answer.evidenceEventId}
-                  >Event {answer.humanIndex} · evidence</button>
-                </p>
-              )}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section class="fs-card">
-        <div class="fs-section-head">
-          <h2>Milestones</h2>
-          <span class="fs-section-head__aside">
-            Session boundaries are shown where the Case crossed one.
-          </span>
-        </div>
-        <ol class="fs-rail-steps">
-          {rail.map((step) => (
-            <li class="fs-milestone" data-state={step.state} data-kind={step.kind}>
-              <span class="fs-milestone__name">
-                <span aria-hidden="true">
-                  {step.state === 'done' ? '✓ ' : step.state === 'current' ? '▸ ' : '· '}
-                </span>
-                {step.name}
-                <span class="fs-visually-hidden">
-                  {step.state === 'done'
-                    ? ' (complete)'
-                    : step.state === 'current'
-                      ? ' (current)'
-                      : ' (not reached)'}
-                </span>
-              </span>
-              <span class="fs-milestone__meta">{step.meta ?? 'not reached'}</span>
-            </li>
-          ))}
-        </ol>
-        <p class="fs-note">
-          A simulated day boundary is a separate Runtime invocation in the recorded
-          scenario, not elapsed real time. FleetScope never says "12 days ago".
+    <article class="case-story">
+      <header class="case-story__hero">
+        <p class="case-story__eyebrow">{caseId} · recorded example</p>
+        <h1>
+          The agent says “done.”
+          <span>FleetScope shows what still needs attention.</span>
+        </h1>
+        <p class="case-story__lede">
+          {summary.vendor ?? 'This vendor'} was onboarded successfully, but one warning is
+          still open. FleetScope keeps that risk visible instead of letting it disappear
+          behind a green completion status.
         </p>
+        <div class="case-story__actions">
+          {primaryIncidentEvent !== null && (
+            <button
+              type="button"
+              class="fs-button"
+              data-variant="primary"
+              data-evidence-open={primaryIncidentEvent.eventId}
+            >See what FleetScope caught</button>
+          )}
+          <a class="fs-button" href={`/cockpit/${caseId}`}>Inspect the full session</a>
+        </div>
+      </header>
+
+      <section class="case-story__comparison" aria-labelledby="case-result-title">
+        <div class="case-story__result">
+          <p class="case-story__label">What the agent reports</p>
+          <StatusBadge kind="case" value={summary.caseState} />
+          <h2 id="case-result-title">The onboarding completed.</h2>
+          <p>
+            The Runtime reached its terminal result after {summary.sessionCount} session{summary.sessionCount === 1 ? '' : 's'}.
+          </p>
+        </div>
+
+        <div class="case-story__plus" aria-hidden="true">+</div>
+
+        <div class="case-story__result case-story__result--attention">
+          <p class="case-story__label">What FleetScope adds</p>
+          {primaryIncident !== null ? (
+            <StatusBadge kind="incident" value={primaryIncident.state} label="Needs review" />
+          ) : (
+            <StatusBadge kind="incident" value="resolved" />
+          )}
+          <h2>{findingTitle}</h2>
+          <p>{findingExplanation}</p>
+        </div>
       </section>
 
-      <div class="fs-grid fs-grid--2">
-        <section class="fs-card">
-          <div class="fs-section-head">
-            <h2>Trusted context</h2>
-            <span class="fs-section-head__aside">{state.memoryRecords.length} Memory Records</span>
+      <section class="case-story__value" aria-labelledby="case-value-title">
+        <p class="case-story__eyebrow">Why this is useful</p>
+        <h2 id="case-value-title">“Completed” is not the whole story.</h2>
+        <p class="case-story__value-lede">
+          FleetScope turns a long agent run into a result you can understand and verify
+          before you trust it.
+        </p>
+
+        <div class="case-story__benefits">
+          <div>
+            <strong>{summary.sessionCount} sessions, one story</strong>
+            <span>See the whole job, even when it stops and resumes.</span>
           </div>
-          <p class="fs-note" style="margin-top:0">
-            Memory Records are provenance-bearing data, never instructions. Each
-            names the Canonical Event it came from.
+          <div>
+            <strong>{incidents.length} issues found · {openIncidents.length} still open</strong>
+            <span>A green result cannot hide an unresolved problem.</span>
+          </div>
+          <div>
+            <strong>{summary.eventCount} recorded events</strong>
+            <span>Every important claim links back to exact evidence.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="case-story__next" aria-labelledby="case-next-title">
+        <div>
+          <p class="case-story__label">What should I do now?</p>
+          <h2 id="case-next-title">
+            {primaryIncident === null
+              ? 'This result has no unresolved finding.'
+              : 'Review the open warning before accepting this result.'}
+          </h2>
+          <p>
+            FleetScope is read-only: it shows the risk and the evidence. You stay in
+            control of the decision.
           </p>
-          {state.memoryRecords.length === 0 ? (
-            <EmptyState
-              title="No Memory Records"
-              detail="Nothing durable has been written in this evidence prefix."
-            />
-          ) : (
-            <ul class="fs-list">
-              {state.memoryRecords.map((record) => (
-                <li>
-                  <div>{record.summary}</div>
-                  <div class="fs-mono fs-faint" style="font-size:11px">
-                    {record.memoryRecordId} · scope {record.scope} · {record.sensitivity}
-                  </div>
-                  <button
-                    type="button"
-                    class="fs-button fs-button--sm"
-                    data-variant="quiet"
-                    data-evidence-open={record.sourceEventId}
-                  >Source · {record.sourceEventId}</button>
-                </li>
-              ))}
-            </ul>
+        </div>
+        <div class="case-story__actions">
+          {primaryIncidentEvent !== null && (
+            <button
+              type="button"
+              class="fs-button"
+              data-variant="primary"
+              data-evidence-open={primaryIncidentEvent.eventId}
+            >Review the warning</button>
           )}
-        </section>
+          <a class="fs-button" href={`/audit/${caseId}`}>View all evidence</a>
+        </div>
+      </section>
 
-        <section class={pendingApprovals.length > 0 ? 'fs-card fs-card--attention' : 'fs-card'}>
-          <div class="fs-section-head">
-            <h2>Needs an operator</h2>
-          </div>
-          {pendingApprovals.length === 0 ? (
-            <EmptyState
-              title="Nothing is outstanding for an operator"
-              detail="No approval in this evidence prefix is awaiting a decision."
-            />
-          ) : (
-            <ul class="fs-list">
-              {pendingApprovals.map((approval) => (
-                <li>
-                  <div class="fs-row">
-                    <strong>{approval.actionTemplate}</strong>
-                    <StatusBadge kind="approval" value={approval.state} size="sm" />
-                  </div>
-                  <div class="fs-mono fs-faint" style="font-size:11px">
-                    {approval.target} · bound to Event {approval.boundCaseSequence + 1} · expires{' '}
-                    {approval.expiresAt}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p class="fs-link-row" style="margin-top:var(--fs-space-3)">
-            <a class="fs-button fs-button--sm" href="/approvals">Open Approval Inbox</a>
-          </p>
-        </section>
+      <details class="case-story__details">
+        <summary>Show technical details</summary>
+        <div class="case-story__detail-grid">
+          <section>
+            <h2>Case</h2>
+            <dl>
+              <div><dt>Workflow</dt><dd>{summary.title ?? 'Not recorded'}</dd></div>
+              <div><dt>Agent version</dt><dd>{summary.agentVersionRef ?? 'Not recorded'}</dd></div>
+              <div><dt>Owner</dt><dd>{summary.owner ?? 'Not recorded'}</dd></div>
+              <div><dt>Current milestone</dt><dd>{summary.currentMilestone ?? 'Not recorded'}</dd></div>
+            </dl>
+          </section>
 
-        <section class="fs-card">
-          <div class="fs-section-head">
-            <h2>Recent activity</h2>
-            <span class="fs-section-head__aside">newest first</span>
-          </div>
-          {activity.length === 0 ? (
-            <EmptyState title="No recorded activity" detail="This Case has produced no progress evidence yet." />
-          ) : (
-            <ul class="fs-list">
-              {activity.map((row) => (
-                <li>
-                  <div>{row.summary}</div>
-                  <div class="fs-row" style="gap:var(--fs-space-2)">
-                    <span class="fs-mono fs-faint" style="font-size:11px">
-                      Event {row.humanIndex} · {row.sessionId ?? 'case-level'} · {row.sourceTime}
-                    </span>
-                    <button
-                      type="button"
-                      class="fs-button fs-button--sm"
-                      data-variant="quiet"
-                      data-evidence-open={row.eventId}
-                    >Evidence</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <section>
+            <h2>Recorded usage</h2>
+            <dl>
+              <div><dt>Runtime sessions</dt><dd>{summary.sessionCount}</dd></div>
+              <div><dt>Canonical events</dt><dd>{summary.eventCount}</dd></div>
+              <div><dt>Tool calls</dt><dd>{state.usage.toolCalls || 'Not recorded'}</dd></div>
+              <div><dt>Estimated cost</dt><dd>{state.usage.estimatedCostUsd === 0 ? 'Not recorded' : `USD ${state.usage.estimatedCostUsd}`}</dd></div>
+            </dl>
+          </section>
 
-        <section class={openIncidents.length > 0 ? 'fs-card fs-card--attention' : 'fs-card'}>
-          <div class="fs-section-head">
-            <h2>Incidents</h2>
-            <span class="fs-section-head__aside">
-              {incidents.length} recorded · {openIncidents.length} open
-            </span>
-          </div>
-          {incidents.length === 0 ? (
-            <EmptyState title="No incidents detected" detail="No detector recorded a finding in this Case." />
-          ) : (
-            <ul class="fs-list">
+          <section>
+            <h2>Findings</h2>
+            <ul>
               {incidents.map((incident) => (
                 <li>
-                  <div class="fs-row">
-                    <span class="fs-mono">{incident.incidentClass}</span>
-                    <StatusBadge kind="incident" value={incident.state} size="sm" />
-                    <StatusBadge kind="severity" value={incident.severity} size="sm" />
-                  </div>
-                  <div class="fs-faint" style="font-size:12px">{incident.detectedBecause}</div>
+                  <span>{incident.incidentClass.replaceAll('_', ' ')}</span>
+                  <StatusBadge kind="incident" value={incident.state} size="sm" />
                 </li>
               ))}
             </ul>
-          )}
-          <p class="fs-link-row" style="margin-top:var(--fs-space-3)">
-            <a class="fs-button fs-button--sm" href={`/cockpit/${caseId}`}>
-              Inspect in Agent Viewer
-            </a>
-          </p>
-        </section>
-      </div>
-
-      <section class="fs-card">
-        <div class="fs-section-head">
-          <h2>Recorded totals</h2>
-          <span class="fs-section-head__aside">
-            Sums of recorded usage events only. Absent measurements read as unknown, never as zero.
-          </span>
+          </section>
         </div>
-        <div class="fs-metrics">
-          <Metric label="Canonical events" value={summary.eventCount} />
-          <Metric label="Runtime Sessions" value={summary.sessionCount} />
-          <Metric label="Output tokens" value={state.usage.outputTokens} zeroMeans="unknown" />
-          <Metric
-            label="Estimated cost"
-            value={state.usage.estimatedCostUsd}
-            zeroMeans="unknown"
-            prefix="USD "
-          />
-          <Metric label="Tool calls" value={state.usage.toolCalls} zeroMeans="unknown" />
-          <Metric
-            label="Invariant violations"
-            value={state.invariantViolations.length}
-            note="recorded, never suppressed"
-          />
-        </div>
-      </section>
-    </div>
+      </details>
+    </article>
   )}
 
   <EvidenceDrawer records={records} />
 </BaseLayout>
+
+<style>
+  .case-story {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: 18px;
+  }
+
+  .case-story__hero {
+    padding: clamp(24px, 4vw, 48px) 0 clamp(18px, 2vw, 28px);
+    max-width: 920px;
+  }
+
+  .case-story__eyebrow,
+  .case-story__label {
+    margin: 0 0 12px;
+    color: var(--fs-info);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .case-story__hero h1 {
+    margin: 0;
+    max-width: 900px;
+    font-size: clamp(36px, 5.2vw, 64px);
+    font-weight: 650;
+    letter-spacing: -0.055em;
+    line-height: 0.98;
+  }
+
+  .case-story__hero h1 span {
+    display: block;
+    color: var(--fs-text-muted);
+  }
+
+  .case-story__lede {
+    max-width: 760px;
+    margin: 20px 0 0;
+    color: var(--fs-text-muted);
+    font-size: clamp(16px, 1.5vw, 18px);
+    line-height: 1.55;
+  }
+
+  .case-story__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 24px;
+  }
+
+  .case-story__comparison {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .case-story__result {
+    min-width: 0;
+    padding: clamp(22px, 3vw, 34px);
+    border: 1px solid var(--fs-border);
+    border-radius: 14px;
+    background: var(--fs-surface);
+  }
+
+  .case-story__result--attention {
+    border-color: color-mix(in srgb, var(--fs-warn) 55%, var(--fs-border));
+    background: color-mix(in srgb, var(--fs-warn-bg) 45%, var(--fs-surface));
+  }
+
+  .case-story__result h2,
+  .case-story__value h2,
+  .case-story__next h2 {
+    margin: 20px 0 8px;
+    color: var(--fs-text);
+    font-size: clamp(22px, 2.8vw, 34px);
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    text-transform: none;
+  }
+
+  .case-story__result p:last-child,
+  .case-story__next p:last-child {
+    margin: 0;
+    color: var(--fs-text-muted);
+    font-size: 15px;
+  }
+
+  .case-story__plus {
+    align-self: center;
+    color: var(--fs-text-faint);
+    font-size: 28px;
+    font-weight: 300;
+  }
+
+  .case-story__value {
+    padding: clamp(32px, 5vw, 58px);
+    border: 1px solid var(--fs-border);
+    border-radius: 14px;
+    background: var(--fs-surface-sunken);
+  }
+
+  .case-story__value h2 {
+    max-width: 700px;
+    margin-top: 0;
+    font-size: clamp(30px, 4.5vw, 50px);
+  }
+
+  .case-story__value-lede {
+    max-width: 680px;
+    margin: 14px 0 0;
+    color: var(--fs-text-muted);
+    font-size: 17px;
+  }
+
+  .case-story__benefits {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+    margin-top: 42px;
+  }
+
+  .case-story__benefits div {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .case-story__benefits strong {
+    color: var(--fs-text);
+    font-size: 16px;
+  }
+
+  .case-story__benefits span {
+    color: var(--fs-text-muted);
+    font-size: 14px;
+  }
+
+  .case-story__next {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 28px;
+    align-items: center;
+    padding: clamp(24px, 3.5vw, 38px);
+    border: 1px solid var(--fs-border);
+    border-radius: 14px;
+    background: var(--fs-surface);
+  }
+
+  .case-story__next h2 {
+    max-width: 700px;
+    margin-top: 0;
+  }
+
+  .case-story__next .case-story__actions {
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+
+  .case-story__details {
+    border-top: 1px solid var(--fs-border);
+    padding: 18px 0 8px;
+  }
+
+  .case-story__details > summary {
+    width: max-content;
+    max-width: 100%;
+    color: var(--fs-text-muted);
+    font-weight: 550;
+  }
+
+  .case-story__detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .case-story__detail-grid section {
+    padding: 18px;
+    border: 1px solid var(--fs-border);
+    border-radius: 10px;
+    background: var(--fs-surface);
+  }
+
+  .case-story__detail-grid dl,
+  .case-story__detail-grid ul {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .case-story__detail-grid dl > div,
+  .case-story__detail-grid li {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .case-story__detail-grid li {
+    align-items: center;
+    list-style: none;
+    text-transform: capitalize;
+  }
+
+  .case-story__detail-grid dt {
+    color: var(--fs-text-faint);
+  }
+
+  .case-story__detail-grid dd {
+    margin: 0;
+    color: var(--fs-text);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 760px) {
+    .case-story__comparison,
+    .case-story__next,
+    .case-story__detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .case-story__plus {
+      justify-self: center;
+      line-height: 1;
+    }
+
+    .case-story__benefits {
+      grid-template-columns: 1fr;
+      gap: 22px;
+      margin-top: 32px;
+    }
+
+    .case-story__next .case-story__actions {
+      justify-content: flex-start;
+    }
+  }
+</style>

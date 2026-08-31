@@ -52,9 +52,9 @@ a fifth synthesizer against `examples/antigravity-project`. All workers use
 their real responses incrementally to `.fleetscope/sessions/antigravity-live/`;
 the TUI follows that file. The bridge is an explicit ADK-compatible envelope,
 not a claim that FleetScope can read Antigravity's private conversation store.
-Open `/viewer/`, choose **Follow file…**, and select the printed
-`session.jsonl` to watch the same growing run in the browser. The handle is
-kept only in that browser tab and the file is never uploaded.
+Open `/viewer/`, choose **Follow folder…**, and select the printed session
+directory to watch the same growing run in the browser. The handle is kept only
+in that browser tab and the files are never uploaded.
 
 ```text
 fleetscope <path>                    open/replay a session
@@ -65,7 +65,7 @@ fleetscope --formats                 list readable formats
 fleetscope inspect <path>            print a headless summary
 ```
 
-Viewer keys: `space` play/pause, `←`/`→` step, `g`/`G` start/end, `f` follow,
+Viewer keys: `space` play/pause, `[`/`]` step, `g`/`G` start/end, `f` follow,
 `o` overview, `?` help, `q` quit.
 
 ### Browser
@@ -99,6 +99,11 @@ The renderer visualises one graph level. Deeper provider paths are preserved in
 labels and the full tree appears in `inspect`.
 
 ## Architecture
+
+The judge-ready diagram is available as an uploadable
+[PNG](docs/product/fleetscope-devpost-architecture.png); its editable
+[SVG source](docs/product/fleetscope-devpost-architecture.svg) is checked in
+beside it.
 
 ```text
 Gemini + Google ADK session
@@ -136,7 +141,7 @@ may store the finished JSONL and proof manifest in Cloud Storage.
 ### Set up the producer
 
 ```bash
-uv venv --python 3.12 apps/adk-worker/.venv
+uv venv --python 3.12 --allow-existing apps/adk-worker/.venv
 uv pip install --python apps/adk-worker/.venv/bin/python -e 'apps/adk-worker[dev]'
 ```
 
@@ -203,16 +208,102 @@ flow are verified. The live deployment requires all of `LIVE_MODE=true`,
 ADC comes from the operator's local credential or the Cloud Run service
 account, never from a checked-in key.
 
-## Verification
+## Reproducible testing
 
-Run the full local checks:
+The commands below reproduce the submission from a clean checkout without
+credentials, paid model calls, or write access to Google Cloud. They exercise
+the checked-in Google ADK recording, the provider adapter, the shared
+projection core, the Rust CLI, and the browser build.
+
+### Prerequisites
+
+- Git.
+- Node.js 22 and `corepack`.
+- Rust 1.88 or newer with `rustup`.
+- Python 3.12 and [`uv`](https://docs.astral.sh/uv/) for the ADK worker tests.
+
+### Clean setup
+
+Until PR [#1](https://github.com/jasong-03/FleetScope/pull/1) is merged, the
+complete submission branch is public on the fork:
+
+```bash
+git clone --branch feat/agent-viewer-cli --single-branch \
+  https://github.com/harrymove-ctrl/FleetScope.git
+cd FleetScope
+
+corepack enable
+corepack prepare pnpm@11.24.0 --activate
+pnpm install --frozen-lockfile
+
+rustup toolchain install 1.88
+rustup target add wasm32-unknown-unknown --toolchain 1.88
+
+uv venv --python 3.12 --allow-existing apps/adk-worker/.venv
+uv pip install --python apps/adk-worker/.venv/bin/python \
+  -e 'apps/adk-worker[dev]'
+```
+
+### Deterministic no-cost checks
 
 ```bash
 pnpm check
 cargo test --workspace
-PYTHONPATH=apps/adk-worker/src apps/adk-worker/.venv/bin/python -m pytest apps/adk-worker/tests
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all -- --check
+cargo test --manifest-path vendor/zoetrope/Cargo.toml
+cargo clippy --manifest-path vendor/zoetrope/Cargo.toml \
+  --all-targets -- -D warnings
+cargo fmt --manifest-path vendor/zoetrope/Cargo.toml -- --check
+PYTHONPATH=apps/adk-worker/src \
+  apps/adk-worker/.venv/bin/python -m pytest apps/adk-worker/tests
+pnpm build:wasm
 git diff --check
 ```
+
+Inspect the checked-in multi-agent session headlessly:
+
+```bash
+cargo run -p fleetscope-cli --bin fleetscope -- \
+  inspect examples/gemini-session
+```
+
+Expected result: the command identifies the Google ADK format, reports the
+recorded agents and events, and prints a stable projection fingerprint. To
+exercise the interactive TUI instead, remove `inspect` and add `--follow`.
+
+Build and preview the browser viewer:
+
+```bash
+pnpm --filter @fleetscope/web build
+pnpm --filter @fleetscope/web exec astro preview \
+  --host 127.0.0.1 --port 4321
+```
+
+Open <http://127.0.0.1:4321/viewer/>, choose **Preview example**, and verify
+that the agent graph, event timeline, tool calls, and inspector render. The
+example is bundled with the build; it makes no backend or model request.
+
+### Hosted smoke test
+
+No credentials are required. These endpoints are deployed on Google Cloud
+Run in `us-central1`:
+
+```bash
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/health
+curl -fsS https://fleetscope-api-6tes2q7oqa-uc.a.run.app/runs/capability
+curl -fsS -o /dev/null \
+  https://fleetscope-web-6tes2q7oqa-uc.a.run.app/viewer/
+```
+
+The first two commands must return JSON with HTTP 200; the last command must
+exit successfully. The hosted API deliberately runs in recorded-only mode, so
+judging it cannot spend model tokens. The provider-backed evidence was produced
+separately with Google ADK `2.8.0`, Vertex AI `gemini-3.7-flash`, read-only
+Cloud Run `services.get`, and Cloud Storage `buckets.get`; the bounded live-run
+procedure is documented in [Minimal Google hackathon path](#minimal-google-hackathon-path).
+
+## Verification
 
 Current local status (2026-08-30): TypeScript/Astro checks, the full Vitest
 suite, Rust workspace tests, Python worker tests, WASM check and build,

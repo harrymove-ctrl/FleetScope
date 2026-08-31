@@ -226,11 +226,13 @@ fn render_header(
 
     let mut lines: Vec<Line> = Vec::new();
 
-    // Title: agent type, bold.
-    let title = agent
-        .agent_type
-        .as_deref()
-        .unwrap_or(crate::ui::brand::branding().main_agent);
+    // Title: role name, bold. Generic `agent` is not a name.
+    let named = agent.display_name();
+    let title = if named.is_empty() {
+        crate::ui::brand::branding().main_agent
+    } else {
+        named.as_str()
+    };
     lines.push(Line::from(Span::styled(
         title,
         bg.fg(palette.text).add_modifier(Modifier::BOLD),
@@ -353,8 +355,18 @@ fn render_tools(
 ) {
     let bg = Style::default().bg(palette.surface);
 
-    let title = if agent.tool_calls.is_empty() {
+    // Spawn fan-out is not a work tool. A lead that only `transferToAgent`s
+    // still streamed a runbook — show that output, not five fake `Agent` rows.
+    let has_output = agent
+        .notes
+        .iter()
+        .any(|n| !crate::state::session::is_bridge_status(n));
+    let title = if has_output && agent.work_tool_count() == 0 {
         " output "
+    } else if has_output {
+        " activity "
+    } else if agent.work_tool_count() == 0 {
+        " spawned "
     } else {
         " tool calls "
     };
@@ -370,11 +382,31 @@ fn render_tools(
         return;
     }
 
-    if agent.tool_calls.is_empty() {
-        if agent.notes.is_empty() {
+    if agent.work_tool_count() == 0 {
+        let width = inner.width as usize;
+        let mut lines: Vec<Line> = Vec::new();
+        for note in agent
+            .notes
+            .iter()
+            .filter(|n| !crate::state::session::is_bridge_status(n))
+        {
+            let row = truncate(note, width.saturating_sub(2));
+            lines.push(Line::from(Span::styled(
+                format!("· {row}"),
+                bg.fg(palette.text),
+            )));
+        }
+        for tc in agent
+            .tool_calls
+            .iter()
+            .filter(|tc| crate::transcript::is_spawn_tool(&tc.name))
+        {
+            lines.push(spawn_line(tc, width, palette));
+        }
+        if lines.is_empty() {
             frame.render_widget(
                 Paragraph::new(Line::from(Span::styled(
-                    "no tool calls · no streamed output yet",
+                    "no output yet",
                     bg.fg(palette.muted),
                 )))
                 .style(bg),
@@ -382,20 +414,20 @@ fn render_tools(
             );
             return;
         }
-        let width = inner.width as usize;
-        let mut lines: Vec<Line> = Vec::new();
-        for note in agent.notes.iter().rev().take(inner.height as usize) {
-            let row = truncate(note, width.saturating_sub(2));
-            lines.push(Line::from(Span::styled(
-                format!("· {row}"),
-                bg.fg(palette.text),
-            )));
-        }
-        frame.render_widget(Paragraph::new(lines).style(bg), inner);
+        let total = lines.len().min(u16::MAX as usize) as u16;
+        let (scroll, follow) = resolve_scroll(total, inner.height, *detail_scroll, *detail_follow);
+        *detail_scroll = scroll;
+        *detail_follow = follow;
+        frame.render_widget(Paragraph::new(lines).style(bg).scroll((scroll, 0)), inner);
         return;
     }
 
     let width = inner.width as usize;
+    let output_notes: Vec<&String> = agent
+        .notes
+        .iter()
+        .filter(|n| !crate::state::session::is_bridge_status(n))
+        .collect();
     // Prompt-era group headers: a separator whenever consecutive calls fall
     // under a different user prompt (timestamp-derived, cached — see
     // [`EraCache`]). Skipped when the whole list shares one era — the
@@ -423,6 +455,7 @@ fn render_tools(
         total += wrapped.as_ref().map_or(0, Vec::len) + 1;
         headers.push(wrapped);
     }
+    total += output_notes.len();
 
     // Resolve the scroll + tail state against the real line count, and write both
     // back so the scroll indicator and the next keypress match what's on screen.
@@ -442,6 +475,22 @@ fn render_tools(
     let mut lines: Vec<Line> = Vec::with_capacity(inner.height as usize + 4);
     let mut idx = 0usize;
     let mut first_built: Option<usize> = None;
+    for note in &output_notes {
+        if idx >= view_start && idx < view_end {
+            if first_built.is_none() {
+                first_built = Some(idx);
+            }
+            let row = truncate(note, width.saturating_sub(2));
+            lines.push(Line::from(Span::styled(
+                format!("· {row}"),
+                bg.fg(palette.text),
+            )));
+        }
+        idx += 1;
+        if idx >= view_end {
+            break;
+        }
+    }
     for (tc, wrapped) in agent.tool_calls.iter().zip(&headers) {
         let rows = wrapped.as_ref().map_or(0, Vec::len) + 1;
         if idx + rows > view_start && idx < view_end {
@@ -532,6 +581,9 @@ fn tool_line(
     width: usize,
     palette: &rataflow::Palette,
 ) -> Line<'static> {
+    if crate::transcript::is_spawn_tool(&tc.name) {
+        return spawn_line(tc, width, palette);
+    }
     let bg = Style::default().bg(palette.surface);
     let (glyph, color) = match tc.state {
         ToolState::Pending => ('⏳', palette.accent),
@@ -582,6 +634,23 @@ fn tool_line(
     Line::from(spans)
 }
 
+/// Fan-out row: not a work tool. `❋ spawned · researcher`, never `⚒ Agent`.
+fn spawn_line(
+    tc: &crate::state::session::ToolCallInfo,
+    width: usize,
+    palette: &rataflow::Palette,
+) -> Line<'static> {
+    let bg = Style::default().bg(palette.surface);
+    let who = tc
+        .summary
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.strip_suffix(" agent").unwrap_or(s))
+        .unwrap_or("agent");
+    let text = format!("❋ spawned · {who}");
+    Line::from(Span::styled(truncate(&text, width), bg.fg(palette.accent)))
+}
+
 /// Whether the playhead is currently resting on an event that belongs to
 /// `agent_id`. Selection does not move the playhead, so this is often false.
 fn playhead_on_agent(app: &App, agent_id: &str) -> bool {
@@ -604,7 +673,12 @@ fn fmt_timing(agent: &AgentInfo) -> Option<String> {
     match (agent.first_ts, agent.last_ts) {
         (Some(first), Some(last)) => {
             let secs = (last - first).num_seconds().max(0);
-            if secs >= 60 {
+            if secs < 1 {
+                Some(format!(
+                    "⏱ {}",
+                    first.with_timezone(&chrono::Local).format("%H:%M:%S")
+                ))
+            } else if secs >= 60 {
                 Some(format!("⏱ {}m {}s", secs / 60, secs % 60))
             } else {
                 Some(format!("⏱ {secs}s"))
@@ -693,6 +767,14 @@ mod tests {
     }
 
     #[test]
+    fn timing_zero_span_shows_start_clock() {
+        let a = agent_with_ts(Some(1_788_112_643), Some(1_788_112_643));
+        let out = fmt_timing(&a).expect("clock");
+        assert!(!out.contains("0s"), "{out}");
+        assert!(out.starts_with("⏱ "), "{out}");
+    }
+
+    #[test]
     fn timing_duration_over_a_minute() {
         let a = agent_with_ts(Some(0), Some(125));
         assert_eq!(fmt_timing(&a).as_deref(), Some("⏱ 2m 5s"));
@@ -701,7 +783,9 @@ mod tests {
     #[test]
     fn timing_negative_clamped() {
         let a = agent_with_ts(Some(100), Some(50));
-        assert_eq!(fmt_timing(&a).as_deref(), Some("⏱ 0s"));
+        let out = fmt_timing(&a).expect("clock");
+        assert!(!out.contains("0s"), "{out}");
+        assert!(out.starts_with("⏱ "), "{out}");
     }
 
     #[test]

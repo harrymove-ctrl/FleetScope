@@ -19,6 +19,24 @@ fn loaded() -> (ViewerSession, WireSession) {
     (loaded.session, loaded.wire)
 }
 
+#[test]
+fn each_loaded_session_keeps_its_own_root_label() {
+    let (session, wire) = loaded();
+    let first = scene::build(&wire, &session, 1.0, Playhead::Edge, Some("coordinator"));
+    let second = scene::build(&wire, &session, 1.0, Playhead::Edge, Some("lead"));
+
+    assert_eq!(
+        first.flow.node("main").unwrap().content.title,
+        "coordinator"
+    );
+    assert_eq!(second.flow.node("main").unwrap().content.title, "lead");
+    assert_eq!(
+        first.session.agent("main").unwrap().display_name(),
+        "coordinator"
+    );
+    assert_eq!(second.session.agent("main").unwrap().display_name(), "lead");
+}
+
 /// Every JSON key in the compiled output, main file and subagent files alike.
 fn every_key(wire: &WireSession) -> Vec<String> {
     fn walk(value: &serde_json::Value, into: &mut Vec<String>) {
@@ -283,7 +301,7 @@ fn the_fixture_projects_to_a_stable_fingerprint() {
     // If this value changes, the projection changed. That is allowed — update
     // it deliberately, and know that every frontend now shows something new.
     let projection = fleetscope_cli::load(&fixture()).expect("loads");
-    assert_eq!(projection.fingerprint(), "30c89a4ccc85fcbf");
+    assert_eq!(projection.fingerprint(), "06287e428e8e05b9");
 }
 
 #[test]
