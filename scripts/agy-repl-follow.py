@@ -17,6 +17,7 @@ from pathlib import Path
 HOME = Path.home()
 AGY_ROOT = HOME / ".gemini/antigravity-cli"
 LAST_CONV = AGY_ROOT / "cache/last_conversations.json"
+CONV_META = AGY_ROOT / "cache/conversation_metadata.json"
 BRAIN = AGY_ROOT / "brain"
 
 USER_REQUEST = re.compile(r"<USER_REQUEST>\s*(.*?)\s*</USER_REQUEST>", re.S)
@@ -30,18 +31,39 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def conversation_id_for(project: Path) -> str | None:
-    if not LAST_CONV.exists():
-        return None
-    try:
-        mapping = json.loads(LAST_CONV.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(mapping, dict):
-        return None
+def conversations_for_project(project: Path) -> set[str]:
+    """Every Antigravity conversation tied to this cwd (main + later sub-sessions)."""
+    found: set[str] = set()
     key = str(project.resolve())
-    cid = mapping.get(key)
-    return str(cid) if cid else None
+    key_uri = f"file://{key}"
+    if LAST_CONV.exists():
+        try:
+            mapping = json.loads(LAST_CONV.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            mapping = {}
+        if isinstance(mapping, dict):
+            cid = mapping.get(key)
+            if cid:
+                found.add(str(cid))
+    if CONV_META.exists():
+        try:
+            meta = json.loads(CONV_META.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+        conversations = meta.get("conversations") if isinstance(meta, dict) else None
+        if isinstance(conversations, dict):
+            for cid, body in conversations.items():
+                if not isinstance(body, dict):
+                    continue
+                summary = body.get("summary") if isinstance(body.get("summary"), dict) else {}
+                uris = summary.get("WorkspaceURIs") if isinstance(summary, dict) else None
+                if not isinstance(uris, list):
+                    continue
+                for uri in uris:
+                    text = str(uri).rstrip("/")
+                    if text == key_uri or text.endswith(key):
+                        found.add(str(cid))
+    return found
 
 
 def transcript_path(cid: str) -> Path:
@@ -132,49 +154,52 @@ def main() -> int:
     out = session_dir / "session.jsonl"
     out.touch()
     invocation = f"inv-repl-{uuid.uuid4().hex[:8]}"
-    seen: set[tuple[int, str]] = set()
+    seen: set[tuple[str, int, str]] = set()
+    offsets: dict[str, int] = {}
+    known: set[str] = set()
     counter = 0
-    offset = 0
-    last_cid: str | None = None
     print(f"follow_project={project}", flush=True)
     print(f"session_dir={session_dir}", flush=True)
-    print("waiting for agy REPL to open a conversation in this folder…", flush=True)
+    print("waiting for agy REPL (main + later sub-agent conversations)…", flush=True)
 
     while True:
-        cid = conversation_id_for(project)
-        if cid and cid != last_cid:
-            last_cid = cid
-            offset = 0
-            seen.clear()
+        cids = conversations_for_project(project)
+        for cid in sorted(cids - known):
+            known.add(cid)
+            offsets[cid] = 0
             print(f"conversation={cid}", flush=True)
             print(f"transcript={transcript_path(cid)}", flush=True)
-        if cid:
+        for cid in known:
             path = transcript_path(cid)
-            if path.is_file():
-                data = path.read_bytes()
-                if len(data) > offset:
-                    chunk = data[offset:].decode("utf-8", errors="replace")
-                    offset = len(data)
-                    for line in chunk.splitlines():
-                        line = line.strip()
-                        if not line.startswith("{"):
-                            continue
-                        try:
-                            obj = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        key = (int(obj.get("step_index") or 0), str(obj.get("type") or ""))
-                        if key in seen:
-                            continue
-                        seen.add(key)
-                        event = convert_line(obj, counter + 1, invocation)
-                        if event is None:
-                            continue
-                        counter += 1
-                        event["id"] = f"ag-{counter:04d}"
-                        with out.open("a", encoding="utf-8") as handle:
-                            handle.write(json.dumps(event, separators=(",", ":")) + "\n")
-                            handle.flush()
+            if not path.is_file():
+                continue
+            data = path.read_bytes()
+            offset = offsets.get(cid, 0)
+            if len(data) <= offset:
+                continue
+            chunk = data[offset:].decode("utf-8", errors="replace")
+            offsets[cid] = len(data)
+            for line in chunk.splitlines():
+                line = line.strip()
+                if not line.startswith("{"):
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                key = (cid, int(obj.get("step_index") or 0), str(obj.get("type") or ""))
+                if key in seen:
+                    continue
+                seen.add(key)
+                event = convert_line(obj, counter + 1, invocation)
+                if event is None:
+                    continue
+                counter += 1
+                event["id"] = f"ag-{counter:04d}"
+                event["branch"] = cid[:8]
+                with out.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(event, separators=(",", ":")) + "\n")
+                    handle.flush()
         time.sleep(args.poll)
 
 

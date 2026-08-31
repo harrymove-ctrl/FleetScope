@@ -1,105 +1,79 @@
 # FleetScope demo — full operator script
 
-Servers (leave running):
-
-```bash
-cd /Users/harryphan/Documents/dev/FleetScope
-pnpm dev:web    # http://127.0.0.1:4321
-pnpm dev:ui     # http://127.0.0.1:5173  (Approvals/Dashboard embeds)
-```
+Chat **directly in Antigravity CLI** (rainbow `>`). FleetScope **watches** — it does
+not replace the chat. New sessions and later sub-agent conversations on that
+project folder auto-appear under **Local sessions** (Follow newest).
 
 Git: https://github.com/harrymove-ctrl/FleetScope/tree/feat/agent-viewer-cli
 
 ---
 
-## Beat 1 — Landing (30s)
+## Leave running (Terminal A)
 
-http://127.0.0.1:4321/
+```bash
+cd /Users/harryphan/Documents/dev/FleetScope
+pnpm dev:web    # http://127.0.0.1:4321
+pnpm dev:ui     # :5173 optional (Approvals / Dashboard embeds)
+```
 
-Watch agent work become evidence. Local JSONL. Viewer never uploads, never starts a model.
-
----
-
-## Beat 2 — Session readings (1 min)
-
-http://127.0.0.1:4321/demo
-
-Zero-click poster. Seven readings. Recorded only.
+Open **http://127.0.0.1:4321/viewer** — **Follow newest** stays on.
 
 ---
 
-## Beat 3 — Chat in **real agy** + watch all sessions (core)
-
-**Terminal A** already has `pnpm dev:web`.
-
-**Terminal B — this is the chat** (rainbow CLI, prompt `>`):
+## Chat (Terminal B) — real `agy`
 
 ```bash
 cd /Users/harryphan/Documents/dev/FleetScope
 pnpm demo:agy -- --project /Users/harryphan/Documents/dev/fleetscope-agy-demo-20260831-133844
 ```
 
-Same as `agy --dangerously-skip-permissions` in that folder, plus a sidecar that tails
-`~/.gemini/antigravity-cli/.../transcript.jsonl` into `.fleetscope/sessions/agy-repl.*/session.jsonl`.
+This **is** `agy --dangerously-skip-permissions` in that project (same UI as
+`agy '--dangerously-skip-permissions'`). Type at `>`.
 
-**Browser:** http://127.0.0.1:4321/viewer
+A sidecar tails `~/.gemini/antigravity-cli` transcripts (main conversation **and**
+later sub-agent conversations on that cwd) into:
 
-1. See **Local sessions** — every `session.jsonl` on this machine.
-2. **Follow newest** on (default) while you chat, or click a row to pin one.
-3. Type at `>` in Terminal B. Graph / timeline grow.
+`.fleetscope/sessions/agy-repl.*/session.jsonl`
 
-Do **not** Follow the project folder (`fleetscope-agy-demo-…` = only `brief.md`).
-Do **not** chat in a bare `agy` tab without `pnpm demo:agy` (no sidecar → Viewer is blind).
+Viewer polls that folder. Graph / agents / timeline update while you chat.
+Spawn more agents in `agy` → new conversation IDs for the same folder → still
+followed.
 
-On `/viewer` you can also **Copy agy chat** (same command).
-
----
-
-## Beat 4 — Approvals (1 min)
-
-http://127.0.0.1:4321/approvals
-
-Launch readiness HITL (budget / upload / READY). Rehearsal only — no cloud write.
+On `/viewer` you can **Copy agy chat** for the same command.
 
 ---
 
-## Beat 5 — Dashboard (45s)
+## Demo beats (~8 min)
 
-http://127.0.0.1:4321/dashboard
-
-Readiness, not SaaS revenue. **New Antigravity folder…** jumps to the viewer form.
-
----
-
-## Beat 6 — Cloud Console (1 min)
-
-http://127.0.0.1:4321/console
-
-Recorded Cloud Run / Storage / ADK facts. Not live GCP IAM.
+| Beat | Where | What you say |
+|------|--------|----------------|
+| 1 Landing | http://127.0.0.1:4321/ | Watch agent work become evidence. No upload. |
+| 2 Poster | `/demo` | Seven readings, zero click, recorded. |
+| 3 **Live chat** | Terminal B `>` + `/viewer` | Chat in Antigravity. Viewer lists **all** local sessions. Follow newest. Sub-agents show up as the JSONL grows. |
+| 4 Approvals | `/approvals` | HITL rehearsal (budget / upload / READY). No cloud write. |
+| 5 Dashboard | `/dashboard` | Readiness, not SaaS revenue. |
+| 6 Cloud Console | `/console` | Recorded Cloud Run / Storage / ADK. Not live IAM. |
 
 ---
 
-## Optional one-shot (not continuous chat)
+## Do not
 
-```bash
-pnpm demo:antigravity --no-tui --project /Users/harryphan/Documents/dev/fleetscope-agy-demo-20260831-133844
-```
-
-Five workers then `producer=done`. Use only if you want a canned fan-out, not live chat.
-
----
-
-## Offline TUI
-
-```bash
-cd /Users/harryphan/Documents/dev/FleetScope
-cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --tiny
-```
+- Follow the **project** folder (`…/fleetscope-agy-demo-…` — only `brief.md`).
+- Chat in a **bare** `agy` tab **without** `pnpm demo:agy` (no sidecar → Viewer blind).  
+  If you already opened bare `agy`, keep it and run the sidecar in another tab:
+  ```bash
+  cd /Users/harryphan/Documents/dev/FleetScope
+  python3 scripts/agy-repl-follow.py \
+    --project /Users/harryphan/Documents/dev/fleetscope-agy-demo-20260831-133844 \
+    --session-dir .fleetscope/sessions/agy-repl-manual
+  ```
+  Then click that row in **Local sessions**.
+- Use `pnpm demo:antigravity` for this beat — that is a **one-shot** 5-worker batch.
 
 ---
 
-## Pitch (one breath)
+## Pitch
 
-FleetScope is a read-only session observer. You chat in real Antigravity CLI.
-We graph who ran, tools, and wait states from JSONL on disk — browser or the
-same Rust TUI — without uploading the transcript.
+You talk to Antigravity CLI like a normal user. FleetScope is the observer:
+every local session, including new ones and sub-agents on that project, updates
+the graph from JSONL on disk.

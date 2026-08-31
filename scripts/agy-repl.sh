@@ -57,7 +57,12 @@ fi
 
 cd "$project"
 set +e
-"$agy_bin" --dangerously-skip-permissions "${agy_args[@]}"
+# `set -u` treats empty "${agy_args[@]}" as unbound on macOS Bash 3.2.
+if ((${#agy_args[@]})); then
+  "$agy_bin" --dangerously-skip-permissions "${agy_args[@]}"
+else
+  "$agy_bin" --dangerously-skip-permissions
+fi
 status=$?
 set -e
 cleanup
