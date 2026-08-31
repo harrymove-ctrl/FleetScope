@@ -6,6 +6,18 @@ licensing files and do **not** appear in FleetScope product navigation.
 
 ## Adapted source
 
+### WildType — the viewer loader
+
+|             |                                                                    |
+| ----------- | ------------------------------------------------------------------ |
+| Source      | WildType reference algorithm, supplied as framework-free Canvas 2D |
+| Vendored in | `apps/web/src/features/viewer/wild-type/`                          |
+
+The port preserves the dense-array geometry and motion algorithm. Its indexed
+reads carry non-null assertions because this workspace enables
+`noUncheckedIndexedAccess` and the reference does not; the loops and fixed-size
+buffers establish those bounds, so the assertions are type-level only.
+
 ### reality-split — the landing preloader
 
 |             |                                                              |

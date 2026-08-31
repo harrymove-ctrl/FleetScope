@@ -1,4 +1,8 @@
-// @ts-nocheck -- Ported WildType reference algorithm uses bounds-safe dense array indexing.
+/*
+ * WildType reference port. Indexed reads carry non-null assertions because
+ * the geometry uses fixed-size dense buffers while this workspace enables
+ * `noUncheckedIndexedAccess`; the assertions change types, not behaviour.
+ */
 import { MESH, TYPE_POSE, TYPE_START } from './motion';
 import { traceWord, type TracedGlyph, type TracedWord } from './trace';
 import {
@@ -46,9 +50,9 @@ const CORNER_COS = Math.cos((CORNER_DEG * Math.PI) / 180);
 
 function crTaps(t: number, knots: number[]): { idx: number[]; w: number[] } {
   const n = knots.length;
-  const h = knots[1] - knots[0];
-  const j = Math.min(n - 2, Math.max(0, Math.floor((t - knots[0]) / h)));
-  const u = (t - knots[j]) / h;
+  const h = knots[1]! - knots[0]!;
+  const j = Math.min(n - 2, Math.max(0, Math.floor((t - knots[0]!) / h)));
+  const u = (t - knots[j]!) / h;
   const u2 = u * u;
   const u3 = u2 * u;
   return {
@@ -89,7 +93,7 @@ interface Prepared {
 const TRACKS = ['w', 'i', 'l', 'd'];
 function trackFor(k: number, n: number): string {
   if (n <= 1) return 'w';
-  return TRACKS[Math.min(3, Math.round((k / (n - 1)) * 3))];
+  return TRACKS[Math.min(3, Math.round((k / (n - 1)) * 3))]!;
 }
 
 function perimeter(p: ArrayLike<number>): number {
@@ -97,7 +101,7 @@ function perimeter(p: ArrayLike<number>): number {
   const n = p.length / 2;
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    s += Math.hypot(p[j * 2] - p[i * 2], p[j * 2 + 1] - p[i * 2 + 1]);
+    s += Math.hypot(p[j * 2]! - p[i * 2]!, p[j * 2 + 1]! - p[i * 2 + 1]!);
   }
   return s;
 }
@@ -108,14 +112,14 @@ function corners(p: ArrayLike<number>): Uint8Array {
   for (let i = 0; i < n; i++) {
     const a = (i - 1 + n) % n;
     const b = (i + 1) % n;
-    const ux = p[i * 2] - p[a * 2],
-      uy = p[i * 2 + 1] - p[a * 2 + 1];
-    const vx = p[b * 2] - p[i * 2],
-      vy = p[b * 2 + 1] - p[i * 2 + 1];
+    const ux = p[i * 2]! - p[a * 2]!,
+      uy = p[i * 2 + 1]! - p[a * 2 + 1]!;
+    const vx = p[b * 2]! - p[i * 2]!,
+      vy = p[b * 2 + 1]! - p[i * 2 + 1]!;
     const lu = Math.hypot(ux, uy) || 1e-9;
     const lv = Math.hypot(vx, vy) || 1e-9;
     const cos = (ux * vx + uy * vy) / (lu * lv);
-    if (cos < CORNER_COS) out[i] = 1;
+    if (cos < CORNER_COS) out[i]! = 1;
   }
   return out;
 }
@@ -159,8 +163,8 @@ export class WildType {
     this.family = family ?? 'sans-serif';
     for (let r = 0; r < GY; r++)
       for (let c = 0; c < GX; c++) {
-        this.restCtrl[r * GX + c] = MESH_XS[c];
-        this.restCtrl[NCP + r * GX + c] = MESH_YS[r];
+        this.restCtrl[r * GX + c]! = MESH_XS[c]!;
+        this.restCtrl[NCP + r * GX + c]! = MESH_YS[r]!;
       }
     if (this.ok) {
       this.buildGrain();
@@ -177,8 +181,8 @@ export class WildType {
     const img = gc.createImageData(GRAIN_TILE, GRAIN_TILE);
     for (let i = 0; i < img.data.length; i += 4) {
       const v = Math.random() * 255;
-      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-      img.data[i + 3] = 255;
+      img.data[i]! = img.data[i + 1]! = img.data[i + 2]! = v;
+      img.data[i + 3]! = 255;
     }
     gc.putImageData(img, 0, 0);
     this.grain = this.ctx?.createPattern(g, 'repeat') ?? null;
@@ -204,16 +208,16 @@ export class WildType {
         const n = r.pts.length / 2;
         const basis = new Float64Array(n * NCP);
         for (let i = 0; i < n; i++) {
-          const tx = crTaps(r.pts[i * 2], MESH_XS);
-          const ty = crTaps(r.pts[i * 2 + 1], MESH_YS);
+          const tx = crTaps(r.pts[i * 2]!, MESH_XS);
+          const ty = crTaps(r.pts[i * 2 + 1]!, MESH_YS);
           for (let a = 0; a < 4; a++) {
-            const fx = foldTap(tx.idx[a], GX);
+            const fx = foldTap(tx.idx[a]!, GX);
             for (let b = 0; b < 4; b++) {
-              const fy = foldTap(ty.idx[b], GY);
-              const w = tx.w[a] * ty.w[b];
+              const fy = foldTap(ty.idx[b]!, GY);
+              const w = tx.w[a]! * ty.w[b]!;
               for (let p = 0; p < fx.idx.length; p++)
                 for (let q = 0; q < fy.idx.length; q++)
-                  basis[i * NCP + fy.idx[q] * GX + fx.idx[p]] += w * fx.w[p] * fy.w[q];
+                  basis[i * NCP + fy.idx[q]! * GX + fx.idx[p]!]! += w * fx.w[p]! * fy.w[q]!;
             }
           }
         }
@@ -240,10 +244,10 @@ export class WildType {
     c.width = Math.round(r.width * this.dpr);
     c.height = Math.round(r.height * this.dpr);
     for (const key of ['inkA', 'inkB'] as const) {
-      const l = this[key] ?? document.createElement('canvas');
+      const l = this[key]! ?? document.createElement('canvas');
       l.width = c.width;
       l.height = c.height;
-      this[key] = l;
+      this[key]! = l;
     }
     this.lastSig = '';
     if (!this.running) this.renderStill();
@@ -300,25 +304,26 @@ export class WildType {
     const uu = Math.min(Math.max(u, 0), last);
     const j = Math.min(last - 1, Math.floor(uu));
     const f = uu - j;
-    const r0 = MESH[Math.max(0, j - 1)];
-    const r1 = MESH[j];
-    const r2 = MESH[Math.min(last, j + 1)];
-    const r3 = MESH[Math.min(last, j + 2)];
+    const r0 = MESH[Math.max(0, j - 1)]!;
+    const r1 = MESH[j]!;
+    const r2 = MESH[Math.min(last, j + 1)]!;
+    const r3 = MESH[Math.min(last, j + 2)]!;
     const f2 = f * f;
     const f3 = f2 * f;
     const w0 = 0.5 * (-f3 + 2 * f2 - f);
     const w1 = 0.5 * (3 * f3 - 5 * f2 + 2);
     const w2 = 0.5 * (-3 * f3 + 4 * f2 + f);
     const w3 = 0.5 * (f3 - f2);
-    for (let i = 0; i < NCP * 2; i++) out[i] = w0 * r0[i] + w1 * r1[i] + w2 * r2[i] + w3 * r3[i];
+    for (let i = 0; i < NCP * 2; i++)
+      out[i]! = w0 * r0[i]! + w1 * r1[i]! + w2 * r2[i]! + w3 * r3[i]!;
     if (mirror) {
       const tmp = Float64Array.from(out);
       for (let r = 0; r < GY; r++)
         for (let c = 0; c < GX; c++) {
           const src = r * GX + (GX - 1 - c);
           const dst = r * GX + c;
-          out[dst] = -tmp[src];
-          out[NCP + dst] = tmp[NCP + src];
+          out[dst]! = -tmp[src]!;
+          out[NCP + dst]! = tmp[NCP + src]!;
         }
     }
   }
@@ -326,8 +331,8 @@ export class WildType {
   private stepPull(active: boolean): boolean {
     let moving = false;
     for (let j = 0; j < NCP; j++) {
-      const rx = this.restCtrl[j];
-      const ry = this.restCtrl[NCP + j];
+      const rx = this.restCtrl[j]!;
+      const ry = this.restCtrl[NCP + j]!;
       let tx = 0;
       let ty = 0;
       if (active) {
@@ -341,10 +346,10 @@ export class WildType {
         [j, tx],
         [NCP + j, ty],
       ] as const) {
-        this.pullVel[k] += (t - this.pullOff[k]) * PULL_K;
-        this.pullVel[k] *= PULL_DAMP;
-        this.pullOff[k] += this.pullVel[k];
-        if (Math.abs(this.pullVel[k]) > 1e-4 || Math.abs(this.pullOff[k]) > 1e-4) moving = true;
+        this.pullVel[k]! += (t - this.pullOff[k]!) * PULL_K;
+        this.pullVel[k]! *= PULL_DAMP;
+        this.pullOff[k]! += this.pullVel[k]!;
+        if (Math.abs(this.pullVel[k]!) > 1e-4 || Math.abs(this.pullOff[k]!) > 1e-4) moving = true;
       }
     }
     return moving;
@@ -373,8 +378,8 @@ export class WildType {
     if (sig !== 'warp' && sig !== 'settle' && sig === this.lastSig) return;
     this.lastSig = sig;
 
-    const word = WORDS[this.wordIdx];
-    const accent = ACCENTS[this.wordIdx % ACCENTS.length];
+    const word = WORDS[this.wordIdx]!;
+    const accent = ACCENTS[this.wordIdx % ACCENTS.length]!;
     const prep = this.prepare(word);
     const W = this.canvas.width;
     const H = this.canvas.height;
@@ -393,18 +398,21 @@ export class WildType {
       ctrl = this.scratchCtrl;
       lag = this.lagCtrl;
       for (let j = 0; j < NCP; j++) {
-        ctrl[j] += this.pullOff[j];
-        ctrl[NCP + j] += this.pullOff[NCP + j];
-        lag[j] += this.pullOff[j];
-        lag[NCP + j] += this.pullOff[NCP + j];
-        stretch += Math.hypot(ctrl[j] - this.restCtrl[j], ctrl[NCP + j] - this.restCtrl[NCP + j]);
-        vel += Math.hypot(ctrl[j] - lag[j], ctrl[NCP + j] - lag[NCP + j]) / LAG_TICKS;
+        ctrl[j]! += this.pullOff[j]!;
+        ctrl[NCP + j]! += this.pullOff[NCP + j]!;
+        lag[j]! += this.pullOff[j]!;
+        lag[NCP + j]! += this.pullOff[NCP + j]!;
+        stretch += Math.hypot(
+          ctrl[j]! - this.restCtrl[j]!,
+          ctrl[NCP + j]! - this.restCtrl[NCP + j]!,
+        );
+        vel += Math.hypot(ctrl[j]! - lag[j]!, ctrl[NCP + j]! - lag[NCP + j]!) / LAG_TICKS;
       }
       stretch /= NCP;
       vel /= NCP;
     } else if (settling) {
       ctrl = this.scratchCtrl;
-      for (let j = 0; j < NCP * 2; j++) ctrl[j] = this.restCtrl[j] + this.pullOff[j];
+      for (let j = 0; j < NCP * 2; j++) ctrl[j]! = this.restCtrl[j]! + this.pullOff[j]!;
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -427,13 +435,13 @@ export class WildType {
     ic.globalAlpha = 1;
 
     const poseFor = (track: string): number[] | null => {
-      const tr = TYPE_POSE[track];
+      const tr = TYPE_POSE[track]!;
       if (!tr) return null;
-      if (typingIn) return tr[t + REF_CUT_TICK - TYPE_START] ?? null;
+      if (typingIn) return tr[t + REF_CUT_TICK - TYPE_START]! ?? null;
       if (typingOut) {
         const e = t - holdEnd;
         const idx = TYPE_TICKS - 1 - Math.floor(e * OUT_SPEED);
-        return idx >= 0 ? (tr[idx] ?? null) : null;
+        return idx >= 0 ? (tr[idx]! ?? null) : null;
       }
       return null;
     };
@@ -514,12 +522,12 @@ export class WildType {
       cx = 0,
       cy = 0;
     if (pose && glyph) {
-      dx = pose[0] / REF_HALF_WIDTH;
-      dy = pose[1] / REF_HALF_WIDTH;
-      co = Math.cos(pose[2]);
-      si = Math.sin(pose[2]);
-      sx = pose[3];
-      sh = pose[4];
+      dx = pose[0]! / REF_HALF_WIDTH;
+      dy = pose[1]! / REF_HALF_WIDTH;
+      co = Math.cos(pose[2]!);
+      si = Math.sin(pose[2]!);
+      sx = pose[3]!;
+      sh = pose[4]!;
       cx = glyph.cx;
       cy = glyph.cy;
     }
@@ -531,24 +539,24 @@ export class WildType {
         let ax = 0,
           ay = 0;
         for (let j = 0; j < NCP; j++) {
-          const b = basis[o + j];
+          const b = basis[o + j]!;
           if (b === 0) continue;
-          ax += ctrl[j] * b;
-          ay += ctrl[NCP + j] * b;
+          ax += ctrl[j]! * b;
+          ay += ctrl[NCP + j]! * b;
         }
         x = ax;
         y = ay;
       } else if (pose) {
-        const u = (rest[i * 2] - cx) * sx + (rest[i * 2 + 1] - cy) * sh;
-        const v = rest[i * 2 + 1] - cy;
+        const u = (rest[i * 2]! - cx) * sx + (rest[i * 2 + 1]! - cy) * sh;
+        const v = rest[i * 2 + 1]! - cy;
         x = co * u - si * v + cx + dx;
         y = si * u + co * v + cy + dy;
       } else {
-        x = rest[i * 2];
-        y = rest[i * 2 + 1];
+        x = rest[i * 2]!;
+        y = rest[i * 2 + 1]!;
       }
-      out[i * 2] = ox + x * half;
-      out[i * 2 + 1] = oy + y * half;
+      out[i * 2]! = ox + x * half;
+      out[i * 2 + 1]! = oy + y * half;
     }
     if (ctrl && stretch > 0.35) {
       for (let i = 0; i < n; i++) {
@@ -556,23 +564,23 @@ export class WildType {
           p1 = i,
           p2 = (i + 1) % n,
           p3 = (i + 2) % n;
-        const c1 = corner[p1],
-          c2 = corner[p2];
-        const b1x = c1 ? out[p1 * 2] : out[p1 * 2] + (out[p2 * 2] - out[p0 * 2]) / 6;
+        const c1 = corner[p1]!,
+          c2 = corner[p2]!;
+        const b1x = c1 ? out[p1 * 2]! : out[p1 * 2]! + (out[p2 * 2]! - out[p0 * 2]!) / 6;
         const b1y = c1
-          ? out[p1 * 2 + 1]
-          : out[p1 * 2 + 1] + (out[p2 * 2 + 1] - out[p0 * 2 + 1]) / 6;
-        const b2x = c2 ? out[p2 * 2] : out[p2 * 2] - (out[p3 * 2] - out[p1 * 2]) / 6;
+          ? out[p1 * 2 + 1]!
+          : out[p1 * 2 + 1]! + (out[p2 * 2 + 1]! - out[p0 * 2 + 1]!) / 6;
+        const b2x = c2 ? out[p2 * 2]! : out[p2 * 2]! - (out[p3 * 2]! - out[p1 * 2]!) / 6;
         const b2y = c2
-          ? out[p2 * 2 + 1]
-          : out[p2 * 2 + 1] - (out[p3 * 2 + 1] - out[p1 * 2 + 1]) / 6;
-        if (i === 0) path.moveTo(out[0], out[1]);
-        path.bezierCurveTo(b1x, b1y, b2x, b2y, out[p2 * 2], out[p2 * 2 + 1]);
+          ? out[p2 * 2 + 1]!
+          : out[p2 * 2 + 1]! - (out[p3 * 2 + 1]! - out[p1 * 2 + 1]!) / 6;
+        if (i === 0) path.moveTo(out[0]!, out[1]!);
+        path.bezierCurveTo(b1x, b1y, b2x, b2y, out[p2 * 2]!, out[p2 * 2 + 1]!);
       }
     } else {
       for (let i = 0; i < n; i++) {
-        if (i === 0) path.moveTo(out[0], out[1]);
-        else path.lineTo(out[i * 2], out[i * 2 + 1]);
+        if (i === 0) path.moveTo(out[0]!, out[1]!);
+        else path.lineTo(out[i * 2]!, out[i * 2 + 1]!);
       }
       path.closePath();
     }
@@ -584,8 +592,8 @@ function mix(a: string, b: string, t: number): string {
   if (t <= 0) return a;
   const pa = hex(a),
     pb = hex(b);
-  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
+  const c = pa.map((v, i) => Math.round(v + (pb[i]! - v) * t));
+  return `rgb(${c[0]!},${c[1]!},${c[2]!})`;
 }
 function hex(h: string): number[] {
   const s = h.replace('#', '');
