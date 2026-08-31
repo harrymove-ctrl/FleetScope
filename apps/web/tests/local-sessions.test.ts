@@ -1,6 +1,8 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import {
   isLoopbackAddress,
@@ -13,7 +15,19 @@ import {
   repoRootFromSessions,
 } from '../src/lib/local-tui';
 
-const root = join(process.cwd(), '.fleetscope/sessions');
+const tmp = mkdtempSync(join(tmpdir(), 'fleetscope-sessions-'));
+const repo = join(tmp, 'FleetScope');
+const root = join(repo, '.fleetscope', 'sessions');
+mkdirSync(join(root, 'antigravity-live-cu'), { recursive: true });
+writeFileSync(
+  join(root, 'antigravity-live-cu', 'session.jsonl'),
+  '{"invocationId":"e-test"}\n',
+  'utf8',
+);
+
+afterAll(() => {
+  rmSync(tmp, { recursive: true, force: true });
+});
 
 describe('local session listing', () => {
   it('lists the recorded Antigravity folder when it exists', () => {
@@ -43,7 +57,7 @@ describe('local session listing', () => {
 describe('native TUI launch command', () => {
   it('cds into the repo and follows a validated session id', () => {
     const command = buildNativeTuiCommand('antigravity-live-cu', root);
-    expect(command).toContain(`cd '${join(process.cwd())}'`);
+    expect(command).toContain(`cd '${repo}'`);
     expect(command).toContain('.fleetscope/sessions/antigravity-live-cu --follow --tiny');
     expect(command).toMatch(/target\/debug\/fleetscope|cargo run -p fleetscope-cli/);
     expect(command).not.toContain('pnpm demo:google-session -- --run');
@@ -52,7 +66,7 @@ describe('native TUI launch command', () => {
 
   it('uses the newest local session when none is named', () => {
     const id = resolveTuiSessionId(null, root);
-    expect(id).toMatch(/^[A-Za-z0-9._-]+$/);
-    expect(repoRootFromSessions(root)).toBe(join(process.cwd()));
+    expect(id).toBe('antigravity-live-cu');
+    expect(repoRootFromSessions(root)).toBe(repo);
   });
 });

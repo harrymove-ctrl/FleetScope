@@ -171,7 +171,9 @@ describe('the feature-detail visual surface', () => {
     expect(dashboardStyles).toContain('text-align: center');
     expect(plan).toContain('Assistant · Gemini ADK');
     expect(plan).toContain('data-assistant-chat');
-    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(plan.indexOf('id="assistant-plan-title"'));
+    expect(plan.indexOf('data-assistant-chat')).toBeLessThan(
+      plan.indexOf('id="assistant-plan-title"'),
+    );
     expect(plan).toContain('data-support-msg="privacy"');
     expect(plan).toContain('data-support-msg="cli"');
     expect(plan).toContain('data-support-msg="formats"');

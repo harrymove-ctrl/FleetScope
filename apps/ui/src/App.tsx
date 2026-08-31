@@ -35,7 +35,9 @@ export default function App() {
         </header>
       )}
 
-      <main className={embedded ? 'min-h-full' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6'}>
+      <main
+        className={embedded ? 'min-h-full' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6'}
+      >
         <Routes>
           <Route path="/" element={<Navigate to="/embed/dashboard" replace />} />
           <Route path="/embed/dashboard" element={<DashboardPage embedded />} />

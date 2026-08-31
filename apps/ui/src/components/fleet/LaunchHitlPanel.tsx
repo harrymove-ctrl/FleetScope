@@ -28,8 +28,8 @@ function GateCard({ gateId }: { gateId: LaunchGateId }) {
       <p className="text-center text-xs text-neutral-500">launch_readiness · rehearsal</p>
 
       <p className="text-sm leading-relaxed text-neutral-200">
-        Agents already finished their probes. FleetScope is asking you to decide one
-        bound gate — not a standing permission to keep going.
+        Agents already finished their probes. FleetScope is asking you to decide one bound gate —
+        not a standing permission to keep going.
       </p>
 
       <div className="rounded-md border border-neutral-800 bg-neutral-900">
@@ -82,10 +82,7 @@ function GateCard({ gateId }: { gateId: LaunchGateId }) {
               >
                 <ChevronRight
                   aria-hidden
-                  className={cn(
-                    'h-3.5 w-3.5 transition-transform',
-                    showRequest && 'rotate-90',
-                  )}
+                  className={cn('h-3.5 w-3.5 transition-transform', showRequest && 'rotate-90')}
                 />
                 {showRequest ? 'Hide request' : 'Show request'}
               </button>
@@ -185,9 +182,7 @@ function AuditList() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-xs font-medium text-neutral-300">
-                {OUTCOME_WORD[row.outcome]}
-              </p>
+              <p className="text-xs font-medium text-neutral-300">{OUTCOME_WORD[row.outcome]}</p>
               <p className="text-[11px] text-neutral-600">{row.time}</p>
             </div>
           </li>
@@ -207,9 +202,7 @@ export default function LaunchHitlPanel() {
       <header className="flex flex-wrap items-center gap-2 border-b border-neutral-800 px-4 py-3 sm:px-5">
         <div className="mr-auto">
           <h1 className="text-base font-medium text-neutral-100">Launch readiness HITL</h1>
-          <p className="text-xs text-neutral-500">
-            budget_guard · upload · launch_reviewer
-          </p>
+          <p className="text-xs text-neutral-500">budget_guard · upload · launch_reviewer</p>
         </div>
         <div className="inline-flex rounded-lg bg-neutral-900 p-0.5">
           {(

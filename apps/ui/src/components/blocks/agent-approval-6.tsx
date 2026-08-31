@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Download, Search } from 'lucide-react';
 
-const cx = (...c: (string | false | null | undefined)[]) =>
-  c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
 function useScrollFade<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -33,7 +32,7 @@ function useScrollFade<T extends HTMLElement>() {
   return { ref, edges, onScroll: update };
 }
 
-type Outcome = "approved" | "denied" | "expired";
+type Outcome = 'approved' | 'denied' | 'expired';
 
 type Entry = {
   id: string;
@@ -46,97 +45,96 @@ type Entry = {
 
 const LOG: Entry[] = [
   {
-    id: "ap-1051",
-    action: "Refunded 3 duplicate charges to Acme Logistics",
-    context: "$1,240.00 · West billing",
-    reviewer: "Maya Chen",
-    outcome: "approved",
-    time: "10:42",
+    id: 'ap-1051',
+    action: 'Refunded 3 duplicate charges to Acme Logistics',
+    context: '$1,240.00 · West billing',
+    reviewer: 'Maya Chen',
+    outcome: 'approved',
+    time: '10:42',
   },
   {
-    id: "ap-1050",
-    action: "Added a private note to ticket #4821",
-    context: "Internal notes policy",
-    reviewer: "Auto policy",
-    outcome: "approved",
-    time: "9:41",
+    id: 'ap-1050',
+    action: 'Added a private note to ticket #4821',
+    context: 'Internal notes policy',
+    reviewer: 'Auto policy',
+    outcome: 'approved',
+    time: '9:41',
   },
   {
-    id: "ap-1049",
-    action: "Rotated the production API token",
-    context: "Payments service",
-    reviewer: "Sam Rivera",
-    outcome: "denied",
-    time: "9:18",
+    id: 'ap-1049',
+    action: 'Rotated the production API token',
+    context: 'Payments service',
+    reviewer: 'Sam Rivera',
+    outcome: 'denied',
+    time: '9:18',
   },
   {
-    id: "ap-1048",
-    action: "Granted read access to analytics for 30 minutes",
-    context: "Meridian service account",
-    reviewer: "Owen Patel",
-    outcome: "approved",
-    time: "9:12",
+    id: 'ap-1048',
+    action: 'Granted read access to analytics for 30 minutes',
+    context: 'Meridian service account',
+    reviewer: 'Owen Patel',
+    outcome: 'approved',
+    time: '9:12',
   },
   {
-    id: "ap-1047",
-    action: "Merged the staging config branch",
-    context: "No response in 2 hours",
-    reviewer: "-",
-    outcome: "expired",
-    time: "Yesterday",
+    id: 'ap-1047',
+    action: 'Merged the staging config branch',
+    context: 'No response in 2 hours',
+    reviewer: '-',
+    outcome: 'expired',
+    time: 'Yesterday',
   },
   {
-    id: "ap-1046",
-    action: "Changed the invoice retention window to 45 days",
-    context: "billing-retention-policy.ts",
-    reviewer: "Leah Stone",
-    outcome: "denied",
-    time: "Yesterday",
+    id: 'ap-1046',
+    action: 'Changed the invoice retention window to 45 days',
+    context: 'billing-retention-policy.ts',
+    reviewer: 'Leah Stone',
+    outcome: 'denied',
+    time: 'Yesterday',
   },
   {
-    id: "ap-1045",
-    action: "Reset QA seed data before the nightly replay",
-    context: "qa_orders, qa_refunds · QA only",
-    reviewer: "Auto policy",
-    outcome: "approved",
-    time: "Yesterday",
+    id: 'ap-1045',
+    action: 'Reset QA seed data before the nightly replay',
+    context: 'qa_orders, qa_refunds · QA only',
+    reviewer: 'Auto policy',
+    outcome: 'approved',
+    time: 'Yesterday',
   },
   {
-    id: "ap-1044",
-    action: "Archived 312 paused campaigns older than 18 months",
-    context: "EU and NA marketing",
-    reviewer: "Nina Brooks",
-    outcome: "denied",
-    time: "Mon",
+    id: 'ap-1044',
+    action: 'Archived 312 paused campaigns older than 18 months',
+    context: 'EU and NA marketing',
+    reviewer: 'Nina Brooks',
+    outcome: 'denied',
+    time: 'Mon',
   },
 ];
 
-const FILTERS = ["all", "approved", "denied", "expired"] as const;
+const FILTERS = ['all', 'approved', 'denied', 'expired'] as const;
 type Filter = (typeof FILTERS)[number];
 
 const OUTCOME_WORD: Record<Outcome, string> = {
-  approved: "Approved",
-  denied: "Skipped",
-  expired: "Expired",
+  approved: 'Approved',
+  denied: 'Skipped',
+  expired: 'Expired',
 };
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]";
+  'focus-visible:outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--rb-accent,oklch(20.5%_0_0))] dark:focus-visible:outline-[var(--rb-accent,oklch(100%_0_0))]';
 const press =
-  "transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]";
+  'transition-[transform,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]';
 
 export default function AgentApproval6() {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
   const body = useScrollFade<HTMLDivElement>();
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return LOG.filter((e) => {
-      const byFilter = filter === "all" || e.outcome === filter;
+      const byFilter = filter === 'all' || e.outcome === filter;
       const byQuery =
-        q === "" ||
-        `${e.action} ${e.context} ${e.reviewer}`.toLowerCase().includes(q);
+        q === '' || `${e.action} ${e.context} ${e.reviewer}`.toLowerCase().includes(q);
       return byFilter && byQuery;
     });
   }, [filter, query]);
@@ -150,7 +148,7 @@ export default function AgentApproval6() {
         <button
           type="button"
           className={cx(
-            "ml-auto inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white px-2.5 text-[13px] font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+            'ml-auto inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white px-2.5 text-[13px] font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900',
             press,
             focusRing,
           )}
@@ -175,9 +173,9 @@ export default function AgentApproval6() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search decisions"
             className={cx(
-              "h-8 w-full rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white pl-8 pr-3 text-[13px] text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:hover:border-neutral-700 dark:focus:border-white",
-              "transition-colors duration-150 ease-out",
-              "focus-visible:outline-none",
+              'h-8 w-full rounded-[var(--rb-r-md,8px)] border border-neutral-200 bg-white pl-8 pr-3 text-[13px] text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:hover:border-neutral-700 dark:focus:border-white',
+              'transition-colors duration-150 ease-out',
+              'focus-visible:outline-none',
             )}
           />
         </div>
@@ -189,15 +187,15 @@ export default function AgentApproval6() {
               onClick={() => setFilter(f)}
               aria-pressed={filter === f}
               className={cx(
-                "inline-flex h-7 flex-1 cursor-pointer items-center justify-center rounded-[var(--rb-r-sm,6px)] px-2.5 text-[13px] font-medium capitalize sm:flex-none",
+                'inline-flex h-7 flex-1 cursor-pointer items-center justify-center rounded-[var(--rb-r-sm,6px)] px-2.5 text-[13px] font-medium capitalize sm:flex-none',
                 press,
                 focusRing,
                 filter === f
-                  ? "bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100"
-                  : "bg-transparent text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100",
+                  ? 'bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100'
+                  : 'bg-transparent text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100',
               )}
             >
-              {f === "denied" ? "skipped" : f}
+              {f === 'denied' ? 'skipped' : f}
             </button>
           ))}
         </div>
@@ -220,11 +218,11 @@ export default function AgentApproval6() {
               <button
                 type="button"
                 onClick={() => {
-                  setQuery("");
-                  setFilter("all");
+                  setQuery('');
+                  setFilter('all');
                 }}
                 className={cx(
-                  "mt-4 inline-flex h-9 cursor-pointer items-center justify-center rounded-[var(--rb-r-md,8px)] bg-[var(--rb-accent,oklch(20.5%_0_0))] px-3 text-sm font-medium text-[var(--rb-accent-fg,oklch(100%_0_0))] hover:bg-[color-mix(in_oklab,var(--rb-accent,oklch(20.5%_0_0))_90%,transparent)] dark:bg-[var(--rb-accent,oklch(100%_0_0))] dark:text-[var(--rb-accent-fg,oklch(20.5%_0_0))] dark:hover:bg-[color-mix(in_oklab,var(--rb-accent,oklch(100%_0_0))_90%,transparent)]",
+                  'mt-4 inline-flex h-9 cursor-pointer items-center justify-center rounded-[var(--rb-r-md,8px)] bg-[var(--rb-accent,oklch(20.5%_0_0))] px-3 text-sm font-medium text-[var(--rb-accent-fg,oklch(100%_0_0))] hover:bg-[color-mix(in_oklab,var(--rb-accent,oklch(20.5%_0_0))_90%,transparent)] dark:bg-[var(--rb-accent,oklch(100%_0_0))] dark:text-[var(--rb-accent-fg,oklch(20.5%_0_0))] dark:hover:bg-[color-mix(in_oklab,var(--rb-accent,oklch(100%_0_0))_90%,transparent)]',
                   press,
                   focusRing,
                 )}
@@ -263,15 +261,15 @@ export default function AgentApproval6() {
         <div
           aria-hidden="true"
           className={cx(
-            "pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950",
-            body.edges.start ? "opacity-100" : "opacity-0",
+            'pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950',
+            body.edges.start ? 'opacity-100' : 'opacity-0',
           )}
         />
         <div
           aria-hidden="true"
           className={cx(
-            "pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950",
-            body.edges.end ? "opacity-100" : "opacity-0",
+            'pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent transition-opacity duration-200 ease-out dark:from-neutral-950',
+            body.edges.end ? 'opacity-100' : 'opacity-0',
           )}
         />
       </div>

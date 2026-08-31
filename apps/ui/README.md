@@ -5,8 +5,8 @@ Vite + React 19 + Tailwind 4 host for **React Bits Pro** blocks.
 This is **not** the FleetScope product shell. Product chrome (landing, Bend,
 nav, Demo, Viewer) stays in `apps/web`. Astro iframes chrome-less embeds:
 
-| Astro route | Embed |
-|---|---|
+| Astro route  | Embed                   |
+| ------------ | ----------------------- |
 | `/approvals` | `/ui/#/embed/approvals` |
 | `/dashboard` | `/ui/#/embed/dashboard` |
 

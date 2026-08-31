@@ -19,6 +19,8 @@ FleetScope, with the context and consequences needed to review them later.
   — superseded historical proposal; do not use for the current product.
 - [0007 — Read-only session observer](0007-session-observer-scope.md)
   — current product boundary: JSONL in, graph/follow/replay out, no agent actions.
+- [0008 — Judges open Cloud Console, then launch_readiness](0008-judge-open-cloud-console.md)
+  — first demo beat; Agent Viewer and TUI are proof, not the lead.
 
 ## Conventions
 

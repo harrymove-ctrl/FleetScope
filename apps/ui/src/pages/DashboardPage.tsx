@@ -10,11 +10,10 @@ export default function DashboardPage({ embedded = false }: Props) {
     <div className={embedded ? undefined : 'space-y-4'}>
       {!embedded && (
         <div className="space-y-2 px-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-neutral-50">
-            Dashboard lab
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-50">Dashboard lab</h1>
           <p className="text-sm text-neutral-400">
-            Product surface is Astro <code className="rounded bg-neutral-900 px-1.5">/dashboard</code>.
+            Product surface is Astro{' '}
+            <code className="rounded bg-neutral-900 px-1.5">/dashboard</code>.
           </p>
         </div>
       )}

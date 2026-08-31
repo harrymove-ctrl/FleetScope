@@ -1248,7 +1248,10 @@
   cursor: pointer;
 }
 
-[data-surface='feature'] .assistant-plan__phases li[data-phase-state='approved'] .assistant-plan__index {
+[data-surface='feature']
+  .assistant-plan__phases
+  li[data-phase-state='approved']
+  .assistant-plan__index {
   background: color-mix(in srgb, var(--fd-action) 18%, var(--fd-bg-alt));
   color: var(--fd-action);
 }
