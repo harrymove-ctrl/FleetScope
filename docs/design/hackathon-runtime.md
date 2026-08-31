@@ -2,7 +2,7 @@
 
 **Status:** active local implementation; provider-backed cloud proof pending
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
 ## Purpose
 
@@ -134,16 +134,21 @@ launch_readiness
 
 ## Video evidence capture
 
-Capture in one continuous take:
+Capture in one continuous take. Lead with the decision, not the viewer.
+Beat sheet: [final-27h](../plans/final-27h.md). Pair `gcloud`/Console with
+the TUI: [action-and-gcloud-tui](action-and-gcloud-tui.md).
 
-1. Cloud Run service URL/revision in Console or `gcloud`.
-2. producer command and ADK version.
+1. Producer topology and `launch_reviewer` READY/NOT_READY.
+2. Cloud Run service URL/revision in Console or `gcloud` (same service the
+   agent `services.get`s).
 3. observed model line from the same session.
-4. live JSONL follow with all four children.
-5. Cloud tool result and final review decision.
+4. Split: producer/`gcloud` left, `fleetscope --follow` right.
+5. Cloud tool result and budget_guard.
 6. replay of the finished session.
 7. proof manifest/session ID.
 8. optional Storage object generation.
+
+Official page: the `.run.app` URLs need not stay live after this take.
 
 ## Cost controls
 
@@ -169,4 +174,6 @@ fresh pricing check. The available credit is not a reason to widen the runtime.
 
 - [Session Observer design](session-observer.md)
 - [Product demo brief](../product/session-observer.md)
+- [Official facts](../product/hackathon-official.md)
+- [Action stack and gcloud ↔ TUI](action-and-gcloud-tui.md)
 - [Submission checklist](../product/hackathon-submission-checklist.md)

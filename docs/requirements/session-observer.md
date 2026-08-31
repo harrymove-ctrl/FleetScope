@@ -95,7 +95,10 @@ execution.
 - **D6 — Model:** Vertex default `gemini-3.7-flash`; provider availability and
   `modelVersion` must be proven live.
 - **D7 — Storage:** local JSONL first; optional post-run Cloud Storage upload.
-- **D8 — Category:** Taskmaster.
+- **D8 — Category:** Taskmaster. Official rubric 40% action / 30% architecture
+  / 30% demo; deadline 1 Sep 2026 07:00 GMT+7
+  ([hackathon-official](../product/hackathon-official.md)). Fleet track
+  reconsidered and rejected (no production-data/compliance proof).
 - **D9 — Cost:** exact six-call ceiling; dry-run remains zero-cost.
 
 ## Unverified external inputs

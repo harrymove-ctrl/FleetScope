@@ -1,137 +1,152 @@
-# FleetScope — kịch bản nói (pitch deck + video demo)
+# FleetScope — kịch bản thuyết trình & video demo
 
-**Status:** active
+**Status:** ready to record
+**Video length:** 3:45 (chuẩn < 4:00)
 **Last updated:** 2026-08-31
-**Deadline:** 1 Sep 2026 07:00 GMT+7
 
-Lời thoại để **đọc thẳng trên camera** viết bằng tiếng Anh. Chỉ dẫn sân khấu,
-ghi chú và cảnh báo viết bằng tiếng Việt.
-
-Quy tắc nền, không được phá: **Gemini/ADK làm việc, FleetScope chỉ quan sát.**
-Dẫn bằng *quyết định* (READY/NOT_READY), không dẫn bằng viewer — 40% điểm nằm ở
+Quy tắc bất biến: **Gemini/ADK quyết định (actor) — FleetScope ghi nhận (observer).**
+Dẫn bằng *quyết định* READY/NOT_READY, không dẫn bằng viewer — 40% điểm nằm ở
 "agents that decide and complete tasks".
+
+Lời thoại tiếng Anh để đọc thẳng trên teleprompter. Chỉ dẫn sân khấu tiếng Việt.
 
 ---
 
-## 0. Pre-flight — chuẩn bị trước khi bấm ghi
+## ⚠️ Bốn câu KHÔNG được nói (đã kiểm chứng trong code)
 
-Mở sẵn, đúng thứ tự, mỗi thứ một tab/pane:
-
-| # | Cửa sổ | Nội dung |
+| Câu sai | Thực tế trong repo | Nói thế nào cho đúng |
 |---|---|---|
-| 1 | Terminal A | `cd` vào repo, prompt sạch, font ≥ 16pt |
-| 2 | Terminal B | đã `gcloud config set project project-ac0c5f88-868b-46b9-a2e` |
-| 3 | Browser tab 1 | `https://fleetscope-web-6tes2q7oqa-uc.a.run.app/demo/` |
-| 4 | Browser tab 2 | Cloud Run console, service `fleetscope-web` |
-| 5 | Slide | 6 slide theo bảng ở Phần 1 |
+| "cryptographic proof" | `Projection::fingerprint()` là **FNV-1a 64-bit** (`crates/agent-viewer-core/src/lib.rs:75`). Không ký, không chống va chạm. Doc comment của chính nó nói mục đích là "assert native/browser parity". `.proof` cũng chỉ là JSON metadata, không hash, không chữ ký. | "a reproducible projection fingerprint — the same session projects to the same sixteen hex digits in the terminal and in the browser" |
+| `--follow` trên `examples/gemini-session` rồi nói "the right edge expands in real time" | `fleetscope --help` ghi rõ: `--follow` = *"open parked at the live edge **instead of replaying**"*. File đó là file tĩnh đã checked-in, `follow.rs` poll thấy không có dòng mới → **màn hình đứng yên**. Giám khảo sẽ thấy. | Bỏ `--follow`, dùng replay mặc định + `--speed`. Đó mới là cái animate. |
+| "press **F** to snap back to the live edge" | Theo `--help` của binary: `f` = **follow**, `g` = **live edge**. | "press `g` for the live edge" |
+| "storage_probe verifies storage bucket integrity" | Nó gọi đúng một `buckets.get` — đọc metadata. Không đọc nội dung object, không verify integrity. | "reads the bucket's metadata — one call, no object contents" |
 
-Kiểm tra trước:
+Lý do khắt khe: cả pitch này dựng trên câu "chúng tôi không bịa". Bịa một chữ
+"cryptographic" là tự bắn vào luận điểm mạnh nhất của chính mình.
+
+---
+
+## 0. Pre-flight (2 phút trước khi bấm REC)
+
+| Pane / Tab | Nội dung | Chuẩn bị |
+|---|---|---|
+| **Terminal A** | repo FleetScope | chữ ≥ 18pt, nền tối, `clear` |
+| **Terminal B** | gcloud | `gcloud config set project project-ac0c5f88-868b-46b9-a2e` |
+| **Browser 1** | `https://fleetscope-web-6tes2q7oqa-uc.a.run.app/demo/` | load sẵn |
+| **Browser 2** | Cloud Run console, service `fleetscope-web` | tab Revisions |
+| **Slides** | 6 slide | presenter view |
+
+Kiểm tra:
 
 ```bash
 curl -s https://fleetscope-api-6tes2q7oqa-uc.a.run.app/health
 ```
 
-Phải trả về `{"status":"ok",...,"liveMode":false,...}`. Nếu Cloud Run đã bị xoá
-để khỏi tốn tiền thì **quay Console/gcloud thay cho URL sống** — luật hackathon
-chấp nhận bằng chứng đã deploy, không bắt phải còn sống.
+Phải ra `{"status":"ok",...,"liveMode":false,...}`.
 
-Tắt: notification, Slack, mail, mọi thứ có thể nhảy lên màn hình.
+Tắt notification, Slack, mail.
 
-> **Cảnh báo — bằng chứng Vertex thật đang bị gitignore.**
+> 🔴 **Bằng chứng Vertex thật đang bị gitignore.**
 > Session `e-04e1149b-7b8b-4529-951d-9029e6c7bfdb` (projection
-> `ef62b782198ed6b3`) nằm ở
-> `.fleetscope/sessions/fs-20260830T204924Z-98f69c07/session.jsonl`, và
-> `.gitignore:27` loại bỏ toàn bộ `.fleetscope/`. Nó **chỉ tồn tại trên máy
-> này**. Giám khảo clone repo về sẽ không thấy bằng chứng mà checklist đang
-> viện dẫn. Trước khi nộp: hoặc commit bản đã redact vào
-> `crates/fleetscope-cli/tests/fixtures/`, hoặc upload nó lên Cloud Storage và
-> ghi generation. Video vẫn quay được vì file có trên máy — nhưng repo thì
-> không tự chứng minh được.
+> `ef62b782198ed6b3`) nằm ở `.fleetscope/sessions/fs-20260830T204924Z-98f69c07/`
+> và `.gitignore:27` loại cả `.fleetscope/`. Giám khảo clone repo về **không
+> thấy** bằng chứng mà checklist đang viện dẫn.
+>
+> **Đừng `cp -r` thẳng vào fixture.** File đó chứa project ID, tên bucket và URL
+> Cloud Run thật; repo này public. Redact trước, rồi mới commit — hoặc upload
+> lên Cloud Storage và ghi generation vào checklist. Video vẫn quay được vì file
+> có sẵn trên máy.
 
 ---
 
-## 1. Pitch deck — 6 slide, ~3 phút
+## 1. Pitch deck — 6 slide, ~3:10
 
-Mỗi slide: câu mở → bằng chứng → câu chốt. Không đọc slide.
+### Slide 1 — The problem (0:00–0:30)
 
-### Slide 1 — Problem (0:00–0:30)
+**Slide:** bốn agent → một quyết định. Nền: JSONL thô bị gạch chéo.
 
-> "Launch readiness is not a chat. It is a multi-step job: check the service,
-> check the storage, check the budget, then decide. Today that job is done by a
-> human reading dashboards, and when an agent does it instead, all you get back
-> is a wall of JSONL. You cannot tell which agent ran, which call is still
-> waiting, or whether silence means finished or dead."
+> "Launch readiness is **not a chat**. It is a multi-step job: probe the
+> service, check the storage, enforce the budget, and make the call.
+> Today a human does that by reading dashboards. Hand it to agents instead and
+> what comes back is a wall of raw JSONL. You cannot tell which agent ran, which
+> tool is blocked, or whether silence means **finished** — or **dead**."
 
-**Trên slide:** bốn agent, một quyết định. Không code.
+### Slide 2 — The agentic solution (0:30–1:10)
 
-### Slide 2 — Action (0:30–1:10)
+**Slide:** `SequentialAgent` + bốn con. Logo Vertex AI, Gemini 3.7 Flash, ADK 2.8.
 
-> "So we built the job as agents. Google ADK runs a SequentialAgent with four
-> children. `cloud_run_probe` does one read-only `services.get`.
-> `storage_probe` does one read-only `buckets.get`. `budget_guard` verifies six
-> model calls, one hundred eighty seconds, two reads, zero writes. Then
-> `launch_reviewer` reads all three reports and issues READY or NOT_READY.
-> A seventh model call is refused before it is issued."
+> "So we built the readiness workflow as an autonomous multi-agent system on
+> **Google ADK**. A `SequentialAgent` coordinates four children.
+> `cloud_run_probe` performs one read-only check on the service.
+> `storage_probe` reads the bucket's metadata — one call, no object contents.
+> `budget_guard` validates the execution bounds: six model calls, two reads,
+> zero writes. A seventh call is refused before it is issued.
+> And `launch_reviewer` takes all three reports and renders the verdict:
+> **READY** or **NOT READY**."
 
-**Trên slide:** sơ đồ 4 agent + logo Vertex/ADK. Nhấn chữ **decision**.
+### Slide 3 — The evidence engine (1:10–1:50)
 
-### Slide 3 — Evidence (1:10–1:50)
+**Slide:** split — producer trái, FleetScope phải, mũi tên **một chiều**.
 
-> "FleetScope is the window on that work. It never starts an agent, never
-> retries, never approves, never mutates. It reads the JSONL the producer owns
-> and projects it: agent rail, parent-child graph, event inspector, timeline.
-> The session log is the source of truth, and there is no second version of it."
+> "FleetScope is the window into that autonomous work.
+> It never mutates state, never retries, never decides. It reads the
+> append-only session log the producer owns and projects it: agent rails,
+> parent-child trees, tool results, timeline.
+> The session file is the single source of truth. There is no second version
+> of reality."
 
-**Trên slide:** split — producer bên trái, FleetScope bên phải, mũi tên một
-chiều. Mũi tên chỉ đi một hướng: đó chính là luận điểm.
+Mũi tên chỉ đi một hướng. Đó **là** luận điểm — để nó trên màn hình lâu một nhịp.
 
-### Slide 4 — Trust (1:50–2:25)
+### Slide 4 — Radical truth over guesses (1:50–2:25)
 
-> "Two rules are enforced at ingestion, not at render. Hidden reasoning is
-> dropped before it can reach any surface. And terminal state comes only from
-> what the session recorded — an agent that never reported reads *no terminal
-> event recorded*, and an unanswered tool call is named as waiting. A stuck
-> agent has to look stuck. We would rather show you *unknown* than show you a
-> guess."
+**Slide:** hai dòng thật từ `inspect`: `[ ] search_hotels no result recorded`
+và `[no terminal event recorded]`.
 
-**Trên slide:** hai dòng thật từ `inspect` — `[ ] search_hotels no result
-recorded` và `[no terminal event recorded]`.
+> "Two rules, enforced at ingestion, not at render time.
+> First, hidden reasoning is dropped before it can reach any surface.
+> Second, terminal state comes only from what was recorded. An agent that never
+> reported reads *no terminal event recorded*. A tool call that never came back
+> is named as waiting.
+> A stuck agent **has to look stuck**. We would rather show you *unknown* than
+> show you a guess."
 
-### Slide 5 — Architecture (2:25–2:50)
+### Slide 5 — The Google stack (2:25–2:50)
+
+**Slide:** `docs/product/fleetscope-devpost-architecture.png`.
 
 > "Vertex AI Gemini 3.7 Flash, Google ADK two-point-eight, Cloud Run and Cloud
-> Storage — one session ID across all of it. One projection core in Rust feeds
-> three front ends: the terminal, the browser over WebAssembly, and a headless
-> `inspect`. The terminal and the browser cannot disagree about what a session
-> says, because they render the same projection."
+> Storage — tied together by one session ID.
+> A Rust projection core drives three front ends: the terminal, the browser over
+> WebAssembly, and a headless inspector. They share the same core, so the
+> terminal and the browser cannot disagree about what a session says — and the
+> projection fingerprint proves it: the same session projects to the same
+> sixteen hex digits in both."
 
-**Trên slide:** `docs/product/fleetscope-devpost-architecture.png`.
+### Slide 6 — Replay and close (2:50–3:10)
 
-### Slide 6 — Replay (2:50–3:10)
+**Slide:** timeline player + live-edge indicator.
 
 > "And because the evidence is a file, finished work stays debuggable. Pause,
-> seek, change speed, return to the live edge — without paying for another run.
-> Gemini does the work. FleetScope makes the work inspectable."
+> step back through events, scrub the timeline, jump to the live edge — without
+> paying for another model run.
+> **Gemini does the work. FleetScope proves how it was decided.**"
 
-**Trên slide:** timeline + nút play/pause. Câu cuối là câu chốt — dừng ở đó.
+Dừng ở đó. Đừng nói thêm.
 
 ---
 
-## 2. Video demo — 3:50, live, không cắt
+## 2. Video demo — 3:45, một take
 
-Luật: dưới 4 phút · 20 giây đầu phải nêu problem + value · phải thấy app chạy
-thật · phải thấy bằng chứng Google Cloud.
+### 🎬 Shot 1 — The hook (0:00–0:20) · slide
 
-### Shot 1 — Problem + value (0:00–0:20) · slide
+Nói thẳng vào camera. Không "hi judges", không giới thiệu tên.
 
-> "Checking whether a service is ready to launch is a multi-step job, and when
-> you hand it to agents you get back a wall of JSONL. FleetScope runs that job
-> as four Gemini agents that issue READY or NOT_READY — and then lets you watch
-> exactly how they decided."
+> "Deciding whether a production service is ready to launch is a multi-step job.
+> Hand it to agents and you usually get back an unreadable wall of JSONL.
+> We built four Gemini agents on Google ADK that autonomously decide **READY**
+> or **NOT READY** — and FleetScope lets you audit exactly how they decided."
 
-Đúng 20 giây. Không chào, không giới thiệu tên, không "hi everyone".
-
-### Shot 2 — Cái workflow tự quyết định (0:20–1:15) · Terminal A
+### 🎬 Shot 2 — Dry run + real Vertex evidence (0:20–1:15) · Terminal A
 
 ```bash
 pnpm demo:google-session -- \
@@ -141,165 +156,180 @@ pnpm demo:google-session -- \
   --bucket fleetscope-sessions-project-ac0c5f88-868b-46b9-a2e
 ```
 
-Không có `--run` thì đây là dry-run zero-cost: in ra kế hoạch đóng dưới dạng
-JSON (`"mode": "dry-run"`), không gọi model, không chạm mạng, không ghi file.
 Bốn cờ tài nguyên là **bắt buộc** — chạy trần sẽ lỗi `invalid project: ''`.
 
 > "Without the run flag this is a zero-cost dry run. It validates the closed
-> configuration and prints the exact plan — four agents, six model calls,
-> two read-only Google API operations, and no writes. Spending money is an
-> explicit opt-in, not a default."
+> configuration and prints the exact plan: four agents, six model calls, two
+> read-only Google Cloud operations, zero writes. Spending credit is an explicit
+> opt-in, not a default."
 
-Rồi mở kết quả của lần chạy thật đã ghi:
+Rồi mở lần chạy Vertex thật đã ghi:
 
 ```bash
 cargo run -p fleetscope-cli --bin fleetscope -- \
   inspect .fleetscope/sessions/fs-20260830T204924Z-98f69c07
 ```
 
-Chỉ tay vào ba dòng đầu và đọc:
+Rê chuột vào ba dòng đầu.
 
-> "This is a real Vertex run. `producer google-adk 2.8.0`, model
-> `gemini-3.7-flash` — and that model version is what the provider reported on
-> the events, not what we configured. Five agents, fifteen events, both tool
-> calls answered, zero failed events."
+> "This is a recorded Vertex run. Producer `google-adk 2.8.0`, model
+> `gemini-3.7-flash` — and that version is what the provider reported on the
+> events, not what we configured. Five agents, fifteen events, both tool calls
+> answered, zero failures."
 
-Cuộn tới quyết định:
+Cuộn xuống dòng cuối.
 
-> "And the reviewer's verdict: READY."
+> "And the verdict from `launch_reviewer`: **READY**."
 
-**Cấm nói:** "chúng tôi đang chạy live ngay đây" nếu đang mở file đã ghi. Nói
-"a real Vertex run, recorded".
+**Nói "recorded", đừng nói "live".**
 
-### Shot 3 — Bằng chứng Google Cloud (1:15–2:00) · Terminal B + browser
+### 🎬 Shot 3 — Google Cloud proof (1:15–2:00) · Terminal B → Browser 1
 
 ```bash
 gcloud run services describe fleetscope-web --region us-central1 \
   --format="value(status.url, status.latestReadyRevisionName)"
 ```
 
-In ra đúng một dòng: URL + revision. Đọc thẳng dòng đó.
+Ra đúng một dòng: URL + revision.
 
-> "The viewer is on Cloud Run in `us-central1`, project
+> "The viewer is deployed on Cloud Run in `us-central1`, project
 > `project-ac0c5f88-868b-46b9-a2e`, revision `fleetscope-web-00001-g4s`."
 
-**Đừng dùng `gcloud run services list`** trong video: nó in cột *LAST DEPLOYED
-BY* chứa email cá nhân, và in URL ở dạng project-number
-(`fleetscope-web-119741899953...`) khác với URL đã ghi trong checklist. Hai dạng
-URL cùng trỏ một service, nhưng giám khảo sẽ phải tự đoán — `describe` tránh cả
-hai vấn đề.
-
-Sang browser, mở URL `.run.app`, để trang load thật trên camera.
+**Đừng dùng `gcloud run services list`:** nó in email cá nhân ở cột LAST
+DEPLOYED BY, và in URL dạng project-number khác URL trong checklist.
 
 ```bash
 curl -s https://fleetscope-api-6tes2q7oqa-uc.a.run.app/health
 ```
 
-> "And the API answers `liveMode: false` — the deployment is recorded-only
-> until a live run is explicitly opted into. The guardrail is in the deployed
-> service, not in a slide."
+> "And the deployed API answers `liveMode: false` — recorded-only until a live
+> run is explicitly opted into. The guardrail is in the deployed service, not
+> on a slide."
 
-Đây là 45 giây quan trọng nhất cho tiêu chí Cloud. Đừng vội.
+45 giây quan trọng nhất cho tiêu chí Cloud. Đừng vội.
 
-### Shot 4 — FleetScope quan sát một run đang sống (2:00–2:45) · Terminal A
+### 🎬 Shot 4 — Replay and time travel (2:00–2:45) · Terminal A
 
 ```bash
-cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --follow
+cargo run -p fleetscope-cli --bin fleetscope -- examples/gemini-session --speed 4
 ```
 
-> "This is the observer following a growing session. The right edge is moving,
-> so this is live follow. Four agents, and the graph shows who handed work to
-> whom."
+**Không `--follow`.** `--follow` = "parked at the live edge instead of
+replaying" — trên file tĩnh này màn hình sẽ **đứng im**. Replay mặc định mới
+animate; `--speed 4` để vừa khung hình.
 
-Bấm `space` để pause, `[` `]` để step, `f` để về live edge.
+Thao tác: để chạy 3 giây → `space` (pause) → `[` `]` (step) → `g` (live edge).
 
-> "Pause. Step back through the events. Return to the edge. Same timeline, no
+> "This is the session replaying at four times speed — four agents, and the
+> graph shows who handed work to whom.
+> I press **space** to pause. I step back through the events with the brackets.
+> And **g** jumps to the live edge. Time travel over the same file, with no
 > second run."
 
-### Shot 5 — Chỗ ăn điểm: sự thật thay vì suy đoán (2:45–3:30) · Terminal A
+**Muốn quay một run đang lớn thật** (tốn tiền, khó 1-take): `pnpm
+demo:antigravity` ghi tăng dần vào `.fleetscope/sessions/antigravity-live/`;
+lúc đó `--follow` mới đúng nghĩa và mép phải mới thật sự chạy.
 
-Ctrl-C rồi:
+### 🎬 Shot 5 — Truth over guesswork (2:45–3:30) · Terminal A
+
+Ctrl-C, rồi:
 
 ```bash
 cargo run -p fleetscope-cli --bin fleetscope -- inspect examples/gemini-session
 ```
 
-Chỉ vào `hotel_search`:
+Chỉ vào `hotel_search`.
 
 > "Here is the part that matters. `search_hotels` was called twice and answered
-> once. The retry never returned, and the run failed with a rate limit and a
+> once. The retry never returned; the run failed with a rate limit and a
 > thirty-second deadline. FleetScope does not average that away and does not
 > guess — it prints *no result recorded*."
 
-Rồi chỉ vào một agent không có terminal event:
+Chỉ vào agent không có terminal event.
 
 > "And an agent that never reported its end reads *no terminal event recorded*.
-> Not *completed*. We will show you unknown before we show you a guess. Hidden
-> reasoning is dropped at ingestion, so nothing marked `thought` can reach this
-> screen at all."
+> Not *completed*. Unknown before a guess, every time.
+> Hidden reasoning is dropped at ingestion, so nothing marked `thought` can
+> reach this screen at all."
 
-### Shot 6 — Chốt (3:30–3:50) · browser `/demo/`
+### 🎬 Shot 6 — Cloud Run web demo + close (3:30–3:50) · Browser 1
 
-Mở `https://fleetscope-web-6tes2q7oqa-uc.a.run.app/demo/`, cuộn qua bảy reading.
+Cuộn qua bảy reading trên `/demo/`.
 
-> "The same evidence, on Cloud Run, as seven readings of one session. Google ADK
-> and Gemini make the launch decision. FleetScope proves the decision happened.
+> "The same session, rendered in the browser over WebAssembly, on Cloud Run.
+> Google ADK and Gemini make the launch decision. FleetScope proves the decision
+> happened.
 > Thanks for watching."
 
-Dừng ghi. Xem lại trong cửa sổ ẩn danh trước khi nộp.
+Xem lại trong cửa sổ ẩn danh trước khi nộp.
 
 ---
 
-## 3. Câu trả lời cho câu hỏi khó của giám khảo
+## 3. Judge Q&A
 
-**"Cái này chỉ là log viewer thôi mà?"**
+**"Isn't this just another log viewer?"**
 
-> "The viewer is the evidence surface. The product being judged is the ADK
-> workflow that makes a decision — four agents, real Google API reads, a
-> budget it refuses to exceed, and a READY or NOT_READY at the end. The viewer
-> exists because a decision you cannot audit is not worth much."
+> "No. The product being judged is the autonomous ADK workflow that inspects
+> real Google Cloud resources and issues a READY or NOT READY verdict.
+> FleetScope is the audit plane — because an agent decision you cannot verify is
+> not worth much in production."
 
-**"Sao không dùng OpenTelemetry / Langfuse?"**
+**"Why not OpenTelemetry or Langfuse?"**
 
-> "Those trace what the framework emits. We read the session file the producer
-> already owns, so there is nothing to instrument and no second source of truth
-> to keep in sync. And we deliberately do not invent the fields the format does
-> not record — no token counts, no cost, no latency panels filled with
-> plausible numbers."
+> "Zero instrumentation. We read the session file the producer already writes,
+> so there is no SDK to maintain and no second source of truth to keep in sync.
+> And we deliberately do not invent the fields the format does not record — no
+> token counts, no cost, no latency panels filled with plausible numbers."
 
-**"Model có bịa ra không?"**
+**"Did the model actually run, or is this mocked?"**
 
-> "We separate configured from observed. `configuredModel` is what we asked
-> for. Only the provider-owned `modelVersion` on the events earns the evidence
-> label. In this run they happen to agree, and we still show them as two
-> different things."
+> "We separate configured from observed. `configuredModel` is what we asked for.
+> Only the provider-owned `modelVersion` on the events earns the evidence label.
+> In this run they agree, and we still show them as two different things."
 
-**"Có chạy live được không?"**
+**"Can it run live?"**
 
 > "Yes, behind two explicit opt-ins. The deployed API reports `liveMode: false`
 > by default. A metered run needs the run flag plus the spend and Vertex
 > environment opt-ins inside the Python boundary."
 
+**"Is the fingerprint tamper-evident?"** ← câu bẫy, phải trả lời thẳng
+
+> "No, and we do not claim that. It is a fast non-cryptographic hash whose job
+> is parity: the same session must project to the same digest in the terminal
+> and in the browser. Tamper-evidence would need a signature, and we have not
+> built one."
+
 ---
 
-## 4. Cấm nói — claim discipline
+## 4. Phát âm
 
-- ❌ "FleetScope launched / retried / approved / fixed it" → FleetScope **quan
-  sát**, không hành động.
-- ❌ Gọi file đã ghi là "live". File đang lớn = **live follow**; file đã xong =
-  **replay**, kể cả khi nó đến từ một lần chạy cloud thật.
-- ❌ Nói `configuredModel` như bằng chứng đã chạy.
-- ❌ Nhắc CASE-1042 / Warden / Firestore / Pub/Sub — story cũ đã bỏ.
+- **Google ADK** — *Ay-Dee-Kay*
+- **SequentialAgent** — *see-KWEN-shul agent*
+- **Gemini 3.7 Flash** — *JEM-ih-nye three point seven flash*
+- **JSONL** — *JSON Lines*
+- **Vertex** — *VER-teks*
+- **WebAssembly** — *web-uh-SEM-blee*
+
+---
+
+## 5. Cấm nói
+
+- ❌ "cryptographic proof" / "signed" / "tamper-proof" — không có chữ ký nào.
+- ❌ FleetScope "launched / retried / approved / fixed" — nó **quan sát**.
+- ❌ Gọi file đã xong là "live". File đang lớn = live follow; file đã xong =
+  replay, kể cả khi đến từ cloud thật.
+- ❌ `configuredModel` như bằng chứng đã chạy.
+- ❌ CASE-1042 / Warden / Firestore / Pub/Sub — story cũ đã bỏ.
 - ❌ Bịa token, cost, latency. Format không ghi thì không có.
-- ❌ Để lộ API key, credential, project ID nhạy cảm, prompt riêng trên màn hình.
+- ❌ Để lộ API key, credential, prompt riêng trên màn hình.
 
 ---
 
-## 5. Liên quan
+## 6. Liên quan
 
 - [Idea and pitch](idea-and-pitch.md)
 - [Submission checklist](hackathon-submission-checklist.md)
 
 `hackathon-official.md` và `session-readings-judge-demo.md` cũng nằm trong
-`docs/product/` trên máy nhưng **chưa được commit**, nên chưa link tới được từ
-đây. Commit chúng rồi thêm link nếu muốn.
+`docs/product/` trên máy nhưng **chưa commit**, nên chưa link tới được từ đây.

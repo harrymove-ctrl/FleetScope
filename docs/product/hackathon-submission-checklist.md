@@ -2,13 +2,24 @@
 
 **Status:** cloud and runtime proof captured 2026-08-31; video and Devpost fields pending
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
+
+**Deadline:** **1 Sep 2026 07:00 GMT+7** (~27h from 31 Aug 03:48 GMT+7).
+Not 31 August. Official facts: [hackathon-official.md](hackathon-official.md).
+
+**Judging:** Innovation & Operational Utility **40%** (agents that decide and
+finish tasks) · Architecture 30% · Demo/readiness 30%. Lead Devpost and video
+with `launch_readiness` READY/NOT_READY, not with the viewer.
+
+**Cost:** Cloud Run need not stay up for judging. Record
+`https://fleetscope-web-6tes2q7oqa-uc.a.run.app` and
+`https://fleetscope-api-6tes2q7oqa-uc.a.run.app`, then they may be deleted.
 
 ## Category
 
-- [ ] Select **The Taskmaster** in Devpost.
-- [ ] Description explains the multi-step launch-readiness workflow and
-  FleetScope's read-only observation/replay value.
+- [ ] Select **The Taskmaster** in Devpost (Fleet reconsidered; still no).
+- [ ] Description leads with the multi-step launch-readiness **decision**,
+  then FleetScope as read-only evidence.
 - [ ] Do not use Collaborative Partner unless the product is changed to center
   clarification and feedback.
 - [ ] Do not use Fortified Enterprise Fleet or CASE-1042 claims.
@@ -93,7 +104,8 @@
 - [ ] Video visibly proves Cloud Run/Google Cloud backend state.
 - [ ] No API key, credential, private prompt, hidden reasoning, or unsafe payload
   is visible.
-- [ ] Hosted URL is entered on Devpost. It works:
+- [ ] Hosted URL is entered on Devpost (proof of deploy; need not stay live
+  after the video):
   `https://fleetscope-web-6tes2q7oqa-uc.a.run.app`
 - [ ] Testing credentials/instructions are included if gated.
 - [ ] Architecture diagram is uploaded.
@@ -138,5 +150,8 @@ the graph together.
 
 - [Product brief](session-observer.md)
 - [Idea and pitch](idea-and-pitch.md)
+- [Official facts](hackathon-official.md)
+- [27-hour plan](../plans/final-27h.md)
+- [Action stack and gcloud ↔ TUI](../design/action-and-gcloud-tui.md)
 - [Runtime runbook](../design/hackathon-runtime.md)
 - [Devpost](https://allthingsagentichackathon.devpost.com/)

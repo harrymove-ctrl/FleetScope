@@ -1,12 +1,13 @@
 # React Bits Pro UI plan for Agent Viewer
 
-Status: current Astro-native fallback; React integration gated
-Last updated: 2026-08-30
+Status: Astro fallback retained; React Bits live in apps/ui
+Last updated: 2026-08-31
 
-> The canonical [frontend experience design](fleetscope-frontend-experience.md)
-> owns the future React Bits and OriginKit gates for the public launchpad. This
-> document records the current dependency-free Astro fallback and must not be
-> read as evidence that a proprietary registry item was installed.
+> This document records the current dependency-free Astro fallback. It must not
+> be read as evidence that a proprietary registry item was installed. The
+> launchpad design that once owned the React Bits and OriginKit gates was the
+> superseded enterprise shell, deleted on 2026-08-31; those gates are unowned
+> until something current claims them.
 
 > The warm Story surface mentioned below is a historical/deferred `/cockpit`
 > composition only. It does not apply to `/live`, whose near-black Agent
@@ -21,10 +22,27 @@ not replace the event graph, timeline, canonical cursor, or evidence adapter.
 
 ## Current compatibility note
 
-FleetScope's web app is Astro with no React runtime. No React Bits license was
-verified during this slice, so no authenticated registry source was fetched and
-no proprietary component was copied. The approved roles were implemented with
-dependency-free Astro, SVG, and CSS:
+FleetScope's product web app (`apps/web`) is Astro with no React runtime. As of
+2026-08-31 the local `REACTBITS_LICENSE_KEY` is configured in gitignored
+`.env.local` and the `@reactbits-starter` / `@reactbits-pro` registries
+authenticate successfully (`shadcn view` / `shadcn add` work).
+
+**Do not install `@astrojs/react` into `apps/web`:** it breaks Astro CSS virtual
+modules (`Missing field moduleType`) and unstyles the site. React Bits TSX lives
+in a separate Vite app:
+
+- **`apps/ui`** — React 19 + Tailwind 4 + React Bits Pro App UI (`pnpm dev:ui`).
+  Chrome-less embeds at `#/embed/approvals` and `#/embed/dashboard` are iframes
+  inside Astro `/approvals` and `/dashboard` (FleetScope nav + landing intact).
+  Bare `:5173` is a lab banner only — not the product shell.
+- **`apps/web`** — Astro static product surfaces (recorded Approval Card,
+  onboarding Dashboard, `/demo`, `/viewer`) stay dependency-free.
+
+HITL/Approvals in Astro keep the Astro-native Approval Card. Pro blocks are
+exercised in `apps/ui` until a future product decision merges the shells.
+
+The approved roles were otherwise implemented with dependency-free Astro, SVG,
+and CSS:
 
 - `TerminalWindow.astro` for command/workstation framing;
 - `AgentIdentity.astro` and `lib/agent-identity.ts` for deterministic actors;
@@ -105,6 +123,18 @@ npx shadcn@latest add @reactbits-starter/skill
 Before installing any Pro App UI block, verify the license tier. Never put the
 bearer token in source, documentation, Tracking, or a commit.
 
+
+## Content rule (locked 2026-08-31)
+
+Never ship React Bits **registry demo copy** in product embeds.
+
+| Surface | Allowed meaning | Forbidden leftovers |
+|---------|-----------------|---------------------|
+| `/dashboard` embed | Session readiness (Empty / Checking / Ready + product commands) | Net revenue, MRR, churn, paid accounts |
+| `/approvals` embed | `launch_readiness` HITL (budget +2, GCS upload once, confirm READY) | Delete projects, Acme refunds, API tokens, tickets |
+
+Source of truth: `apps/ui/src/content/{readiness,launch-hitl}.ts` rendered by `apps/ui/src/components/fleet/*`.
+
 ## Integration gate
 
 Installing proprietary React Bits source remains a separate future decision.
@@ -113,9 +143,10 @@ locally held license are present. The current onboarding Dashboard works without
 WebGL, Story works before JavaScript/WASM, and every presentation enhancement
 has a static or reduced-motion form.
 
-See the [frontend experience design](fleetscope-frontend-experience.md) for the
-full prerequisite, tier, export-style, isolation, and removal gates shared by
-React Bits and OriginKit.
+The full prerequisite, tier, export-style, isolation, and removal gates shared
+by React Bits and OriginKit lived in the superseded launchpad design and were
+deleted with it on 2026-08-31. Recover them from git history if that work
+restarts.
 
 ## Verification
 

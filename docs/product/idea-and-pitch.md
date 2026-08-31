@@ -2,16 +2,16 @@
 
 **Status:** active
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
 ## One-line idea
 
-> **Watch your agents work.** Gemini and Google ADK write an append-only JSONL
-> session. FleetScope turns it into a live or replayable graph of which agents
-> ran, what each one is doing, and where work stalled.
+> **Four Gemini agents inspect Cloud Run and Storage, then decide READY or
+> NOT_READY. FleetScope lets you watch that decision.**
 
-FleetScope is the observation window, not the runtime. It never launches,
-retries, approves, or mutates an agent action.
+The scoring product is the Google ADK launch-readiness workflow (40% of the
+rubric is autonomous action). FleetScope is the observation window, not the
+runtime. It never launches, retries, approves, or mutates an agent action.
 
 ## The real problem
 
@@ -89,24 +89,23 @@ compliance scope that was deliberately removed.
 
 ## 30-second pitch
 
-> “When Gemini runs several agents, the result is usually a wall of JSONL.
-> FleetScope lets you watch that work. In this demo, Google ADK runs four
-> launch-readiness agents against Cloud Run, Cloud Storage, and a fixed budget.
-> As their events arrive, FleetScope lays them out as a graph, shows every tool
-> result and error, and lets me replay the exact session afterward. Gemini does
-> the work; FleetScope makes the work understandable.”
+> “Gemini does not chat here. Google ADK runs four launch-readiness agents:
+> they inspect Cloud Run and Cloud Storage, enforce a six-call budget, and
+> the reviewer issues READY or NOT_READY. FleetScope does not start those
+> agents — it follows the JSONL they write, beside `gcloud` on the same
+> screen, so you can see the decision and the Google Cloud resource it
+> inspected. Gemini does the work; FleetScope makes the work inspectable.”
 
 ## Pitch deck
 
 | Slide | Message | Visual proof |
 |---|---|---|
-| 1. Problem | Multi-agent JSONL is hard to understand live or after failure | Raw JSONL beside an unreadable terminal |
-| 2. Insight | The append-only session is already the source of truth | JSONL → deterministic projection |
-| 3. Product | FleetScope is the graph, inspector, live edge, and replay timeline | Four-region viewer |
-| 4. Real workflow | Four Gemini/ADK agents inspect launch readiness | Root plus four direct children |
-| 5. Trust | Ground truth beats inference; hidden reasoning is removed | Unknown terminal state and redaction proof |
-| 6. Google architecture | Vertex AI + ADK + Cloud Run + Cloud Storage produce one evidence bundle | Architecture diagram and same session ID |
-| 7. Outcome | Debug, explain, and replay agent work without another run | Live follow → pause → replay |
+| 1. Problem | Launch readiness is a multi-step job, not a chat | Four agents, one decision |
+| 2. Action | Gemini/ADK inspects Cloud Run + Storage and decides READY/NOT_READY | Producer + Cloud Console / `gcloud` |
+| 3. Evidence | FleetScope follows the JSONL; it does not run the agents | Split: CLI left, TUI right |
+| 4. Trust | Ground truth beats inference; hidden reasoning is removed | Unknown/waiting + redaction |
+| 5. Architecture | Vertex + ADK + Cloud Run + Storage, one session ID | Diagram + `.run.app` |
+| 6. Replay | Finished work stays debuggable without another billed run | Pause, seek, return to edge |
 
 ## Claim discipline
 
@@ -125,4 +124,7 @@ compliance scope that was deliberately removed.
 - [Feature flows](feature-flows.md)
 - [UI/UX plan](ui-ux-plan.md)
 - [Runtime design](../design/hackathon-runtime.md)
+- [Official facts](hackathon-official.md)
+- [27-hour plan](../plans/final-27h.md)
 - [Hackathon checklist](hackathon-submission-checklist.md)
+- [Pitch and video speaking script](pitch-and-video-script.md)

@@ -5,14 +5,8 @@ boundaries FleetScope is built against.
 
 ## Read this set
 
-- [FleetScope requirements](fleetscope.md) — top-level product contract and
-  capability map (deprecated enterprise scope).
-- [Session Observer requirements](session-observer.md) — current product scope:
-  JSONL ingestion, graph, live follow, inspector, and replay.
-- [FleetScope requirement modules](fleetscope/README.md) — focused contracts
-  for audit, fleet, cockpit, and Warden behavior.
-- [Glossary](glossary.md) — normative names and boundaries used by the product
-  and design documents.
+- [Session Observer requirements](session-observer.md) — the current and only
+  product scope: JSONL ingestion, graph, live follow, inspector, and replay.
 
 The product narrative, feature-by-feature demo flow, and Devpost submission
 gate live in [`../product/idea-and-pitch.md`](../product/idea-and-pitch.md),

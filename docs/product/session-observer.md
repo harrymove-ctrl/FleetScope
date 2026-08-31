@@ -2,7 +2,7 @@
 
 **Status:** active product direction
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
 ## Product promise
 
@@ -30,12 +30,14 @@ needs to answer:
 
 | Feature | Surface | Status |
 |---|---|---|
+| Judge/video Session readings poster (zero click) | `/demo` | Implemented |
 | Open JSONL/JSON file or session folder | CLI and `/viewer` | Implemented |
 | CLI-first example folder and copyable watch command | CLI and `/viewer` | Implemented |
 | Detect Google ADK JSONL | adapter, `--formats` | Implemented |
 | Parent/child agent graph and rail | CLI/browser viewer | Implemented; visual depth is one level |
 | Message, tool, result, error, status inspector | viewer + `inspect` | Implemented |
 | Local live follow | CLI `--follow` | Implemented |
+| Local auto-follow of `.fleetscope/sessions` | `/viewer` on 127.0.0.1 | Implemented; Open folder is fallback only |
 | Play, pause, step, seek, speed, return to edge | CLI/browser | Implemented |
 | Unknown/waiting state instead of guessed completion | projection | Implemented and tested |
 | Hidden-reasoning removal | recorder + adapter | Implemented and tested |
@@ -61,11 +63,12 @@ rubric when the provider actually emits that model version. Google ADK is pinned
 at `2.8.0`.
 
 The model is configured by the producer, not selected by the observer UI:
-`--model <id>` or `FLEETSCOPE_ADK_MODEL` controls the ADK run, while `/viewer`
-shows the configured model as provenance and reads the resulting local
-`session.jsonl`. This keeps the web interaction honest: users can copy the CLI
-command, open a file/folder, inspect lanes, and replay; they cannot accidentally
-start a metered model call from the viewer.
+`--model <id>` or `FLEETSCOPE_ADK_MODEL` controls the ADK run. Judges should open
+`/demo` for the non-interactive Session readings poster; `/viewer` is the
+operator flight deck that shows provenance and follows local `session.jsonl`.
+Neither route starts a metered model call from the browser.
+
+See [Session readings judge demo](session-readings-judge-demo.md).
 
 The expected call budget is exact: two model turns for each tool-using probe,
 one for `budget_guard`, and one for `launch_reviewer`. The same 2/2/1/1
@@ -96,17 +99,19 @@ Rules:
 
 ## Four-minute demo
 
+Lead with the **decision workflow** (40% of judging). The viewer is proof,
+not the product. Full beat sheet: [27-hour plan](../plans/final-27h.md).
+
 | Time | Say | Show |
 |---|---|---|
-| 0:00–0:20 | “Multi-agent JSONL is hard to read. FleetScope lets you watch the work.” | Raw JSONL → landing/viewer |
-| 0:20–0:45 | “Google ADK is running four fixed launch-readiness tasks.” | Producer command, ADK 2.8.0, Vertex/Cloud evidence |
-| 0:45–1:20 | “Here is the team.” | `fleetscope inspect`: root + four children + observed model |
-| 1:20–2:00 | “Here is what each agent is doing.” | Follow the growing file; inspect Cloud Run and Storage tools/results |
-| 2:00–2:25 | “The budget itself is a visible task.” | `budget_guard`: 6 calls, 180s, 2 reads, 0 workflow writes |
-| 2:25–2:50 | “The reviewer decides only from the reports.” | `launch_reviewer` and READY/NOT_READY |
-| 2:50–3:25 | “Finished work remains debuggable.” | Pause, seek, step, speed, return to edge |
-| 3:25–3:45 | “Hidden reasoning and secrets never enter the viewer.” | Redaction test/proof; no thought content |
-| 3:45–4:00 | “Gemini does the work; FleetScope makes it visible.” | Browser graph + same session/proof ID |
+| 0:00–0:25 | “Four Gemini agents inspect Cloud Run and Storage, then decide READY or NOT_READY.” | Producer + ADK topology |
+| 0:25–0:50 | “They run on Vertex. Here is Google Cloud.” | Console or `gcloud` + `.run.app` |
+| 0:50–1:40 | “The reviewer decides from the reports, not from chat.” | `launch_reviewer` READY/NOT_READY |
+| 1:40–2:20 | “FleetScope does not start the agents. It follows the JSONL.” | Split: gcloud left, TUI `--follow` right |
+| 2:20–2:50 | “Budget is itself a task.” | `budget_guard` |
+| 2:50–3:20 | “Finished work remains debuggable.” | Pause, seek, return to edge |
+| 3:20–3:45 | “Hidden reasoning and secrets never enter the viewer.” | Redaction proof |
+| 3:45–4:00 | “Gemini does the work; FleetScope makes the decision inspectable.” | Same session ID + Cloud Run revision |
 
 ## Google Cloud choice
 
@@ -125,16 +130,13 @@ replayable.
 
 ## Remaining live gates
 
-- choose the real Google Cloud project, region, Cloud Run service, and bucket;
-- verify `gemini-3.7-flash` is available in that Vertex region/account;
-- run exactly one metered session and capture provider `modelVersion`;
-- optionally upload the finished redacted bundle;
-- verify the Cloud Run URL/revision and same session ID in the video;
-- complete deep viewer interaction QA in a normal desktop environment (the
-  launchpad viewport suite passes; the current Playwright viewer suite hung
-  after opening IPC and was stopped);
-- complete Devpost category, teammate, repo-sharing, URL, diagram, and video
-  checks.
+Deadline is **1 Sep 2026 07:00 GMT+7**. Cloud Run may be torn down after the
+video. Do not start `--run` without an explicit spend yes.
+
+- optional one more Vertex `--run` for a live-follow take;
+- record the four-minute video with `gcloud`/Console + TUI pair;
+- verify Cloud Run URL/revision on camera (then optional teardown);
+- complete Devpost category (Taskmaster), teammates, repo-sharing, diagram.
 
 ## Links
 
@@ -143,4 +145,5 @@ replayable.
 - [UI/UX plan](ui-ux-plan.md)
 - [Requirements](../requirements/session-observer.md)
 - [Design](../design/session-observer.md)
+- [Official facts](hackathon-official.md)
 - [Hackathon checklist](hackathon-submission-checklist.md)

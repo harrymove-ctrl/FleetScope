@@ -117,4 +117,3 @@ Do not lead with product marketing, CASE-1042, or a cloud-service logo grid.
 - [Session Observer](session-observer.md)
 - [Feature flows](feature-flows.md)
 - [Session Observer design](../design/session-observer.md)
-- [Historical Agent workspace implementation reference](../design/agent-workspace/README.md)

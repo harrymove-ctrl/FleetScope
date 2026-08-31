@@ -13,6 +13,18 @@ session from the TUI **or** the browser, see the same playhead on both, and
 work fullscreen. The evidence file stays the source of truth. Viewers never
 start the agent.
 
+**URL split (2026-08-31):**
+
+- **`/demo`** — judge/video poster. One status line + all seven Session
+  readings (handoffs, who held the run, agent tree, calls answered, event
+  health, session, timeline). Antigravity restraint chrome (no Claude/mdx
+  dashed stickers). No WASM, no Follow/Pause, zero clicks required.
+- **`/viewer`** — Gemini / Antigravity operator flight deck (graph, rail,
+  inspector, timeline, transport). Interactive. Story is a **one-line strip**
+  only (no 4-card dashboard / chapters / 3-column essay). Shared visual
+  language with `/demo` (serif display, Gemini orb, cyan kicker, blue CTA).
+  Full Session readings live on `/demo`.
+
 ## Why the TUI felt uncontrollable (2026-08-31 live take)
 
 This is observed behavior from the real `agy` run on

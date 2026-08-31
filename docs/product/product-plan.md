@@ -2,7 +2,7 @@
 
 **Status:** active
 
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
 ## Product outcome
 
@@ -68,13 +68,14 @@ secret or hidden reasoning appears.
 
 ### Phase 5 — Submission package
 
-Record a public video under four minutes, upload the architecture diagram,
-finish spin-up instructions, test the hosted URL, confirm Taskmaster, add all
-teammates, and verify repository access.
+Deadline **1 Sep 2026 07:00 GMT+7**. Record a public video under four minutes
+that leads with the READY/NOT_READY workflow, shows `gcloud`/Console beside
+the TUI, and proves Cloud Run. Hosted URLs are deploy proof; they may be
+deleted after the take. Confirm Taskmaster, add teammates, share the repo.
 
 **Done when:** every item in the submission checklist is either checked with
 evidence or explicitly marked missing; no configured value is presented as
-runtime proof.
+runtime proof. See [final-27h](../plans/final-27h.md).
 
 ## Quality gates
 
@@ -99,4 +100,5 @@ where Playwright browser IPC is available.
 - [UI/UX plan](ui-ux-plan.md)
 - [Requirements](../requirements/session-observer.md)
 - [Design](../design/session-observer.md)
+- [Official facts](hackathon-official.md)
 - [Submission checklist](hackathon-submission-checklist.md)
