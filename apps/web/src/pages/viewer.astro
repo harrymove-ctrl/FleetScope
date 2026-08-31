@@ -251,7 +251,11 @@ import '../styles/feature-viewer.css';
 
     <section class="viewer-shell fs-viewer__drop" data-dropzone>
       <header class="viewer-shell__header">
-        <div class="fs-viewer__meta" data-status role="status" aria-live="polite">
+        <!-- Not `data-status`: ApprovalCard puts that on its own root, and this
+             page renders one above the shell. The bare selector matched the
+             card instead, so `say()` overwrote a whole approval card with the
+             session line and this meta sat on "Loading the viewer…" forever. -->
+        <div class="fs-viewer__meta" data-viewer-status role="status" aria-live="polite">
           Loading the viewer…
         </div>
         <div class="viewer-shell__transport">
@@ -348,7 +352,7 @@ import '../styles/feature-viewer.css';
 <script is:inline>
   (function bootLocalSessionList() {
     const list = document.querySelector('[data-local-sessions]');
-    const status = document.querySelector('[data-status]');
+    const status = document.querySelector('[data-viewer-status]');
     if (list) {
       const ctrl = new AbortController();
       window.setTimeout(function () {
@@ -449,7 +453,7 @@ import '../styles/feature-viewer.css';
     type ViewState,
   } from '../features/viewer/follow';
 
-  const statusEl = document.querySelector('[data-status]') as HTMLElement | null;
+  const statusEl = document.querySelector('[data-viewer-status]') as HTMLElement | null;
   const summaryEl = document.querySelector('[data-summary]') as HTMLElement | null;
   const fallbackEl = document.querySelector('[data-fallback]') as HTMLElement | null;
   const dropzone = document.querySelector('[data-dropzone]') as HTMLElement | null;
@@ -736,13 +740,12 @@ import '../styles/feature-viewer.css';
     void copyAgyReplCommand();
   });
   followNewestEl?.addEventListener('change', () => {
-    const mod = api;
-    if (!mod || !followNewest()) return;
+    if (!api || !followNewest()) return;
     void fetchLocalSessions().then((listed) => {
       const newest = listed[0];
       if (!newest) return;
-      void loadLocalSession(mod, newest).then((ok) => {
-        if (ok) scheduleLocalPoll(mod);
+      void loadLocalSession(api, newest).then((ok) => {
+        if (ok) scheduleLocalPoll(api);
         renderLocalSessionList(listed);
       });
     });
@@ -918,11 +921,10 @@ import '../styles/feature-viewer.css';
       button.innerHTML = `<span class="viewer-sessions__id">${row.id}</span><span class="viewer-sessions__meta">${kb}</span>`;
       button.addEventListener('click', () => {
         if (followNewestEl) followNewestEl.checked = false;
-        const mod = api;
-        if (!mod) return;
-        void loadLocalSession(mod, row).then((ok) => {
+        if (!api) return;
+        void loadLocalSession(api, row).then((ok) => {
           if (ok) {
-            scheduleLocalPoll(mod);
+            scheduleLocalPoll(api);
             void fetchLocalSessions().then(renderLocalSessionList);
           }
         });
@@ -952,9 +954,8 @@ import '../styles/feature-viewer.css';
   async function attachLocalSessions(mod: Api): Promise<boolean> {
     const listed = await fetchLocalSessions();
     renderLocalSessionList(listed);
-    const first = listed[0];
-    if (!first) return false;
-    const ok = await loadLocalSession(mod, first);
+    if (listed.length === 0) return false;
+    const ok = await loadLocalSession(mod, listed[0]);
     if (ok) scheduleLocalPoll(mod);
     return ok;
   }

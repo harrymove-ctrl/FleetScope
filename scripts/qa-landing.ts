@@ -21,13 +21,21 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page } from 'playwright';
+import { LAUNCH_CHAPTERS, visibleChapters } from '../apps/web/src/features/launch/chapters';
 
 const BASE_URL = process.env['FLEETSCOPE_QA_BASE_URL'] ?? 'http://localhost:4321';
 /** Optional: write a frame per section so the page can be reviewed by eye. */
 const SHOTS = process.env['FLEETSCOPE_QA_SHOTS'] ?? null;
 
-/** Kept in step with the launch manifest. */
-const EXPECTED_CHAPTERS = 8;
+/*
+ * Read from the manifest rather than written down.
+ *
+ * A literal here goes stale the moment a chapter is added, and it goes
+ * stale silently: the gate fails with a number nobody can interpret instead
+ * of naming the rule. `liveVerified: false` matches what the page renders,
+ * since a live card is withheld without a capability response.
+ */
+const EXPECTED_CHAPTERS = visibleChapters(LAUNCH_CHAPTERS, { liveVerified: false }).length;
 
 const VIEWPORTS = [
   { name: '375x812', width: 375, height: 812, desktop: false },
