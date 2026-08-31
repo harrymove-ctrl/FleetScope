@@ -631,12 +631,13 @@ import '../styles/feature-viewer.css';
     void copyAgyReplCommand();
   });
   followNewestEl?.addEventListener('change', () => {
-    if (!api || !followNewest()) return;
+    const mod = api;
+    if (!mod || !followNewest()) return;
     void fetchLocalSessions().then((listed) => {
       const newest = listed[0];
       if (!newest) return;
-      void loadLocalSession(api, newest).then((ok) => {
-        if (ok) scheduleLocalPoll(api);
+      void loadLocalSession(mod, newest).then((ok) => {
+        if (ok) scheduleLocalPoll(mod);
         renderLocalSessionList(listed);
       });
     });
@@ -815,10 +816,11 @@ import '../styles/feature-viewer.css';
       button.innerHTML = `<span class="viewer-sessions__id">${row.id}</span><span class="viewer-sessions__meta">${kb}</span>`;
       button.addEventListener('click', () => {
         if (followNewestEl) followNewestEl.checked = false;
-        if (!api) return;
-        void loadLocalSession(api, row).then((ok) => {
+        const mod = api;
+        if (!mod) return;
+        void loadLocalSession(mod, row).then((ok) => {
           if (ok) {
-            scheduleLocalPoll(api);
+            scheduleLocalPoll(mod);
             void fetchLocalSessions().then(renderLocalSessionList);
           }
         });
@@ -848,8 +850,9 @@ import '../styles/feature-viewer.css';
   async function attachLocalSessions(mod: Api): Promise<boolean> {
     const listed = await fetchLocalSessions();
     renderLocalSessionList(listed);
-    if (listed.length === 0) return false;
-    const ok = await loadLocalSession(mod, listed[0]);
+    const first = listed[0];
+    if (!first) return false;
+    const ok = await loadLocalSession(mod, first);
     if (ok) scheduleLocalPoll(mod);
     return ok;
   }
